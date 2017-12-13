@@ -1,6 +1,6 @@
 ###############################################################################
 #                                                                             #
-#   Millimeter-wave Laboratory, University of Chile                           #
+#   Millimeter-wave Laboratory, Department of Astronomy, University of Chile  #
 #   http://www.das.uchile.cl/lab_mwl                                          #
 #   Copyright (C) 2017 Franco Curotto                                         #
 #                                                                             #
@@ -24,8 +24,8 @@ import numpy as np
 
 class DummyRoach():
     """
-    This class emulates a ROACH connection. Is used for debugging purposes
-    for the rest of the code.
+    Emulates a ROACH connection. Is used for debugging purposes for the rest
+    of the code.
     """
     def __init__(self):
         self.clk = 1
@@ -68,3 +68,33 @@ class DummyRoach():
             return [reg['val'] for reg in self.regs if reg['name'] == reg_name][0]
         except:
             print 'No register found with name ' + reg_name
+
+    def gen_gaussian_signal(self, mu=0, sigma=1, low=-128, high=127, size, dtype='>i1'):
+        """
+        Returns an array with Gaussian (normal distributed) values. Values can
+        be clipped (saturated), and the data type can be defined, in order to 
+        emulate ADC values.
+
+        Parameters
+        ----------
+        mu : float
+            Mean of Gaussian distribution.
+        sigma : float
+            Standard deviation of Gaussian distribution.
+        low : float
+            Lower limit for data values (inclusive).
+        high : float
+            Upper limit for data values (inclusive).
+        size : int
+            Size of the array.
+        dtype : dtype
+            Data type of the array.
+
+        Returns
+        -------
+        array
+            Array with the Gaussian values.
+        """
+        signal = sigma * np.randn(size) + mu
+        signal = np.clip(signal, low, high)
+        return signal.astype(dtype)

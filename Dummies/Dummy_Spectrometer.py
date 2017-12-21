@@ -20,15 +20,7 @@
 #                                                                             #
 ###############################################################################
 
-import importlib
 from Dummy_Roach import DummyRoach
 
 class DummySpectrometer(DummyRoach):
-    """
-    Emulates a spectrometer implemented in ROACH.
-    """
-    def __init__(self, config_file):
-        DummyRoach.__init__()
-
-
-
+    

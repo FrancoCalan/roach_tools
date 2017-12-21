@@ -34,19 +34,19 @@ class DummyRoach():
 
     def is_connected(self):
         """
-        Emulates ROACH connection tests. Always True.
+        Emulates ROACH connection test. Always True.
         """
         return True
 
-    def ping(self):
+    def upload_program_bof(self):
         """
-        Emulates ROACH ping. Always True. 
+        Emulates programming of the FPGA. Does nothing.
         """
-        return True
+        pass
 
     def est_brd_clk(self):
         """
-        Emulates board clock estimation.
+        Emulates FPGA clock estimation.
         """
         return self.clk
 
@@ -69,7 +69,7 @@ class DummyRoach():
         except:
             print 'No register found with name ' + reg_name
 
-    def gen_gaussian_signal(self, mu=0, sigma=1, low=-128, high=127, size, dtype='>i1'):
+    def gen_gaussian_signal(self, mu=0, sigma=1, low=-128, high=127, size=256, dtype='>i1'):
         """
         Returns an array with Gaussian (normal distributed) values. Values can
         be clipped (saturated), and the data type can be defined, in order to 

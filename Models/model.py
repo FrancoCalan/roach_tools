@@ -21,8 +21,8 @@
 ###############################################################################
 
 import sys, time
-sys.path.append('../Dummy_Roach')
-from Dummy_Roach import DummyRoach
+sys.path.append('../Dummies')
+from dummy_roach import DummyRoach
 import corr, adc5g
 
 class Model():

@@ -21,7 +21,7 @@
 ###############################################################################
 
 import numpy as np
-from Model import Model
+from model import Model
 from itertools import chain
 
 class Spectrometer(Model):
@@ -37,9 +37,9 @@ class Spectrometer(Model):
         file.
         """
         snap_data_arr = []
-        for snapshot in chain.from_iterable(snapshots): # flatten list
+        for snapshot in chain.from_iterable(self.settings.snapshots): # flatten list
             snap_data = np.fromsrting(self.fpga.snapshot_get(snapshot, 
-                man_trig=True, mand_valid=True)['data'], dtype='>i1')
+                man_trig=True, mand_valid=True)['data'], dtype='>i1')\
                 [0:self.settings.snap_samples]
             snap_data_arr.append(snap_data)
 
@@ -55,10 +55,11 @@ class Spectrometer(Model):
         dtype = self.settings.spec_info['data_type']
 
         spec_data_arr = []
-        for spec_brams in self.settings.spec_info.bram_list
+        for spec in self.settings.spec_info.spec_list:
             bram_data_arr = []
-            for bram in spec_brams:
-                bram_data = struct.unpack('>'+str(depth)+dtype, fpga.read(bram, depth*width/8, 0))
+            for bram in spec.bram_list:
+                bram_data = struct.unpack('>'+str(depth)+dtype, fpga.read(bram, 
+                    depth*width/8, 0))
                 bram_data_arr.append(bram_data)
             spec_data = np.fromiter(chain(*zip(*bram_data_arr)), dtype=dtype) # interleave data
             spec_data = spec_data / float(self.fpga.read_int('acc_len')) # divide by accumulation

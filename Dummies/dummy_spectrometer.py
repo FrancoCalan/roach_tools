@@ -20,7 +20,8 @@
 #                                                                             #
 ###############################################################################
 
-from Dummy_Roach import DummyRoach
+from dummy_roach import DummyRoach
 
 class DummySpectrometer(DummyRoach):
+    pass
     

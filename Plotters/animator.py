@@ -21,7 +21,7 @@
 ###############################################################################
 
 import os, sys, importlib
-from matplotlib.figure import Figure
+import matplotlib.pyplot as plt
 import matplotlib.animation as animation
 
 class Animator():
@@ -45,16 +45,26 @@ class Animator():
             ax.set_ylabel(self.ylabel)
             ax.set_title(self.titles[i])
             ax.grid(True)
-            self.line_arr(ax.plot([], [], lw=2)[0])
+            self.line_arr.append(ax.plot([], [], lw=2, animated=True)[0])
 
-            self.fig.set_tight_layout(True)
-            anim = animation.FuncAnimation(self.fig, animate, fargs=(self,), blit=True)
+        #self.fig.set_tight_layout(True)
 
-    def animate(_, self):
-        """
-        It's call on every frame of the animation. Updates the data.
-        """
-        data_arr = self.get_data()
+        self.add_widgets()
 
-        for i, ydata in enumerate(data_arr):
-            self.line_arr[i].set_data(self.xdata, ydata)
+        anim = animation.FuncAnimation(self.fig, animate, fargs=(self,), blit=True)
+
+        plt.show()
+
+    def add_widgets(self):
+        pass
+
+def animate(_, self):
+    """
+    It's call on every frame of the animation. Updates the data.
+    """
+    data_arr = self.get_data()
+   
+    for i, ydata in enumerate(data_arr):
+        self.line_arr[i].set_data(self.xdata, ydata)
+
+    return self.line_arr

@@ -37,7 +37,7 @@ class DummyRoach():
         """
         return True
 
-    def upload_program_bof(self):
+    def upload_program_bof(self, boffile):
         """
         Emulates programming of the FPGA. Does nothing.
         """
@@ -56,8 +56,7 @@ class DummyRoach():
         try:
             write_reg = [reg for reg in self.regs if reg['name'] == reg_name][0]
         except:
-            print 'No register found with name ' + reg_name
-            return
+            raise Exception('No register found with name ' + reg_name)
         write_reg['val'] = val
 
     def read_int(self, reg_name):
@@ -67,7 +66,7 @@ class DummyRoach():
         try:
             return [reg['val'] for reg in self.regs if reg['name'] == reg_name][0]
         except:
-            print 'No register found with name ' + reg_name
+            raise Exception('No register found with name ' + reg_name)
 
     def gen_gaussian_array(self, mu, sigma, low, high, size, dtype='>i1'):
         """
@@ -96,8 +95,8 @@ class DummyRoach():
             Array with the Gaussian values.
         """
         try:
-            signal = sigma * np.randn(size) + mu  # single axis
+            signal = sigma * np.random.randn(size) + mu  # single axis
         except:
-            signal = sigma * np.randn(*size) + mu # multi axis
+            signal = sigma * np.random.randn(*size) + mu # multi axis
         signal = np.clip(signal, low, high)
         return signal.astype(dtype)

@@ -21,7 +21,6 @@
 ###############################################################################
 
 import time
-from dummy_roach import DummyRoach
 import corr, adc5g
 
 class Model():
@@ -31,11 +30,12 @@ class Model():
     """
     def __init__(self, settings):
         self.settings = settings
-        if self.setting.simulated:
+        if self.settings.simulated:
             self.fpga = self.get_dummy_fpga(self.settings)
         else:
             self.fpga = corr.katcp_wrapper.FpgaClient(self.settings.ip)
             time.sleep(0.1)
+        self.initialize_roach()
 
     def initialize_roach(self):
         self.connect_to_roach()
@@ -49,7 +49,7 @@ class Model():
         """
         Verify communication with ROACH.
         """
-        print 'Connecting to ROACH server %s on port %i... ' %(self.settings[ip], self.settings[port]),
+        print 'Connecting to ROACH server %s on port %i... ' %(self.settings.ip, self.settings.port),
         if self.fpga.is_connected():
             print 'ok'
         else:
@@ -59,8 +59,8 @@ class Model():
         """
         Upload to RAM and program the .bof model to de FPGA.
         """
-        print 'Uploading and programming FPGA with %s... ' %settings.boffile,
-        self.fpga.upload_program_bof(settings.boffile)
+        print 'Uploading and programming FPGA with %s... ' %self.settings.boffile,
+        self.fpga.upload_program_bof(self.settings.boffile)
         time.sleep(0.1)
         print 'done'
 
@@ -68,7 +68,7 @@ class Model():
         """
         Estimate FPGA clock
         """
-        print 'Estimating FPGA clock: ' + str(self.fpga.estimate_fpga_clock)
+        print 'Estimating FPGA clock: ' + str(self.fpga.est_brd_clk())
 
     def calibrate_adc(self):
         print 'Calibrating ADC0... ', 
@@ -94,18 +94,31 @@ class Model():
         """
         print 'Setting registers:'
         for reg in self.settings.set_regs:
-            print '\tSetting %s to %i... ' %(reg['name'], reg['val']),
-            self.fpga.write_int(reg['name'], reg['val'])
-            time.sleep(0.1)
-            print 'done'
-
+            self.set_reg(reg)
+            
         print 'Resetting registers:'
         for reg in self.settings.reset_regs:
-            print '\tResetting %s... ' %reg,
-            self.fpga.write_int(reg, 1)
-            time.sleep(0.1)
-            self.fpga.write_int(reg, 0)
-            time.sleep(0.1)
-            print 'done'
+            self.reset_reg(reg)
 
         print 'Done setting and reseting registers'
+
+    def set_reg(self, reg):
+        """
+        Set register.
+        """
+        print '\tSetting %s to %i... ' %(reg['name'], reg['val']),
+        self.fpga.write_int(reg['name'], reg['val'])
+        time.sleep(0.1)
+        print 'done'
+
+
+    def reset_reg(self, reg):
+        """
+        Reset register.
+        """
+        print '\tResetting %s... ' %reg,
+        self.fpga.write_int(reg, 1)
+        time.sleep(0.1)
+        self.fpga.write_int(reg, 0)
+        time.sleep(0.1)
+        print 'done'

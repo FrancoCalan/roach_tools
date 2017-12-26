@@ -30,7 +30,6 @@ class DummyRoach():
     def __init__(self):
         self.clk = 1
         self.regs = []
-        self.brams = []
 
     def is_connected(self):
         """
@@ -58,6 +57,7 @@ class DummyRoach():
             write_reg = [reg for reg in self.regs if reg['name'] == reg_name][0]
         except:
             print 'No register found with name ' + reg_name
+            return
         write_reg['val'] = val
 
     def read_int(self, reg_name):
@@ -69,7 +69,7 @@ class DummyRoach():
         except:
             print 'No register found with name ' + reg_name
 
-    def gen_gaussian_signal(self, mu=0, sigma=1, low=-128, high=127, size=256, dtype='>i1'):
+    def gen_gaussian_array(self, mu, sigma, low, high, size, dtype='>i1'):
         """
         Returns an array with Gaussian (normal distributed) values. Values can
         be clipped (saturated), and the data type can be defined, in order to 
@@ -85,7 +85,7 @@ class DummyRoach():
             Lower limit for data values (inclusive).
         high : float
             Upper limit for data values (inclusive).
-        size : int
+        size : int or array
             Size of the array.
         dtype : dtype
             Data type of the array.
@@ -95,6 +95,9 @@ class DummyRoach():
         array
             Array with the Gaussian values.
         """
-        signal = sigma * np.randn(size) + mu
+        try:
+            signal = sigma * np.randn(size) + mu  # single axis
+        except:
+            signal = sigma * np.randn(*size) + mu # multi axis
         signal = np.clip(signal, low, high)
         return signal.astype(dtype)

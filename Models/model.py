@@ -20,8 +20,7 @@
 #                                                                             #
 ###############################################################################
 
-import sys, time
-sys.path.append('../Dummies')
+import time
 from dummy_roach import DummyRoach
 import corr, adc5g
 
@@ -33,7 +32,7 @@ class Model():
     def __init__(self, settings):
         self.settings = settings
         if self.setting.simulated:
-            self.fpga = DummyRoach()
+            self.fpga = self.get_dummy_fpga(self.settings)
         else:
             self.fpga = corr.katcp_wrapper.FpgaClient(self.settings.ip)
             time.sleep(0.1)
@@ -54,8 +53,7 @@ class Model():
         if self.fpga.is_connected():
             print 'ok'
         else:
-            print 'ERROR'
-            exit()
+            raise Exception('Unable to connect to ROACH.')
 
     def upload_and_program(self):
         """

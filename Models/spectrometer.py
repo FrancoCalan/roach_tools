@@ -20,9 +20,12 @@
 #                                                                             #
 ###############################################################################
 
+import sys
 import numpy as np
-from model import Model
 from itertools import chain
+from model import Model
+sys.path.append('../Dummies')
+from dummy_spectrometer import DummySpectromenter
 
 class Spectrometer(Model):
     """
@@ -31,6 +34,12 @@ class Spectrometer(Model):
     def __init__(self, settings):
         Model.__init__(settings)
 
+    def get_dummy_fpga(self, settings):
+        """
+        Create a dummy spectrometer to fetch fake data. For testing proposes.
+        """
+        return DummySpectrometer(settings)
+
     def get_snapshot(self):
         """
         Get snapshot data from all snapshot blocks specified in the config 
@@ -38,9 +47,8 @@ class Spectrometer(Model):
         """
         snap_data_arr = []
         for snapshot in chain.from_iterable(self.settings.snapshots): # flatten list
-            snap_data = np.fromsrting(self.fpga.snapshot_get(snapshot, 
-                man_trig=True, mand_valid=True)['data'], dtype='>i1')\
-                [0:self.settings.snap_samples]
+            snap_data = np.fromsrting(self.fpga.snapshot_get(snapshot, man_trig=True, 
+                man_valid=True)['data'], dtype='>i1')[0:self.settings.snap_samples]
             snap_data_arr.append(snap_data)
 
         return snap_data_arr

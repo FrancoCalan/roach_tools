@@ -47,3 +47,7 @@ class SnapshotAnimator(Animator):
         Gets the snapshot data form the spectrometer model.
         """
         return self.spectrometer.get_snapshot()
+
+if '__name__' == '__main__':
+    animator = SnapshotAnimator()
+    animator.start_animation()

@@ -22,42 +22,27 @@
 #                                                                             #
 ###############################################################################
 
-import sys, os, numexpr
-from itertools import chain
+import sys, os
 sys.path.append('../Models')
 sys.path.append(os.getcwd())
 import numpy as np
 import matplotlib.pyplot as plt
 import Tkinter as Tk
-from spectrometer import Spectrometer
-from animator import Animator
+from kestfilt import Kestfilt
+from spectra_animator import SpectraAnimator
 
-class SpectraAnimator(Animator):
+class KestfiltAnimator(SpectraAnimator):
     """
     Class responsable for drawing spectra plots.
     """
     def __init__(self):
-        Animator.__init__(self)
-        self.xlim = (0, self.settings.bw)
-        self.ylim = (-100, 10)
-        self.xlabel = 'Frequency [MHz]'
-        self.ylabel = 'Power [dBFS]'
-        self.titles = [spec['name'] for spec in self.settings.spec_info['spec_list']]
-        self.entries = []
-        
-        n_brams = len(self.settings.spec_info['spec_list'][0]['bram_list'])
-        channels = n_brams * 2**self.settings.spec_info['addr_width']
-        self.xdata = np.linspace(0, self.settings.bw, channels, endpoint=False)
-        
-        #self.fig, self.ax_arr = self.get_fig_ax_arr()
-        self.fig = plt.Figure()
-
+        SpectraAnimator.__init__(self)
 
     def get_model(self, settings):
         """
-        Get spectrometer model for animator.
+        Get kestfilt model for animator.
         """
-        return Spectrometer(settings)
+        return Kestfilt(settings)
 
     
     def get_data(self):
@@ -70,34 +55,36 @@ class SpectraAnimator(Animator):
         """
         Create window and add widgets.
         """
-        Animator.create_window(self)
-
-        # reset button
-        self.reset_button = Tk.Button(self.button_frame, text='Reset', command=lambda: self.model.reset_reg('cnt_rst'))
-        self.reset_button.pack(side=Tk.LEFT)
-
-        # acc_len entry
-        self.add_reg_entry('acc_len')
-
-    def add_reg_entry(self, reg):
-        frame = Tk.Frame(master=self.root)
-        frame.pack(side = Tk.TOP, anchor="w")
-        label = Tk.Label(frame, text=reg+":")
-        label.pack(side=Tk.LEFT)
-        entry = Tk.Entry(frame)
-        entry.insert(Tk.END, self.model.fpga.read_int(reg))
-        entry.pack(side=Tk.LEFT)
-        entry.bind('<Return>', lambda x: self.set_reg_from_entry(reg, entry))
-        self.entries.append(entry)
-
-    def set_reg_from_entry(self, reg, entry):
-        string_val = entry.get()
-        try:
-            val = int(numexpr.evaluate(string_val))
-        except:
-            raise Exception('Unable to parse value in textbox')
-        self.model.set_reg(reg, val)
+        SpectraAnimator.create_window(self)
         
+        # filter_on button
+        self.filter_on_label = Tk.StringVar()
+        if self.model.fpga.read_int('filter_on') == 0:
+            self.filter_on_label.set('Filter off')
+        else:
+            self.filter_on_label.set('Filter on')
+        self.filter_on_button = Tk.Button(self.button_frame, textvariable=self.filter_on_label, command=self.toggle_filter)
+        self.filter_on_button.pack(side=Tk.LEFT)
+       
+        # filter_gain entry
+        self.add_reg_entry('filter_gain')
+
+        # filter_acc entry
+        self.add_reg_entry('filter_acc')
+
+        # channel entry
+        self.add_reg_entry('channel')
+
+    def toggle_filter(self):
+        if self.model.fpga.read_int('filter_on') == 1:
+            self.model.set_reg('filter_on', 0)
+            self.filter_on_label.set('Filter Off')
+            print('Filter is off')
+        else:
+            self.model.set_reg('filter_on', 1)
+            self.filter_on_label.set('Filter On')
+            print('Filter is on')
+
 if __name__ == '__main__':
-    animator = SpectraAnimator()
+    animator = KestfiltAnimator()
     animator.start_animation()

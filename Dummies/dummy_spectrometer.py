@@ -20,13 +20,14 @@
 #                                                                             #
 ###############################################################################
 
+import struct
 import numpy as np
 from itertools import chain
 from dummy_roach import DummyRoach
 
 class DummySpectrometer(DummyRoach):
     """
-    Emulates an spectrometer implemented in ROACH. Used to deliver teset data.
+    Emulates a spectrometer implemented in ROACH. Used to deliver test data.
     """
     def __init__(self, settings):
         DummyRoach.__init__(self)
@@ -60,19 +61,21 @@ class DummySpectrometer(DummyRoach):
             raise Exception("Snapshot not defined in config file.")
             
     def read(self, bram, nbytes, offset=0):
+        """
+        Return random spectra added by acc_len.
+        """
         if bram in self.spec_brams:
             acc_len = [reg['val'] for reg in self.regs if reg['name']=='acc_len'][0]
-            spec_len = 8*nbytes / self.settings.spec_info['data_width']
+            spec_len = self.get_n_data(nbytes, self.settings.spec_info['data_width'])
             signal_arr = self.gen_gaussian_array(mu=0, sigma=0.25, low=-1, high=1,
                 size=(acc_len, 2*spec_len), dtype='>f')
 
             spec_arr = np.abs(np.fft.rfft(signal_arr, axis=1)[:, :spec_len])
             spec = np.sum(spec_arr, axis=0)
-            spec = spec.astype('>'+self.settings.spec_info['data_type'])
-            spec = spec.tobytes()
-            return spec
+            return struct.pack('>'+str(spec_len)+self.settings.spec_info['data_type'], *spec)
 
         else: 
             raise Exception("BRAM not defined in config file.")
 
-    
+    def get_n_data(self, nbytes, data_width):
+        return 8 * nbytes / data_width

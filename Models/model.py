@@ -94,7 +94,7 @@ class Model():
         """
         print 'Setting registers:'
         for reg in self.settings.set_regs:
-            self.set_reg(reg)
+            self.set_reg(reg['name'], reg['val'])
             
         print 'Resetting registers:'
         for reg in self.settings.reset_regs:
@@ -102,15 +102,14 @@ class Model():
 
         print 'Done setting and reseting registers'
 
-    def set_reg(self, reg):
+    def set_reg(self, reg, val):
         """
         Set register.
         """
-        print '\tSetting %s to %i... ' %(reg['name'], reg['val']),
-        self.fpga.write_int(reg['name'], reg['val'])
+        print '\tSetting %s to %i... ' %(reg, val),
+        self.fpga.write_int(reg, val)
         time.sleep(0.1)
         print 'done'
-
 
     def reset_reg(self, reg):
         """

@@ -22,60 +22,56 @@
 
 import sys
 import numpy as np
-from itertools import chain
 import struct
-from model import Model
+from spectrometer import Spectrometer
 sys.path.append('../Dummies')
-from dummy_spectrometer import DummySpectrometer
+from dummy_kestfilt import DummyKestfilt
 
-class Spectrometer(Model):
+class Kestfilt(Spectrometer):
     """
-    Helper class to read and write data from spectrometer models.
+    Helper class to read and write data from Kesteven filter.
     """
     def __init__(self, settings):
-        Model.__init__(self, settings)
+        Spectrometer.__init__(self, settings)
 
     def get_dummy_fpga(self, settings):
         """
-        Create a dummy spectrometer to fetch fake data. For testing proposes.
+        Create a dummy kestfilt to fetch fake data. For testing proposes.
         """
-        return DummySpectrometer(settings)
-
-    def get_snapshot(self):
+        return DummyKestfilt(settings)
+        
+    def get_time_data(self):
         """
-        Get snapshot data from all snapshot blocks specified in the config 
-        file.
+        Returns data from time analysis. This includes single channel power,
+        max channel power, and mean channel power.
         """
-        snap_data_arr = []
-        for snapshot in chain.from_iterable(self.settings.snapshots): # flatten list
-            snap_data = np.fromstring(self.fpga.snapshot_get(snapshot, man_trig=True, 
-                man_valid=True)['data'], dtype='>i1')[0:self.settings.snap_samples]
-            snap_data_arr.append(snap_data)
+        # single channel
+        [chnl_data_real, chnl_data_imag] = self.get_bram_data(self.settings.time_info_chnl)
+        chnl_data = np.array(chnl_data_real)**2 + np.array(chnl_data_imag)**2 # compute power
+        chnl_data = self.linear_to_dBFS(chnl_data)
+        
+        # max channel
+        max_data = self.get_bram_data(self.settings.time_info_max)
+        max_data = self.linear_to_dBFS(max_data)
 
-        return snap_data_arr
-            
-    def get_spectra(self):
+        # mean channel
+        mean_data = self.get_bram_data(self.settings.time_info_mean)
+        mean_data = self.linear_to_dBFS(mean_data)
+
+        return [chnl_data, max_data, mean_data]
+
+    def get_bram_data(self, bram_info):
         """
-        Get spectra data from brams using the information specified in the
-        config file.
+        Receive and unpack data from FPGA using data information from bram_info.
         """
-        width = self.settings.spec_info['data_width']
-        depth = 2**self.settings.spec_info['addr_width']
-        dtype = self.settings.spec_info['data_type']
+        bram_list = bram_info['name_list']
+        width = bram_info['data_width']
+        depth = 2**bram_info['addr_width']
+        dtype = bram_info['data_type'] 
 
-        spec_data_arr = []
-        for spec in self.settings.spec_info['spec_list']:
-            bram_data_arr = []
-            for bram in spec['bram_list']:
-                bram_data = struct.unpack('>'+str(depth)+dtype, self.fpga.read(bram, 
-                    depth*width/8, 0))
-                bram_data_arr.append(bram_data)
-            spec_data = np.fromiter(chain(*zip(*bram_data_arr)), dtype=dtype) # interleave data
-            spec_data = spec_data / float(self.fpga.read_int('acc_len')) # divide by accumulation
-            spec_data = self.linear_to_dBFS(spec_data)
-            spec_data_arr.append(spec_data)
+        bram_data_arr = []
+        for bram in bram_list:
+            bram_data = struct.unpack('>'+str(depth)+dtype, fpga.read(bram, depth*width/8, 0))
+            bram_data_arr.append(bram_data)
 
-        return spec_data_arr
-
-    def linear_to_dBFS(self, data):
-        return 10*np.log10(data+1) - self.settings.dBFS_const
+        return bram_data_arr

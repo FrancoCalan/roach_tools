@@ -1,5 +1,3 @@
-#!/usr/bin/env python
-
 ###############################################################################
 #                                                                             #
 #   Millimeter-wave Laboratory, Department of Astronomy, University of Chile  #
@@ -22,42 +20,35 @@
 #                                                                             #
 ###############################################################################
 
-import sys, os
-from itertools import chain
-sys.path.append('../Models')
-sys.path.append(os.getcwd())
-import matplotlib.pyplot as plt
-from spectrometer import Spectrometer
-from animator import Animator
+import struct
+import numpy as np
+from dummy_spectrometer import DummySpectrometer
 
-class SnapshotAnimator(Animator):
+class DummyKestfilt(DummySpectrometer):
     """
-    Class responsable for drawing snapshot plots.
+    Emulates a Kesteven filter implemented in ROACH. Used to deliver test data.
     """
-    def __init__(self):
-        Animator.__init__(self)
-        self.xlim = (0, self.settings.snap_samples)
-        self.ylim = (-140, 140)
-        self.xlabel = 'Sample'
-        self.ylabel = 'Amplitude [a.u.]'
-        self.titles = list(chain.from_iterable(self.settings.snapshots)) # flatten list
-        self.xdata = range(self.settings.snap_samples)
+    def __init__(self, settings):
+        DummySpectrometer.__init__(self, settings)
+        
+        # get time-test info
+        self.time_info_arr = []
+        self.time_info_arr.append(self.settings.time_info_chnl)
+        self.time_info_arr.append(self.settings.time_info_max)
+        self.time_info_arr.append(self.settings.time_info_mean)
 
-        #self.fig, self.ax_arr = self.get_fig_ax_arr()
-        self.fig = plt.Figure()
+    def read(self, bram, nbytes, offset=0):                    
+        for time_info in self.time_info_arr:
+            if bram in time_info['bram_list']:
+                n_data = self.get_n_data(nbytes, time_info['data_width'])
+                
+                # time data a + exp(b*x)
+                a = np.random.random()
+                b = -(1.0/n_data)*np.random.random()
+                time_data = a + np.exp(b*range(n_data))
 
-    def get_model(self, settings):
-        """
-        Get spectrometer model for animator.
-        """
-        return Spectrometer(settings)
+                return struct.pack('>'+str(n_data)+time_info['data_type'], *time_data)
 
-    def get_data(self):
-        """
-        Gets the snapshot data form the spectrometer model.
-        """
-        return self.model.get_snapshot()
-
-if __name__ == '__main__':
-    animator = SnapshotAnimator()
-    animator.start_animation()
+        else:
+            return DummySpectrometer.read(self, bram, nbytes, offset)
+        

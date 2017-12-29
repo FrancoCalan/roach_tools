@@ -49,10 +49,6 @@ class SpectraAnimator(Animator):
         channels = n_brams * 2**self.settings.spec_info['addr_width']
         self.xdata = np.linspace(0, self.settings.bw, channels, endpoint=False)
         
-        #self.fig, self.ax_arr = self.get_fig_ax_arr()
-        self.fig = plt.Figure()
-
-
     def get_model(self, settings):
         """
         Get spectrometer model for animator.

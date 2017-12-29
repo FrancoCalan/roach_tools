@@ -43,9 +43,6 @@ class SnapshotAnimator(Animator):
         self.titles = list(chain.from_iterable(self.settings.snapshots)) # flatten list
         self.xdata = range(self.settings.snap_samples)
 
-        #self.fig, self.ax_arr = self.get_fig_ax_arr()
-        self.fig = plt.Figure()
-
     def get_model(self, settings):
         """
         Get spectrometer model for animator.

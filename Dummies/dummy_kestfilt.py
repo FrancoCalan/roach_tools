@@ -30,14 +30,14 @@ class DummyKestfilt(DummySpectrometer):
     """
     def __init__(self, settings):
         DummySpectrometer.__init__(self, settings)
-        
-        # get time-test info
-        self.time_info_arr = []
-        self.time_info_arr.append(self.settings.time_info_chnl)
-        self.time_info_arr.append(self.settings.time_info_max)
-        self.time_info_arr.append(self.settings.time_info_mean)
 
-    def read(self, bram, nbytes, offset=0):                    
+    def read(self, bram, nbytes, offset=0):
+        # get time-test info
+        time_info_arr = []
+        time_info_arr.append(self.settings.time_info_chnl)
+        time_info_arr.append(self.settings.time_info_max)
+        time_info_arr.append(self.settings.time_info_mean)
+        
         for time_info in self.time_info_arr:
             if bram in time_info['bram_list']:
                 n_data = self.get_n_data(nbytes, time_info['data_width'])

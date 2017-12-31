@@ -12,7 +12,7 @@ snapshots  = [['adcsnap0'], ['adcsnap1']]
 snap_samples = 256
 
 # Spectrometer Settings
-bw          = 1000
+bw          = 1000 # [MHz]
 dBFS_const  = 81
 spec_info   = {'addr_width' : 9,
                'data_width' : 64,

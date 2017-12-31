@@ -40,22 +40,22 @@ class Kestfilt(Spectrometer):
         """
         return DummyKestfilt(settings)
         
-    def get_time_data(self):
+    def get_convergence_data(self):
         """
-        Returns data from time analysis. This includes single channel power,
+        Returns data for convergence analysis. This includes single channel power,
         max channel power, and mean channel power.
         """
         # single channel
-        [chnl_data_real, chnl_data_imag] = self.get_bram_data(self.settings.time_info_chnl)
+        [chnl_data_real, chnl_data_imag] = self.get_bram_data(self.settings.conv_info_chnl)
         chnl_data = np.array(chnl_data_real)**2 + np.array(chnl_data_imag)**2 # compute power
         chnl_data = self.linear_to_dBFS(chnl_data)
         
         # max channel
-        max_data = self.get_bram_data(self.settings.time_info_max)
+        max_data = self.get_bram_data(self.settings.conv_info_max)
         max_data = self.linear_to_dBFS(max_data)
 
         # mean channel
-        mean_data = self.get_bram_data(self.settings.time_info_mean)
+        mean_data = self.get_bram_data(self.settings.conv_info_mean)
         mean_data = self.linear_to_dBFS(mean_data)
 
         return [chnl_data, max_data, mean_data]
@@ -64,14 +64,17 @@ class Kestfilt(Spectrometer):
         """
         Receive and unpack data from FPGA using data information from bram_info.
         """
-        bram_list = bram_info['name_list']
+        bram_list = bram_info['bram_list']
         width = bram_info['data_width']
         depth = 2**bram_info['addr_width']
         dtype = bram_info['data_type'] 
 
         bram_data_arr = []
         for bram in bram_list:
-            bram_data = struct.unpack('>'+str(depth)+dtype, fpga.read(bram, depth*width/8, 0))
-            bram_data_arr.append(bram_data)
+            bram_data = struct.unpack('>'+str(depth)+dtype, self.fpga.read(bram, depth*width/8, 0))
+            bram_data_arr.append(np.array(bram_data))
 
+        if len(bram_data_arr)==1:
+            return bram_data_arr[0]
+            
         return bram_data_arr

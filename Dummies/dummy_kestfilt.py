@@ -32,22 +32,22 @@ class DummyKestfilt(DummySpectrometer):
         DummySpectrometer.__init__(self, settings)
 
     def read(self, bram, nbytes, offset=0):
-        # get time-test info
-        time_info_arr = []
-        time_info_arr.append(self.settings.time_info_chnl)
-        time_info_arr.append(self.settings.time_info_max)
-        time_info_arr.append(self.settings.time_info_mean)
+        # get conv-test info
+        conv_info_arr = []
+        conv_info_arr.append(self.settings.conv_info_chnl)
+        conv_info_arr.append(self.settings.conv_info_max)
+        conv_info_arr.append(self.settings.conv_info_mean)
         
-        for time_info in self.time_info_arr:
-            if bram in time_info['bram_list']:
-                n_data = self.get_n_data(nbytes, time_info['data_width'])
+        for conv_info in conv_info_arr:
+            if bram in conv_info['bram_list']:
+                n_data = self.get_n_data(nbytes, conv_info['data_width'])
                 
-                # time data a + exp(b*x)
-                a = np.random.random()
-                b = -(1.0/n_data)*np.random.random()
-                time_data = a + np.exp(b*range(n_data))
+                # conv data a + exp(b*x)
+                a = 10
+                b = -(100.0/n_data)*np.random.random()
+                conv_data = np.exp(a*np.exp((b*np.arange(n_data)))) + np.random.random(n_data)
 
-                return struct.pack('>'+str(n_data)+time_info['data_type'], *time_data)
+                return struct.pack('>'+str(n_data)+conv_info['data_type'], *conv_data)
 
         else:
             return DummySpectrometer.read(self, bram, nbytes, offset)

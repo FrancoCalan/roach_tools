@@ -30,6 +30,7 @@ import matplotlib.pyplot as plt
 import Tkinter as Tk
 from kestfilt import Kestfilt
 from spectra_animator import SpectraAnimator
+from convergence_plotter import ConvergencePlotter
 
 class KestfiltAnimator(SpectraAnimator):
     """
@@ -65,6 +66,10 @@ class KestfiltAnimator(SpectraAnimator):
             self.filter_on_label.set('Filter on')
         self.filter_on_button = Tk.Button(self.button_frame, textvariable=self.filter_on_label, command=self.toggle_filter)
         self.filter_on_button.pack(side=Tk.LEFT)
+
+        # plot conv button
+        self.plot_conv_button = Tk.Button(self.button_frame, text='Plot conv', command=plot_convergence)
+        self.plot_conv_button.pack(side=Tk.LEFT)
        
         # filter_gain entry
         self.add_reg_entry('filter_gain')
@@ -84,6 +89,10 @@ class KestfiltAnimator(SpectraAnimator):
             self.model.set_reg('filter_on', 1)
             self.filter_on_label.set('Filter On')
             print('Filter is on')
+
+def plot_convergence():
+    plotter = ConvergencePlotter()
+    plotter.plot()
 
 if __name__ == '__main__':
     animator = KestfiltAnimator()

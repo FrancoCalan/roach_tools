@@ -35,10 +35,13 @@ class Plotter():
         self.root = Tk.Tk()
         self.root.protocol("WM_DELETE_WINDOW", self.on_closing)
         self.plot_map = {1:'11', 2:'12', 3:'22', 4:'22'}
+        self.plot_colors = ['b', 'r', 'g', 'c']
         self.config_file = os.path.splitext(sys.argv[1])[0]
         self.settings = importlib.import_module(self.config_file)
         self.line_arr = []
         self.model = self.get_model(self.settings)
+        self.legend = ['']
+        self.legend_on = False
         self.fig = plt.Figure()
 
     def add_plot_parameters(self):
@@ -53,7 +56,11 @@ class Plotter():
             ax.set_ylabel(self.ylabel)
             ax.set_title(title)
             ax.grid(True)
-            self.line_arr.append(ax.plot([], [], lw=2, animated=True)[0])
+            for j, legend in enumerate(self.legend):
+                self.line_arr.append(ax.plot([], [], lw=2, color=self.plot_colors[j],
+                    label=legend)[0])
+            if self.legend_on:
+                ax.legend()
 
         self.fig.set_tight_layout(True)
         self.create_window()
@@ -73,6 +80,17 @@ class Plotter():
         self.add_plot_parameters()
         self.draw_plot_lines() 
         Tk.mainloop()
+
+    def get_spec_time_arr(self, n_specs):
+        """
+        Compute a time array with timestamps for 'n_specs' spetra starting at 0.
+        Used as x-axis for time related plots. In [us].
+        """
+        n_brams = len(self.settings.spec_info['spec_list'][0]['bram_list'])
+        n_channels = n_brams * 2**self.settings.spec_info['addr_width']
+        x_time = np.arange(0, n_specs) * (1.0/self.settings.bw) * n_channels # [us]
+        return x_time
+        
 
     def create_window(self):
         """

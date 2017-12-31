@@ -15,7 +15,7 @@ snapshots  = [['adcsnap0'], ['adcsnap1']]
 snap_samples = 256
 
 # Spectrometer Settings
-bw          = 1000
+bw          = 1000 # [MHz]
 dBFS_const  = 81
 spec_info   = {'addr_width' : 9,
                'data_width' : 64,
@@ -26,17 +26,20 @@ spec_info   = {'addr_width' : 9,
                 {'name' : 'Filter Output',    'bram_list' : ['dout2_0']}]}
 
 # Kestfilt Settings
-time_info_chnl = {'addr_width' : 10,
+conv_info_chnl = {'name'       : 'chnl',
+                  'addr_width' : 10,
                   'data_width' : 32,
                   'data_type'  : 'i',
                   'bram_list'  : ['dout_chnl_real', 'dout_chnl_imag']}
 
-time_info_max  = {'addr_width' : 10,
+conv_info_max  = {'name'       : 'max',
+                  'addr_width' : 10,
                   'data_width' : 64,
                   'data_type'  : 'Q',
                   'bram_list'  : ['dout_chnl_max']}
 
-time_info_mean = {'addr_width' : 10,
+conv_info_mean = {'name'       : 'mean',
+                  'addr_width' : 10,
                   'data_width' : 64,
                   'data_type'  : 'Q',
                   'bram_list'  : ['dout_chnl_mean']}

@@ -23,37 +23,47 @@
 ###############################################################################
 
 import sys, os
-from itertools import chain
 sys.path.append('../Models')
 sys.path.append(os.getcwd())
-from spectrometer import Spectrometer
-from animator import Animator
+from kestfilt import Kestfilt
+from plotter import Plotter
 
-class SnapshotAnimator(Animator):
+class ConvergencePlotter(Plotter):
     """
-    Class responsable for drawing snapshot plots.
+    Class responsable for drawing power plots v/s time for filter output. 
+    It includes channel power, max power, and mean power.
     """
     def __init__(self):
-        Animator.__init__(self)
-        self.xlim = (0, self.settings.snap_samples)
-        self.ylim = (-140, 140)
-        self.xlabel = 'Sample'
-        self.ylabel = 'Amplitude [a.u.]'
-        self.titles = list(chain.from_iterable(self.settings.snapshots)) # flatten list
-        self.xdata = range(self.settings.snap_samples)
+        Plotter.__init__(self)
+        self.ylim = (-100, 10)
+        self.xlabel = 'Time [$\mu$s]'
+        self.ylabel = 'Power [dBFS]'
+        self.legend = [self.settings.conv_info_chnl['name'], 
+                       self.settings.conv_info_max['name'], 
+                       self.settings.conv_info_mean['name']]
+        self.legend_on = True
+
+        # get xdata
+        n_specs = 2**self.settings.conv_info_chnl['addr_width']
+        self.xdata = self.get_spec_time_arr(n_specs)
+        self.xlim = (0, self.xdata[-1])
+
+        # get current channel frequency for title
+        chnl_freq = self.xdata[self.model.fpga.read_int('channel')]
+        self.titles = ['Power v/s time\nChannel at freq:' + str(chnl_freq)]
 
     def get_model(self, settings):
         """
-        Get spectrometer model for animator.
+        Get kestfilt model for plotter.
         """
-        return Spectrometer(settings)
+        return Kestfilt(settings)
 
     def get_data(self):
         """
-        Gets the snapshot data form the spectrometer model.
+        Gets the power data from kestfilt.
         """
-        return self.model.get_snapshot()
+        return self.model.get_convergence_data()
 
 if __name__ == '__main__':
-    animator = SnapshotAnimator()
-    animator.start_animation()
+    plotter = PowerPlotter()
+    plotter.plot()

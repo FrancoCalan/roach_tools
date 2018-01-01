@@ -60,6 +60,21 @@ class Kestfilt(Spectrometer):
 
         return [chnl_data, max_data, mean_data]
 
+    def get_stability_data(self):
+        """
+        Gets the complex data from a single channel within consecutive instantaneous spectra
+        for different inputs. Then computes the magnitude ratio and angle difference.
+        """
+        [chnl0_data_real, chnl0_data_imag] = self.get_bram_data(self.settings.inst_chnl_info0)
+        [chnl1_data_real, chnl1_data_imag] = self.get_bram_data(self.settings.inst_chnl_info1)
+
+        chnl0_data = np.array(chnl0_data_real) + 1j*np.array(chnl0_data_imag)
+        chnl1_data = np.array(chnl1_data_real) + 1j*np.array(chnl0_data_imag)
+
+        stability_data = chnl1_data / chnl0_data
+
+        return [np.abs(stability_data), np.degrees(np.angle(stability_data))]
+
     def get_bram_data(self, bram_info):
         """
         Receive and unpack data from FPGA using data information from bram_info.

@@ -43,3 +43,13 @@ conv_info_mean = {'name'       : 'mean',
                   'data_width' : 64,
                   'data_type'  : 'Q',
                   'bram_list'  : ['dout_chnl_mean']}
+###
+inst_chnl_info0 = {'addr_width' : 10,
+                   'data_width' : 32,
+                   'data_type'  : 'i',
+                   'bram_list'  : ['dout_chnl_real0', 'dout_chnl_imag0']}
+
+inst_chnl_info1 = {'addr_width' : 10,
+                   'data_width' : 32,
+                   'data_type'  : 'i',
+                   'bram_list' : ['dout_chnl_real1', 'dout_chnl_imag1']}

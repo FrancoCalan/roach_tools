@@ -31,6 +31,7 @@ import Tkinter as Tk
 from kestfilt import Kestfilt
 from spectra_animator import SpectraAnimator
 from convergence_plotter import ConvergencePlotter
+from stability_plotter import StabilityPlotter
 
 class KestfiltAnimator(SpectraAnimator):
     """
@@ -70,6 +71,10 @@ class KestfiltAnimator(SpectraAnimator):
         # plot conv button
         self.plot_conv_button = Tk.Button(self.button_frame, text='Plot conv', command=plot_convergence)
         self.plot_conv_button.pack(side=Tk.LEFT)
+
+        # plot conv button
+        self.plot_stab_button = Tk.Button(self.button_frame, text='Plot stab', command=plot_stability)
+        self.plot_stab_button.pack(side=Tk.LEFT)
        
         # filter_gain entry
         self.add_reg_entry('filter_gain')
@@ -92,6 +97,10 @@ class KestfiltAnimator(SpectraAnimator):
 
 def plot_convergence():
     plotter = ConvergencePlotter()
+    plotter.plot()
+
+def plot_stability():
+    plotter = StabilityPlotter()
     plotter.plot()
 
 if __name__ == '__main__':

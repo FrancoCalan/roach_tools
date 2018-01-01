@@ -50,10 +50,14 @@ class Plotter():
         """
         for i, title in enumerate(self.titles):
             ax = self.fig.add_subplot(self.plot_map[len(self.titles)]+str(i+1))
-            ax.set_xlim(self.xlim)
-            ax.set_ylim(self.ylim)
-            ax.set_xlabel(self.xlabel)
-            ax.set_ylabel(self.ylabel)
+            #ax.set_xlim(self.xlim)
+            #ax.set_ylim(self.ylim)
+            #ax.set_xlabel(self.xlabel)
+            #ax.set_ylabel(self.ylabel)
+            self.set_plot_param(ax.set_xlim, self.xlim, i)
+            self.set_plot_param(ax.set_ylim, self.ylim, i)
+            self.set_plot_param(ax.set_xlabel, self.xlabel, i)
+            self.set_plot_param(ax.set_ylabel, self.ylabel, i)
             ax.set_title(title)
             ax.grid(True)
             for j, legend in enumerate(self.legend):
@@ -64,6 +68,17 @@ class Plotter():
 
         self.fig.set_tight_layout(True)
         self.create_window()
+
+    def set_plot_param(self, ax_funct, param, i):
+        """
+        Set a plot parameter given Axes function and a parameter.
+        If parameter is given as a list, uses the i-th element of
+        list as parameter, else uses the parameter as a single element.
+        """
+        if type(param) is list:
+            ax_funct(param[i])
+        else:
+            ax_funct(param)
     
     def draw_plot_lines(self):
         """

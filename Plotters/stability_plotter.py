@@ -28,29 +28,26 @@ sys.path.append(os.getcwd())
 from kestfilt import Kestfilt
 from plotter import Plotter
 
-class ConvergencePlotter(Plotter):
+class StabilityPlotter(Plotter):
     """
-    Class responsable for drawing power plots v/s time for filter output. 
-    It includes channel power, max power, and mean power.
+    Class responsable for drawing magnitude ratio and angle difference
+    in order to visualize the stability between two signals.
     """
     def __init__(self):
         Plotter.__init__(self)
-        self.ylim = (-100, 10)
+        self.ylim = [(-1, 10), (-200, 200)]
         self.xlabel = 'Time [$\mu$s]'
-        self.ylabel = 'Power [dBFS]'
-        self.legend = [self.settings.conv_info_chnl['name'], 
-                       self.settings.conv_info_max['name'], 
-                       self.settings.conv_info_mean['name']]
-        self.legend_on = True
+        self.ylabel = ['Magnitude ratio', 'Angle difference']
 
         # get xdata
-        n_specs = 2**self.settings.conv_info_chnl['addr_width']
+        n_specs = 2**self.settings.inst_chnl_info0['addr_width']
         self.xdata = self.get_spec_time_arr(n_specs)
         self.xlim = (0, self.xdata[-1])
 
         # get current channel frequency for title
         chnl_freq = self.xdata[self.model.fpga.read_int('channel')]
-        self.titles = ['Power v/s time\nChannel at freq:' + str(chnl_freq)]
+        self.titles = ['Channel at freq:' + str(chnl_freq), 
+                       'Channel at freq:' + str(chnl_freq)]
 
     def get_model(self, settings):
         """
@@ -62,8 +59,8 @@ class ConvergencePlotter(Plotter):
         """
         Gets the stability data from kestfilt.
         """
-        return self.model.get_convergence_data()
+        return self.model.get_stability_data()
 
 if __name__ == '__main__':
-    plotter = PowerPlotter()
+    plotter = StabilityPlotter()
     plotter.plot()

@@ -21,7 +21,7 @@
 ###############################################################################
 
 import time
-import corr, adc5g
+#import corr, adc5g
 
 class Model():
     """

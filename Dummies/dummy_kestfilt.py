@@ -32,11 +32,16 @@ class DummyKestfilt(DummySpectrometer):
         DummySpectrometer.__init__(self, settings)
 
     def read(self, bram, nbytes, offset=0):
-        # get conv-test info
+        # get conv_info
         conv_info_arr = []
         conv_info_arr.append(self.settings.conv_info_chnl)
         conv_info_arr.append(self.settings.conv_info_max)
         conv_info_arr.append(self.settings.conv_info_mean)
+
+        # get inst_chnl_info
+        inst_chnl_info_arr = []
+        inst_chnl_info_arr.append(self.settings.inst_chnl_info0)
+        inst_chnl_info_arr.append(self.settings.inst_chnl_info1)
         
         for conv_info in conv_info_arr:
             if bram in conv_info['bram_list']:
@@ -49,6 +54,11 @@ class DummyKestfilt(DummySpectrometer):
 
                 return struct.pack('>'+str(n_data)+conv_info['data_type'], *conv_data)
 
-        else:
-            return DummySpectrometer.read(self, bram, nbytes, offset)
+        for inst_chnl_info in inst_chnl_info_arr:
+            if bram in inst_chnl_info['bram_list']:
+                n_data = self.get_n_data(nbytes, inst_chnl_info['data_width'])
+                inst_chnl_data = 10 * (2*np.random.random(n_data) - 1)
+                return struct.pack('>'+str(n_data)+inst_chnl_info['data_type'], *inst_chnl_data)
+                
+        return DummySpectrometer.read(self, bram, nbytes, offset)
         

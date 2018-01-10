@@ -28,10 +28,10 @@ class Model():
     Helper class used to initialize, program the FPGA, and read and write data
     from the ROACH.
     """
-    def __init__(self, settings):
+    def __init__(self, settings, dummy_fpga):
         self.settings = settings
         if self.settings.simulated:
-            self.fpga = self.get_dummy_fpga(self.settings)
+            self.fpga = dummy_fpga
         else:
             self.fpga = corr.katcp_wrapper.FpgaClient(self.settings.ip)
             time.sleep(0.1)

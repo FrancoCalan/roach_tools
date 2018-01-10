@@ -24,9 +24,9 @@
 
 import sys, os
 from itertools import chain
-sys.path.append('../Models')
 sys.path.append(os.getcwd())
-from spectrometer import Spectrometer
+from Models.snapshot import Snapshot
+from Dummies.dummy_snapshot import DummySnapshot
 from animator import Animator
 
 class SnapshotAnimator(Animator):
@@ -46,7 +46,7 @@ class SnapshotAnimator(Animator):
         """
         Get spectrometer model for animator.
         """
-        return Spectrometer(settings)
+        return Snapshot(settings, DummySnapshot(settings))
 
     def get_data(self):
         """

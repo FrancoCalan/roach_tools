@@ -24,12 +24,12 @@
 
 import sys, os, numexpr
 from itertools import chain
-sys.path.append('../Models')
 sys.path.append(os.getcwd())
 import numpy as np
 import matplotlib.pyplot as plt
 import Tkinter as Tk
-from spectrometer import Spectrometer
+from Models.spectrometer import Spectrometer
+from Dummies.dummy_spectrometer import DummySpectrometer
 from animator import Animator
 
 class SpectraAnimator(Animator):
@@ -53,9 +53,8 @@ class SpectraAnimator(Animator):
         """
         Get spectrometer model for animator.
         """
-        return Spectrometer(settings)
-
-    
+        return Spectrometer(settings, DummySpectrometer(settings))
+        
     def get_data(self):
         """
         Gets the snapshot data form the spectrometer model.

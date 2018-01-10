@@ -38,8 +38,8 @@ class Plotter():
         self.plot_colors = ['b', 'r', 'g', 'c']
         self.config_file = os.path.splitext(sys.argv[1])[0]
         self.settings = importlib.import_module(self.config_file)
-        self.line_arr = []
         self.model = self.get_model(self.settings)
+        self.line_arr = []
         self.legend = ['']
         self.legend_on = False
         self.fig = plt.Figure()
@@ -50,10 +50,6 @@ class Plotter():
         """
         for i, title in enumerate(self.titles):
             ax = self.fig.add_subplot(self.plot_map[len(self.titles)]+str(i+1))
-            #ax.set_xlim(self.xlim)
-            #ax.set_ylim(self.ylim)
-            #ax.set_xlabel(self.xlabel)
-            #ax.set_ylabel(self.ylabel)
             self.set_plot_param(ax.set_xlim, self.xlim, i)
             self.set_plot_param(ax.set_ylim, self.ylim, i)
             self.set_plot_param(ax.set_xlabel, self.xlabel, i)

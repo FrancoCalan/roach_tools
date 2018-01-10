@@ -27,7 +27,8 @@ class DummyRoach():
     Emulates a ROACH connection. Is used for debugging purposes for the rest
     of the code.
     """
-    def __init__(self):
+    def __init__(self, settings):
+        self.settings = settings
         self.clk = 1
         self.regs = []
 

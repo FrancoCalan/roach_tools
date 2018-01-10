@@ -24,22 +24,14 @@ import sys
 import numpy as np
 import struct
 from spectrometer import Spectrometer
-sys.path.append('../Dummies')
-from dummy_kestfilt import DummyKestfilt
 
 class Kestfilt(Spectrometer):
     """
     Helper class to read and write data from Kesteven filter.
     """
-    def __init__(self, settings):
-        Spectrometer.__init__(self, settings)
+    def __init__(self, settings, dummy_kestfilt):
+        Spectrometer.__init__(self, settings, dummy_kestfilt)
 
-    def get_dummy_fpga(self, settings):
-        """
-        Create a dummy kestfilt to fetch fake data. For testing proposes.
-        """
-        return DummyKestfilt(settings)
-        
     def get_convergence_data(self):
         """
         Returns data for convergence analysis. This includes single channel power,

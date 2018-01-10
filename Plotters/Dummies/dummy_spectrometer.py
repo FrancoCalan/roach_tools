@@ -1,5 +1,3 @@
-#!/usr/bin/env python
-
 ###############################################################################
 #                                                                             #
 #   Millimeter-wave Laboratory, Department of Astronomy, University of Chile  #
@@ -22,46 +20,41 @@
 #                                                                             #
 ###############################################################################
 
-import sys, os
-sys.path.append('../Models')
-sys.path.append(os.getcwd())
-from Models.kestfilt import Kestfilt
-from Dummies.dummy_kestfilt import DummyKestfilt
-from plotter import Plotter
+import struct
+import numpy as np
+from itertools import chain
+from dummy_snapshot import DummySnapshot
 
-class StabilityPlotter(Plotter):
+class DummySpectrometer(DummySnapshot):
     """
-    Class responsable for drawing magnitude ratio and angle difference
-    in order to visualize the stability between two signals.
+    Emulates a spectrometer implemented in ROACH. Used to deliver test data.
     """
-    def __init__(self):
-        Plotter.__init__(self)
-        self.ylim = [(-1, 10), (-200, 200)]
-        self.xlabel = 'Time [$\mu$s]'
-        self.ylabel = ['Magnitude ratio', 'Angle difference']
+    def __init__(self, settings):
+        DummySnapshot.__init__(self)
+        
+        # get spectrometers brams
+        self.spec_brams = []
+        for spec in self.settings.spec_info['spec_list']:
+            for bram in spec['bram_list']:
+                self.spec_brams.append(bram)
 
-        # get xdata
-        n_specs = 2**self.settings.inst_chnl_info0['addr_width']
-        self.xdata = self.get_spec_time_arr(n_specs)
-        self.xlim = (0, self.xdata[-1])
-
-        # get current channel frequency for title
-        chnl_freq = self.xdata[self.model.fpga.read_int('channel')]
-        self.titles = ['Channel at freq:' + str(chnl_freq), 
-                       'Channel at freq:' + str(chnl_freq)]
-
-    def get_model(self, settings):
+            
+    def read(self, bram, nbytes, offset=0):
         """
-        Get kestfilt model for plotter.
+        Return random spectra added by acc_len.
         """
-        return Kestfilt(settings, DummyKestfilt(settings))
+        if bram in self.spec_brams:
+            acc_len = [reg['val'] for reg in self.regs if reg['name']=='acc_len'][0]
+            spec_len = self.get_n_data(nbytes, self.settings.spec_info['data_width'])
+            signal_arr = self.gen_gaussian_array(mu=0, sigma=0.25, low=-1, high=1,
+                size=(acc_len, 2*spec_len), dtype='>f')
 
-    def get_data(self):
-        """
-        Gets the stability data from kestfilt.
-        """
-        return self.model.get_stability_data()
+            spec_arr = np.abs(np.fft.rfft(signal_arr, axis=1)[:, :spec_len])
+            spec = np.sum(spec_arr, axis=0)
+            return struct.pack('>'+str(spec_len)+self.settings.spec_info['data_type'], *spec)
 
-if __name__ == '__main__':
-    plotter = StabilityPlotter()
-    plotter.plot()
+        else: 
+            raise Exception("BRAM not defined in config file.")
+
+    def get_n_data(self, nbytes, data_width):
+        return 8 * nbytes / data_width

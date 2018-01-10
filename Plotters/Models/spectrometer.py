@@ -1,5 +1,3 @@
-#!/usr/bin/env python
-
 ###############################################################################
 #                                                                             #
 #   Millimeter-wave Laboratory, Department of Astronomy, University of Chile  #
@@ -22,46 +20,40 @@
 #                                                                             #
 ###############################################################################
 
-import sys, os
-sys.path.append('../Models')
-sys.path.append(os.getcwd())
-from Models.kestfilt import Kestfilt
-from Dummies.dummy_kestfilt import DummyKestfilt
-from plotter import Plotter
+import numpy as np
+from itertools import chain
+import struct
+from snapshot import Snapshot
 
-class StabilityPlotter(Plotter):
+class Spectrometer(Snapshot):
     """
-    Class responsable for drawing magnitude ratio and angle difference
-    in order to visualize the stability between two signals.
+    Helper class to read and write data from spectrometer models.
     """
-    def __init__(self):
-        Plotter.__init__(self)
-        self.ylim = [(-1, 10), (-200, 200)]
-        self.xlabel = 'Time [$\mu$s]'
-        self.ylabel = ['Magnitude ratio', 'Angle difference']
-
-        # get xdata
-        n_specs = 2**self.settings.inst_chnl_info0['addr_width']
-        self.xdata = self.get_spec_time_arr(n_specs)
-        self.xlim = (0, self.xdata[-1])
-
-        # get current channel frequency for title
-        chnl_freq = self.xdata[self.model.fpga.read_int('channel')]
-        self.titles = ['Channel at freq:' + str(chnl_freq), 
-                       'Channel at freq:' + str(chnl_freq)]
-
-    def get_model(self, settings):
+    def __init__(self, settings, dummy_spectrometer):
+        Snapshot.__init__(self, settings, dummy_spectrometer)
+            
+    def get_spectra(self):
         """
-        Get kestfilt model for plotter.
+        Get spectra data from brams using the information specified in the
+        config file.
         """
-        return Kestfilt(settings, DummyKestfilt(settings))
+        width = self.settings.spec_info['data_width']
+        depth = 2**self.settings.spec_info['addr_width']
+        dtype = self.settings.spec_info['data_type']
 
-    def get_data(self):
-        """
-        Gets the stability data from kestfilt.
-        """
-        return self.model.get_stability_data()
+        spec_data_arr = []
+        for spec in self.settings.spec_info['spec_list']:
+            bram_data_arr = []
+            for bram in spec['bram_list']:
+                bram_data = struct.unpack('>'+str(depth)+dtype, self.fpga.read(bram, 
+                    depth*width/8, 0))
+                bram_data_arr.append(bram_data)
+            spec_data = np.fromiter(chain(*zip(*bram_data_arr)), dtype=dtype) # interleave data
+            spec_data = spec_data / float(self.fpga.read_int('acc_len')) # divide by accumulation
+            spec_data = self.linear_to_dBFS(spec_data)
+            spec_data_arr.append(spec_data)
 
-if __name__ == '__main__':
-    plotter = StabilityPlotter()
-    plotter.plot()
+        return spec_data_arr
+
+    def linear_to_dBFS(self, data):
+        return 10*np.log10(data+1) - self.settings.dBFS_const

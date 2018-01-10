@@ -23,9 +23,9 @@
 ###############################################################################
 
 import sys, os
-sys.path.append('../Models')
 sys.path.append(os.getcwd())
-from kestfilt import Kestfilt
+from Models.kestfilt import Kestfilt
+from Dummies.dummy_kestfilt import DummyKestfilt
 from plotter import Plotter
 
 class ConvergencePlotter(Plotter):
@@ -56,7 +56,7 @@ class ConvergencePlotter(Plotter):
         """
         Get kestfilt model for plotter.
         """
-        return Kestfilt(settings)
+        return Kestfilt(settings, DummyKestfilt(settings))
 
     def get_data(self):
         """

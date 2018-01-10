@@ -20,26 +20,16 @@
 #                                                                             #
 ###############################################################################
 
-import sys
 import numpy as np
 from itertools import chain
-import struct
 from model import Model
-sys.path.append('../Dummies')
-from dummy_spectrometer import DummySpectrometer
 
-class Spectrometer(Model):
+class Snapshot(Model):
     """
-    Helper class to read and write data from spectrometer models.
+    Helper class to read and write data from snapshot models.
     """
-    def __init__(self, settings):
-        Model.__init__(self, settings)
-
-    def get_dummy_fpga(self, settings):
-        """
-        Create a dummy spectrometer to fetch fake data. For testing proposes.
-        """
-        return DummySpectrometer(settings)
+    def __init__(self, settings, dummy_snapshot):
+        Model.__init__(self, settings, dummy_snapshot)
 
     def get_snapshot(self):
         """
@@ -53,29 +43,3 @@ class Spectrometer(Model):
             snap_data_arr.append(snap_data)
 
         return snap_data_arr
-            
-    def get_spectra(self):
-        """
-        Get spectra data from brams using the information specified in the
-        config file.
-        """
-        width = self.settings.spec_info['data_width']
-        depth = 2**self.settings.spec_info['addr_width']
-        dtype = self.settings.spec_info['data_type']
-
-        spec_data_arr = []
-        for spec in self.settings.spec_info['spec_list']:
-            bram_data_arr = []
-            for bram in spec['bram_list']:
-                bram_data = struct.unpack('>'+str(depth)+dtype, self.fpga.read(bram, 
-                    depth*width/8, 0))
-                bram_data_arr.append(bram_data)
-            spec_data = np.fromiter(chain(*zip(*bram_data_arr)), dtype=dtype) # interleave data
-            spec_data = spec_data / float(self.fpga.read_int('acc_len')) # divide by accumulation
-            spec_data = self.linear_to_dBFS(spec_data)
-            spec_data_arr.append(spec_data)
-
-        return spec_data_arr
-
-    def linear_to_dBFS(self, data):
-        return 10*np.log10(data+1) - self.settings.dBFS_const

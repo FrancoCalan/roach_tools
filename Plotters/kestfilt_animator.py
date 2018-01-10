@@ -23,12 +23,12 @@
 ###############################################################################
 
 import sys, os
-sys.path.append('../Models')
 sys.path.append(os.getcwd())
 import numpy as np
 import matplotlib.pyplot as plt
 import Tkinter as Tk
-from kestfilt import Kestfilt
+from Models.kestfilt import Kestfilt
+from Dummies.dummy_kestfilt import DummyKestfilt
 from spectra_animator import SpectraAnimator
 from convergence_plotter import ConvergencePlotter
 from stability_plotter import StabilityPlotter
@@ -44,7 +44,7 @@ class KestfiltAnimator(SpectraAnimator):
         """
         Get kestfilt model for animator.
         """
-        return Kestfilt(settings)
+        return Kestfilt(settings, DummyKestfilt(settings))
 
     
     def get_data(self):

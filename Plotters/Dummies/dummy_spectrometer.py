@@ -30,7 +30,7 @@ class DummySpectrometer(DummySnapshot):
     Emulates a spectrometer implemented in ROACH. Used to deliver test data.
     """
     def __init__(self, settings):
-        DummySnapshot.__init__(self)
+        DummySnapshot.__init__(self,settings)
         
         # get spectrometers brams
         self.spec_brams = []

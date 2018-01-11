@@ -40,10 +40,9 @@ class Model():
 
     def initialize_roach(self):
         self.connect_to_roach()
-        self.upload_and_program()
+        if self.settings.program:
+            self.upload_and_program()
         self.estimate_clock()
-        if hasattr(self.settings, 'adc_cal'):
-            self.calibrate_adc()
         self.set_reset_regs()
 
     def connect_to_roach(self):
@@ -72,22 +71,22 @@ class Model():
         """
         print 'Estimating FPGA clock: ' + str(self.fpga.est_brd_clk())
 
-    def calibrate_adc(self):
-        print 'Calibrating ADC0... ', 
-        if self.settings.cal_adc[0]:
-            adc5g.calibrate_mmcm_phase(fpga, 0, settings.snap_names[0])
-            time.sleep(0.1)
-            print 'done'
-        else:
-            print 'skipped'
+    #def calibrate_adc(self):
+    #    print 'Calibrating ADC0... ', 
+    #    if self.settings.cal_adc[0]:
+    #        adc5g.calibrate_mmcm_phase(fpga, 0, settings.snap_names[0])
+    #        time.sleep(0.1)
+    #        print 'done'
+    #    else:
+    #        print 'skipped'
 
-        print 'Calibrating ADC1... ', 
-        if self.settings.cal_adc[0]:
-            adc5g.calibrate_mmcm_phase(fpga, 1, settings.snap_names[1])
-            time.sleep(0.1)
-            print 'done'
-        else:
-            print 'skipped'
+    #    print 'Calibrating ADC1... ', 
+    #    if self.settings.cal_adc[0]:
+    #        adc5g.calibrate_mmcm_phase(fpga, 1, settings.snap_names[1])
+    #        time.sleep(0.1)
+    #        print 'done'
+    #    else:
+    #        print 'skipped'
 
     def set_reset_regs(self):
         """

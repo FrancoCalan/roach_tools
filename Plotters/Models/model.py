@@ -21,7 +21,8 @@
 ###############################################################################
 
 import time
-#import corr, adc5g
+import corr
+#import adc5g
 
 class Model():
     """
@@ -33,8 +34,8 @@ class Model():
         if self.settings.simulated:
             self.fpga = dummy_fpga
         else:
-            self.fpga = corr.katcp_wrapper.FpgaClient(self.settings.ip)
-            time.sleep(0.1)
+            self.fpga = corr.katcp_wrapper.FpgaClient(self.settings.ip, self.settings.port)
+            time.sleep(1)
         self.initialize_roach()
 
     def initialize_roach(self):
@@ -60,7 +61,8 @@ class Model():
         Upload to RAM and program the .bof model to de FPGA.
         """
         print 'Uploading and programming FPGA with %s... ' %self.settings.boffile,
-        self.fpga.upload_program_bof(self.settings.boffile)
+        self.fpga.upload_bof(self.settings.boffile, 60000)
+        self.fpga.progdev(self.settings.boffile)
         time.sleep(0.1)
         print 'done'
 

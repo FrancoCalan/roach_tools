@@ -38,11 +38,12 @@ class SpectraAnimator(Animator):
     """
     def __init__(self):
         Animator.__init__(self)
-        self.xlim = (0, self.settings.bw)
-        self.ylim = (-100, 10)
-        self.xlabel = 'Frequency [MHz]'
-        self.ylabel = 'Power [dBFS]'
         self.titles = [spec['name'] for spec in self.settings.spec_info['spec_list']]
+        self.nplots = len(self.titles) 
+        self.xlim = (0, self.settings.bw)
+        self.ylims = self.nplots * [(-100, 10)]
+        self.xlabel = 'Frequency [MHz]'
+        self.ylabels = self.nplots * ['Power [dBFS]']
         self.entries = []
         
         n_brams = len(self.settings.spec_info['spec_list'][0]['bram_list'])

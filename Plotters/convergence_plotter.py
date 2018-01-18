@@ -35,13 +35,13 @@ class ConvergencePlotter(Plotter):
     """
     def __init__(self):
         Plotter.__init__(self)
-        self.ylim = (-100, 10)
+        self.nplots = 1
+        self.ylims = [(-100, 10)]
         self.xlabel = 'Time [$\mu$s]'
-        self.ylabel = 'Power [dBFS]'
-        self.legend = [self.settings.conv_info_chnl['name'], 
-                       self.settings.conv_info_max['name'], 
-                       self.settings.conv_info_mean['name']]
-        self.legend_on = True
+        self.ylabels = ['Power [dBFS]']
+        self.legends = [self.settings.conv_info_chnl['name'], 
+                        self.settings.conv_info_max['name'], 
+                        self.settings.conv_info_mean['name']]
 
         # get xdata
         n_specs = 2**self.settings.conv_info_chnl['addr_width']

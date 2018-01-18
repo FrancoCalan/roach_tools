@@ -35,11 +35,12 @@ class SnapshotAnimator(Animator):
     """
     def __init__(self):
         Animator.__init__(self)
-        self.xlim = (0, self.settings.snap_samples)
-        self.ylim = (-140, 140)
-        self.xlabel = 'Sample'
-        self.ylabel = 'Amplitude [a.u.]'
         self.titles = list(chain.from_iterable(self.settings.snapshots)) # flatten list
+        self.nplots = len(self.titles)
+        self.xlim = (0, self.settings.snap_samples)
+        self.ylims = self.nplots * [(-140, 140)]
+        self.xlabel = 'Sample'
+        self.ylabels = self.nplots * ['Amplitude [a.u.]']
         self.xdata = range(self.settings.snap_samples)
 
     def get_model(self, settings):

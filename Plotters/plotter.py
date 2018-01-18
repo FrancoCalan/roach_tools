@@ -46,33 +46,26 @@ class Plotter():
         """
         Add the basic parameters to the plot.
         """
-        for i, title in enumerate(self.titles):
-            ax = self.fig.add_subplot(self.plot_map[len(self.titles)]+str(i+1))
-            self.set_plot_param(ax.set_xlim, self.xlim, i)
-            self.set_plot_param(ax.set_ylim, self.ylim, i)
-            self.set_plot_param(ax.set_xlabel, self.xlabel, i)
-            self.set_plot_param(ax.set_ylabel, self.ylabel, i)
-            ax.set_title(title)
+        for i in range(self.nplots):
+            ax = self.fig.add_subplot(self.plot_map[self.nplots]+str(i+1))
+            ax.set_xlim(self.xlim)
+            ax.set_ylim(self.ylims[i])
+            ax.set_xlabel(self.xlabel)
+            ax.set_ylabel(self.ylabels[i])
+            ax.set_title(self.titles[i])
             ax.grid(True)
-            for j, legend in enumerate(self.legend):
-                self.line_arr.append(ax.plot([], [], lw=2, label=legend)[0])
-            if self.legend_on:
+            # for multiline plot with legends
+            if hasattr(self, 'legends'):
+                for legend in self.legends:
+                    self.line_arr.append(ax.plot([], [], lw=2, label=legend)[0])
                 ax.legend()
+            # for single line plots
+            else:
+                self.line_arr.append(ax.plot([], [], lw=2)[0])
 
         self.fig.set_tight_layout(True)
         self.create_window()
 
-    def set_plot_param(self, ax_funct, param, i):
-        """
-        Set a plot parameter given Axes function and a parameter.
-        If parameter is given as a list, uses the i-th element of
-        list as parameter, else uses the parameter as a single element.
-        """
-        if type(param) is list:
-            ax_funct(param[i])
-        else:
-            ax_funct(param)
-    
     def draw_plot_lines(self):
         """
         Draw plot lines in canvas.

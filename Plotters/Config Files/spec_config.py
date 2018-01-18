@@ -19,5 +19,5 @@ spec_info   = {'addr_width' : 9,
                'data_width' : 64,
                'data_type'  : 'Q',
                'spec_list'  :
-               [{'name' : 'I', 'bram_list' : ['dout0_0']},
-                {'name' : 'Q', 'bram_list' : ['dout1_0']}]}
+               [{'name' : 'ZDOK0', 'bram_list' : ['dout0_0']},
+                {'name' : 'ZDOK1', 'bram_list' : ['dout1_0']}]}

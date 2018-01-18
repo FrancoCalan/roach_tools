@@ -36,9 +36,9 @@ class StabilityPlotter(Plotter):
     """
     def __init__(self):
         Plotter.__init__(self)
-        self.ylim = [(-1, 10), (-200, 200)]
+        self.ylims = [(-1, 10), (-200, 200)]
         self.xlabel = 'Time [$\mu$s]'
-        self.ylabel = ['Magnitude ratio', 'Angle difference']
+        self.ylabels = ['Magnitude ratio', 'Angle difference']
 
         # get xdata
         n_specs = 2**self.settings.inst_chnl_info0['addr_width']
@@ -49,6 +49,7 @@ class StabilityPlotter(Plotter):
         chnl_freq = self.xdata[self.model.fpga.read_int('channel')]
         self.titles = ['Channel at freq:' + str(chnl_freq), 
                        'Channel at freq:' + str(chnl_freq)]
+        self.nplots = len(self.titles)
 
     def get_model(self, settings):
         """

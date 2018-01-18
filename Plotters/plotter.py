@@ -26,7 +26,6 @@ import matplotlib.pyplot as plt
 import Tkinter as Tk
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg, NavigationToolbar2TkAgg
 
-
 class Plotter():
     """
     Generic plotter class.
@@ -39,8 +38,6 @@ class Plotter():
         self.settings = importlib.import_module(self.config_file)
         self.model = self.get_model(self.settings)
         self.line_arr = []
-        self.legend = ['']
-        self.legend_on = False
 
     def add_plot_parameters(self):
         """

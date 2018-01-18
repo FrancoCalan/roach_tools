@@ -9,6 +9,7 @@ reset_regs = ['cnt_rst']
 cal_adc    = [False, False]
 
 # Snapshot settings
+snapshots  = [['adcsnap0'], ['adcsnap1']]
 snap_samples = 256
 
 # Spectrometer Settings

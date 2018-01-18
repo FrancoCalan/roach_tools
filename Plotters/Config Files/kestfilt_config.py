@@ -9,9 +9,9 @@ set_regs   = [{'name' : 'acc_len',     'val' : 1},
               {'name' : 'filter_acc',  'val' : 1},
               {'name' : 'channel',     'val' : 0}]
 reset_regs = ['cnt_rst', 'filter_on']
-snapshots  = [['adcsnap0'], ['adcsnap1']]
 
 # Snapshot settings
+snapshots  = [['adcsnap0'], ['adcsnap1']]
 snap_samples = 256
 
 # Spectrometer Settings

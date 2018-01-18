@@ -33,16 +33,14 @@ class Plotter():
     """
     def __init__(self):
         self.root = Tk.Tk()
-        self.root.protocol("WM_DELETE_WINDOW", self.on_closing)
+        self.fig = plt.Figure()
         self.plot_map = {1:'11', 2:'12', 3:'22', 4:'22'}
-        self.plot_colors = ['b', 'r', 'g', 'c']
         self.config_file = os.path.splitext(sys.argv[1])[0]
         self.settings = importlib.import_module(self.config_file)
         self.model = self.get_model(self.settings)
         self.line_arr = []
         self.legend = ['']
         self.legend_on = False
-        self.fig = plt.Figure()
 
     def add_plot_parameters(self):
         """
@@ -57,8 +55,7 @@ class Plotter():
             ax.set_title(title)
             ax.grid(True)
             for j, legend in enumerate(self.legend):
-                self.line_arr.append(ax.plot([], [], lw=2, color=self.plot_colors[j],
-                    label=legend)[0])
+                self.line_arr.append(ax.plot([], [], lw=2, label=legend)[0])
             if self.legend_on:
                 ax.legend()
 
@@ -94,7 +91,7 @@ class Plotter():
 
     def get_spec_time_arr(self, n_specs):
         """
-        Compute a time array with timestamps for 'n_specs' spetra starting at 0.
+        Compute a time array with timestamps for 'n_specs' spetra, starting at 0.
         Used as x-axis for time related plots. In [us].
         """
         n_brams = len(self.settings.spec_info['spec_list'][0]['bram_list'])
@@ -133,13 +130,6 @@ class Plotter():
         self.save_entry = Tk.Entry(save_frame)
         self.save_entry.insert(Tk.END, self.config_file)
         self.save_entry.pack(side=Tk.LEFT)
-
-    def on_closing(self):
-        """
-        Exit program when closing window.
-        """
-        self.root.destroy()
-        exit()
 
     def save_plot(self):
         """

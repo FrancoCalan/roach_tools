@@ -75,6 +75,9 @@ class SpectraAnimator(Animator):
         self.add_reg_entry('acc_len')
 
     def add_reg_entry(self, reg):
+        """
+        Add a text entry for modifying regiters in models."
+        """
         frame = Tk.Frame(master=self.root)
         frame.pack(side = Tk.TOP, anchor="w")
         label = Tk.Label(frame, text=reg+":")
@@ -86,6 +89,9 @@ class SpectraAnimator(Animator):
         self.entries.append(entry)
 
     def set_reg_from_entry(self, reg, entry):
+        """
+        Modify a model register from the value of an entry.
+        """
         string_val = entry.get()
         try:
             val = int(numexpr.evaluate(string_val))

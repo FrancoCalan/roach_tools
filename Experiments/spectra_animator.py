@@ -102,4 +102,5 @@ class SpectraAnimator(Animator):
         
 if __name__ == '__main__':
     animator = SpectraAnimator()
+    animator.model.initialize_roach()
     animator.start_animation()

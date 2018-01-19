@@ -34,9 +34,8 @@ class Model():
         if self.settings.simulated:
             self.fpga = dummy_fpga
         else:
-            self.fpga = corr.katcp_wrapper.FpgaClient(self.settings.ip, self.settings.port)
+            self.fpga = corr.katcp_wrapper.FpgaClient(self.settings.roach_ip, self.settings.roach_port)
             time.sleep(1)
-        self.initialize_roach()
 
     def initialize_roach(self):
         self.connect_to_roach()
@@ -49,7 +48,7 @@ class Model():
         """
         Verify communication with ROACH.
         """
-        print 'Connecting to ROACH server %s on port %i... ' %(self.settings.ip, self.settings.port),
+        print 'Connecting to ROACH server %s on port %i... ' %(self.settings.roach_ip, self.settings.roach_port),
         if self.fpga.is_connected():
             print 'ok'
         else:

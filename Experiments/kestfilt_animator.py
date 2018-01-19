@@ -105,4 +105,5 @@ def plot_stability():
 
 if __name__ == '__main__':
     animator = KestfiltAnimator()
+    animator.model.initialize_roach()
     animator.start_animation()

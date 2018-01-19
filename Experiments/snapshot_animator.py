@@ -45,16 +45,17 @@ class SnapshotAnimator(Animator):
 
     def get_model(self, settings):
         """
-        Get spectrometer model for animator.
+        Get snapshot model for animator.
         """
         return Snapshot(settings, DummySnapshot(settings))
 
     def get_data(self):
         """
-        Gets the snapshot data form the spectrometer model.
+        Gets the snapshot data form the model.
         """
-        return self.model.get_snapshot()
+        return self.model.get_snapshots()
 
 if __name__ == '__main__':
     animator = SnapshotAnimator()
+    animator.model.initialize_roach()
     animator.start_animation()

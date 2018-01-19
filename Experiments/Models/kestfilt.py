@@ -65,7 +65,7 @@ class Kestfilt(Spectrometer):
 
         stability_data = chnl1_data / chnl0_data
 
-        return [np.abs(stability_data), np.degrees(np.angle(stability_data))]
+        return [np.abs(stability_data), np.angle(stability_data, deg=True)]
 
     def get_bram_data(self, bram_info):
         """

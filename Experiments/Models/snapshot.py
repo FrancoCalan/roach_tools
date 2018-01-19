@@ -31,7 +31,7 @@ class Snapshot(Model):
     def __init__(self, settings, dummy_snapshot):
         Model.__init__(self, settings, dummy_snapshot)
 
-    def get_snapshot(self):
+    def get_snapshots(self):
         """
         Get snapshot data from all snapshot blocks specified in the config 
         file.

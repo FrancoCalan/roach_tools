@@ -1,12 +1,11 @@
 # Basic settings
 simulated  = True
-ip         = '0.0.0.0'
-port       = 7147
+roach_ip   = '0.0.0.0'
+roach_port = 7147
 program    = False
 boffile    = ''
-set_regs   = [{'name' : 'acc_len', 'val' : 1}]
-reset_regs = ['cnt_rst']
-cal_adc    = [False, False]
+set_regs   = []
+reset_regs = []
 
 # Snapshot settings
 snapshots  = [['adcsnap0'], ['adcsnap1']]

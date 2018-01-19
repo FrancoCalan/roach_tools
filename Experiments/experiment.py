@@ -20,45 +20,16 @@
 #                                                                             #
 ###############################################################################
 
-import struct
-import numpy as np
-from dummy_spectrometer import DummySpectrometer
+import os, sys, importlib
 
-class DummyKestfilt(DummySpectrometer):
+class Experiment():
     """
-    Emulates a Kesteven filter implemented in ROACH. Used to deliver test data.
+    Most generic class. Repesents a generic experiment in roach with any model.
+    It only initialize the most generic attributes for an experiment: configuration 
+    settings, and model.
     """
-    def __init__(self, settings):
-        DummySpectrometer.__init__(self, settings)
+    def __init__(self):
+        self.config_file = os.path.splitext(sys.argv[1])[0]
+        self.settings = importlib.import_module(self.config_file)
+        self.model = self.get_model(self.settings)
 
-    def read(self, bram, nbytes, offset=0):
-        # get conv_info
-        conv_info_arr = []
-        conv_info_arr.append(self.settings.conv_info_chnl)
-        conv_info_arr.append(self.settings.conv_info_max)
-        conv_info_arr.append(self.settings.conv_info_mean)
-
-        # get inst_chnl_info
-        inst_chnl_info_arr = []
-        inst_chnl_info_arr.append(self.settings.inst_chnl_info0)
-        inst_chnl_info_arr.append(self.settings.inst_chnl_info1)
-        
-        for conv_info in conv_info_arr:
-            if bram in conv_info['bram_list']:
-                n_data = self.get_n_data(nbytes, conv_info['data_width'])
-                
-                # conv data a + exp(b*x)
-                a = 10
-                b = -(100.0/n_data)*np.random.random()
-                conv_data = np.exp(a*np.exp((b*np.arange(n_data)))) + np.random.random(n_data)
-
-                return struct.pack('>'+str(n_data)+conv_info['data_type'], *conv_data)
-
-        for inst_chnl_info in inst_chnl_info_arr:
-            if bram in inst_chnl_info['bram_list']:
-                n_data = self.get_n_data(nbytes, inst_chnl_info['data_width'])
-                inst_chnl_data = 10 * (2*np.random.random(n_data) - 1)
-                return struct.pack('>'+str(n_data)+inst_chnl_info['data_type'], *inst_chnl_data)
-                
-        return DummySpectrometer.read(self, bram, nbytes, offset)
-        

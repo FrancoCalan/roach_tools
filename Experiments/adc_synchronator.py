@@ -1,3 +1,5 @@
+#!/usr/bin/env python
+
 ###############################################################################
 #                                                                             #
 #   Millimeter-wave Laboratory, Department of Astronomy, University of Chile  #
@@ -20,41 +22,17 @@
 #                                                                             #
 ###############################################################################
 
-import struct
-import numpy as np
-from itertools import chain
-from dummy_snapshot import DummySnapshot
+from experiment import Experiment
 
-class DummySpectrometer(DummySnapshot):
+class AdcSynchronator():
     """
-    Emulates a spectrometer implemented in ROACH. Used to deliver test data.
+    This class is used to synchronize two ADC
     """
-    def __init__(self, settings):
-        DummySnapshot.__init__(self,settings)
+
+    def __init__(self):
+        Experiment.__init__(self)
+        self.ssb_cal_animator = ssb_cal_animator()
+
+    def synchronize_adcs(self):
         
-        # get spectrometers brams
-        self.spec_brams = []
-        for spec in self.settings.spec_info['spec_list']:
-            for bram in spec['bram_list']:
-                self.spec_brams.append(bram)
 
-            
-    def read(self, bram, nbytes, offset=0):
-        """
-        Return random spectra added by acc_len.
-        """
-        if bram in self.spec_brams:
-            acc_len = [reg['val'] for reg in self.regs if reg['name']=='acc_len'][0]
-            spec_len = self.get_n_data(nbytes, self.settings.spec_info['data_width'])
-            signal_arr = self.gen_gaussian_array(mu=0, sigma=0.25, low=-1, high=1,
-                size=(acc_len, 2*spec_len), dtype='>f')
-
-            spec_arr = np.abs(np.fft.rfft(signal_arr, axis=1)[:, :spec_len])
-            spec = np.sum(spec_arr, axis=0)
-            return struct.pack('>'+str(spec_len)+self.settings.spec_info['data_type'], *spec)
-
-        else: 
-            raise Exception("BRAM not defined in config file.")
-
-    def get_n_data(self, nbytes, data_width):
-        return 8 * nbytes / data_width

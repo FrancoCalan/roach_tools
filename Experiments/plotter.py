@@ -25,18 +25,18 @@ import numpy as np
 import matplotlib.pyplot as plt
 import Tkinter as Tk
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg, NavigationToolbar2TkAgg
+from experiment import Experiment
 
-class Plotter():
+class Plotter(Experiment):
     """
     Generic plotter class.
     """
     def __init__(self):
+        Experiment.__init__(self)
         self.root = Tk.Tk()
         self.fig = plt.Figure()
         self.plot_map = {1:'11', 2:'12', 3:'22', 4:'22'}
         self.config_file = os.path.splitext(sys.argv[1])[0]
-        self.settings = importlib.import_module(self.config_file)
-        self.model = self.get_model(self.settings)
         self.line_arr = []
 
     def add_plot_parameters(self):

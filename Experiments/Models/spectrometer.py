@@ -24,13 +24,20 @@ import numpy as np
 from itertools import chain
 import struct
 from snapshot import Snapshot
+from Dummies.dummy_spectrometer import DummySpectrometer
 
 class Spectrometer(Snapshot):
     """
     Helper class to read and write data from spectrometer models.
     """
-    def __init__(self, settings, dummy_spectrometer):
-        Snapshot.__init__(self, settings, dummy_spectrometer)
+    def __init__(self, settings):
+        Snapshot.__init__(self, settings)
+
+    def get_dummy(self):
+        """
+        Gets dummy spectrometer fpga.
+        """
+        return DummySpectrometer(self.settings)
             
     def get_spectra(self):
         """

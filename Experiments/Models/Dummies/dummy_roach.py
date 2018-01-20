@@ -20,45 +20,60 @@
 #                                                                             #
 ###############################################################################
 
-import struct
 import numpy as np
-from dummy_spectrometer import DummySpectrometer
+from dummy_generator import DummyGenerator
 
-class DummyKestfilt(DummySpectrometer):
+class DummyRoach():
     """
-    Emulates a Kesteven filter implemented in ROACH. Used to deliver test data.
+    Emulates a ROACH connection. Is used for debugging purposes for the rest
+    of the code.
     """
     def __init__(self, settings):
-        DummySpectrometer.__init__(self, settings)
+        self.settings = settings
+        self.generator = DummyGenerator(1.0/(2*self.settings.bw*1e6))
+        self.regs = []
 
-    def read(self, bram, nbytes, offset=0):
-        # get conv_info
-        conv_info_arr = []
-        conv_info_arr.append(self.settings.conv_info_chnl)
-        conv_info_arr.append(self.settings.conv_info_max)
-        conv_info_arr.append(self.settings.conv_info_mean)
+    def is_connected(self):
+        """
+        Emulates ROACH connection test. Always True.
+        """
+        return True
 
-        # get inst_chnl_info
-        inst_chnl_info_arr = []
-        inst_chnl_info_arr.append(self.settings.inst_chnl_info0)
-        inst_chnl_info_arr.append(self.settings.inst_chnl_info1)
-        
-        for conv_info in conv_info_arr:
-            if bram in conv_info['bram_list']:
-                n_data = self.get_n_data(nbytes, conv_info['data_width'])
-                
-                # conv data a + exp(b*x)
-                a = 10
-                b = -(100.0/n_data)*np.random.random()
-                conv_data = np.exp(a*np.exp((b*np.arange(n_data)))) + np.random.random(n_data)
+    def upload_program_bof(self, boffile):
+        """
+        Emulates programming of the FPGA. Does nothing.
+        """
+        pass
 
-                return struct.pack('>'+str(n_data)+conv_info['data_type'], *conv_data)
+    def est_brd_clk(self):
+        """
+        Emulates FPGA clock estimation.
+        """
+        return 2*self.settings.bw
 
-        for inst_chnl_info in inst_chnl_info_arr:
-            if bram in inst_chnl_info['bram_list']:
-                n_data = self.get_n_data(nbytes, inst_chnl_info['data_width'])
-                inst_chnl_data = 10 * (np.random.random(n_data)+1)
-                return struct.pack('>'+str(n_data)+inst_chnl_info['data_type'], *inst_chnl_data)
-                
-        return DummySpectrometer.read(self, bram, nbytes, offset)
-        
+    def write_int(self, reg_name, val):
+        """
+        Writes an int value into the Dummy ROACH.
+        """
+        try:
+            write_reg = [reg for reg in self.regs if reg['name'] == reg_name][0]
+        except:
+            raise Exception('No register found with name ' + reg_name)
+        write_reg['val'] = val
+
+    def read_int(self, reg_name):
+        """
+        Reads the int value from the Dummy ROACH.
+        """
+        try:
+            return [reg['val'] for reg in self.regs if reg['name'] == reg_name][0]
+        except:
+            raise Exception('No register found with name ' + reg_name)
+    
+    def get_generator_signal(self, nsamples):
+        """
+        Get the generator signal, clipped to simulate ADC saturation, and casted to the
+        corresponding type to simulate ADC bitwidth.
+        """
+        signal = np.clip(self.generator.get_signal(nsamples), -128, 127)
+        return signal.astype('>i1')

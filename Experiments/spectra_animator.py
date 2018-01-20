@@ -29,7 +29,6 @@ import numpy as np
 import matplotlib.pyplot as plt
 import Tkinter as Tk
 from Models.spectrometer import Spectrometer
-from Dummies.dummy_spectrometer import DummySpectrometer
 from animator import Animator
 
 class SpectraAnimator(Animator):
@@ -54,7 +53,7 @@ class SpectraAnimator(Animator):
         """
         Get spectrometer model for animator.
         """
-        return Spectrometer(settings, DummySpectrometer(settings))
+        return Spectrometer(settings)
         
     def get_data(self):
         """

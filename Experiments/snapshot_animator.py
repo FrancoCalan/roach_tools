@@ -26,7 +26,6 @@ import sys, os
 from itertools import chain
 sys.path.append(os.getcwd())
 from Models.snapshot import Snapshot
-from Dummies.dummy_snapshot import DummySnapshot
 from animator import Animator
 
 class SnapshotAnimator(Animator):
@@ -47,7 +46,7 @@ class SnapshotAnimator(Animator):
         """
         Get snapshot model for animator.
         """
-        return Snapshot(settings, DummySnapshot(settings))
+        return Snapshot(settings)
 
     def get_data(self):
         """

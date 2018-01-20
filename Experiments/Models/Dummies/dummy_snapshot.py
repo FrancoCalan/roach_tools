@@ -43,11 +43,10 @@ class DummySnapshot(DummyRoach):
         
     def snapshot_get(self, snapshot, man_trig=True, man_valid=True):
         """
-        Returns random snapshot signal.
+        Returns snapshot signal given by generator.
         """
         if snapshot in self.snapshots:
-            snap_data = self.gen_gaussian_array(mu=0, sigma=50, low=-128, 
-                high=127, size=self.settings.snap_samples, dtype='>i1')
+            snap_data = self.get_generator_signal(self.settings.snap_samples)
             return {'data' : snap_data}
         else:
             raise Exception("Snapshot not defined in config file.")

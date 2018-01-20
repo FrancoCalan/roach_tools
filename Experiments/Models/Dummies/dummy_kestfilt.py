@@ -1,5 +1,3 @@
-#!/usr/bin/env python
-
 ###############################################################################
 #                                                                             #
 #   Millimeter-wave Laboratory, Department of Astronomy, University of Chile  #
@@ -22,46 +20,45 @@
 #                                                                             #
 ###############################################################################
 
-import sys, os
-sys.path.append('../Models')
-sys.path.append(os.getcwd())
-from Models.kestfilt import Kestfilt
-from plotter import Plotter
+import struct
+import numpy as np
+from dummy_spectrometer import DummySpectrometer, get_n_data
 
-class StabilityPlotter(Plotter):
+class DummyKestfilt(DummySpectrometer):
     """
-    Class responsable for drawing magnitude ratio and angle difference
-    in order to visualize the stability between two signals.
+    Emulates a Kesteven filter implemented in ROACH. Used to deliver test data.
     """
-    def __init__(self):
-        Plotter.__init__(self)
-        self.ylims = [(-1, 10), (-200, 200)]
-        self.xlabel = 'Time [$\mu$s]'
-        self.ylabels = ['Magnitude ratio', 'Angle difference']
+    def __init__(self, settings):
+        DummySpectrometer.__init__(self, settings)
 
-        # get xdata
-        n_specs = 2**self.settings.inst_chnl_info0['addr_width']
-        self.xdata = self.get_spec_time_arr(n_specs)
-        self.xlim = (0, self.xdata[-1])
+    def read(self, bram, nbytes, offset=0):
+        # get conv_info
+        conv_info_arr = []
+        conv_info_arr.append(self.settings.conv_info_chnl)
+        conv_info_arr.append(self.settings.conv_info_max)
+        conv_info_arr.append(self.settings.conv_info_mean)
 
-        # get current channel frequency for title
-        chnl_freq = self.xdata[self.model.fpga.read_int('channel')]
-        self.titles = ['Channel at freq:' + str(chnl_freq), 
-                       'Channel at freq:' + str(chnl_freq)]
-        self.nplots = len(self.titles)
+        # get inst_chnl_info
+        inst_chnl_info_arr = []
+        inst_chnl_info_arr.append(self.settings.inst_chnl_info0)
+        inst_chnl_info_arr.append(self.settings.inst_chnl_info1)
+        
+        for conv_info in conv_info_arr:
+            if bram in conv_info['bram_list']:
+                n_data = get_n_data(nbytes, conv_info['data_width'])
+                
+                # conv data a + exp(b*x)
+                a = 10
+                b = -(100.0/n_data)*np.random.random()
+                conv_data = np.exp(a*np.exp((b*np.arange(n_data)))) + np.random.random(n_data)
 
-    def get_model(self, settings):
-        """
-        Get kestfilt model for plotter.
-        """
-        return Kestfilt(settings)
+                return struct.pack('>'+str(n_data)+conv_info['data_type'], *conv_data)
 
-    def get_data(self):
-        """
-        Gets the stability data from kestfilt.
-        """
-        return self.model.get_stability_data()
-
-if __name__ == '__main__':
-    plotter = StabilityPlotter()
-    plotter.plot()
+        for inst_chnl_info in inst_chnl_info_arr:
+            if bram in inst_chnl_info['bram_list']:
+                n_data = get_n_data(nbytes, inst_chnl_info['data_width'])
+                inst_chnl_data = 10 * (np.random.random(n_data)+1)
+                return struct.pack('>'+str(n_data)+inst_chnl_info['data_type'], *inst_chnl_data)
+                
+        return DummySpectrometer.read(self, bram, nbytes, offset)
+        

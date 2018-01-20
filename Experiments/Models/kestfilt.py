@@ -24,13 +24,20 @@ import sys
 import numpy as np
 import struct
 from spectrometer import Spectrometer
+from Dummies.dummy_kestfilt import DummyKestfilt
 
 class Kestfilt(Spectrometer):
     """
     Helper class to read and write data from Kesteven filter.
     """
-    def __init__(self, settings, dummy_kestfilt):
-        Spectrometer.__init__(self, settings, dummy_kestfilt)
+    def __init__(self, settings):
+        Spectrometer.__init__(self, settings)
+
+    def get_dummy(self):
+        """
+        Gets dummy kestfilt fpga.
+        """
+        return DummyKestfilt(self.settings)
 
     def get_convergence_data(self):
         """

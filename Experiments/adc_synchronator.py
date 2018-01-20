@@ -25,9 +25,9 @@
 import numpy as np
 from experiment import Experiment
 from Models.snapshot import Snapshot
-from Dummies.dummy_snapshot import DummySnapshot
 from snapshot_animator import SnapshotAnimator
-from Source.source import Source
+from Generator.generator import Generator
+from Models.Dummies.dummy_generator import gen_time_arr
 
 class AdcSynchronator(Experiment):
     """
@@ -37,13 +37,13 @@ class AdcSynchronator(Experiment):
     def __init__(self):
         Experiment.__init__(self)
         self.snapshot_animator = SnapshotAnimator()
-        self.source = Source(self.settings.source_ip, self.settings.source_port)
+        self.source = Generator(self.settings.source_ip, self.settings.source_port)
 
     def get_model(self, settings):
         """
         Get snapshot model.
         """
-        return Snapshot(settings, DummySnapshot(settings))
+        return Snapshot(settings)
 
     def synchronize_adcs(self):
         """
@@ -85,9 +85,8 @@ class AdcSynchronator(Experiment):
         Estimates a phasor associated with frequency freq from data.
         It's done by computing the single channel DFT at frequency freq.
         """
-        Fs = 2*self.settings.bw
-        nsamp = self.settings.snap_samples
-        time_arr = np.linspace(0, Fs*(nsamp-1), nsamp)
+        Ts = 1.0/(2*self.settings.bw)
+        time_arr = gen_time_arr(Ts, self.settings.snap_samples)
         exp_sig = np.exp(-1j*2*np.pi*freq * time_arr)
         return  np.dot(data, exp_sig)
 

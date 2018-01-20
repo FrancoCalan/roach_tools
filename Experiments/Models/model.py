@@ -29,10 +29,10 @@ class Model():
     Helper class used to initialize, program the FPGA, and read and write data
     from the ROACH.
     """
-    def __init__(self, settings, dummy_fpga):
+    def __init__(self, settings):
         self.settings = settings
         if self.settings.simulated:
-            self.fpga = dummy_fpga
+            self.fpga = self.get_dummy()
         else:
             self.fpga = corr.katcp_wrapper.FpgaClient(self.settings.roach_ip, self.settings.roach_port)
             time.sleep(1)
@@ -68,7 +68,7 @@ class Model():
         """
         Estimate FPGA clock
         """
-        print 'Estimating FPGA clock: ' + str(self.fpga.est_brd_clk())
+        print 'Estimating FPGA clock: ' + str(self.fpga.est_brd_clk()) + '[MHz]'
 
     #def calibrate_adc(self):
     #    print 'Calibrating ADC0... ', 

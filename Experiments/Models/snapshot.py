@@ -23,13 +23,20 @@
 import numpy as np
 from itertools import chain
 from model import Model
+from Dummies.dummy_snapshot import DummySnapshot
 
 class Snapshot(Model):
     """
     Helper class to read and write data from snapshot models.
     """
-    def __init__(self, settings, dummy_snapshot):
-        Model.__init__(self, settings, dummy_snapshot)
+    def __init__(self, settings):
+        Model.__init__(self, settings)
+
+    def get_dummy(self):
+        """
+        Gets dummy snapshot fpga.
+        """
+        return DummySnapshot(self.settings)
 
     def get_snapshots(self):
         """

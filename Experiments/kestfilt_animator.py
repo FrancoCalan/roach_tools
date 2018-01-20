@@ -28,7 +28,6 @@ import numpy as np
 import matplotlib.pyplot as plt
 import Tkinter as Tk
 from Models.kestfilt import Kestfilt
-from Dummies.dummy_kestfilt import DummyKestfilt
 from spectra_animator import SpectraAnimator
 from convergence_plotter import ConvergencePlotter
 from stability_plotter import StabilityPlotter
@@ -44,7 +43,7 @@ class KestfiltAnimator(SpectraAnimator):
         """
         Get kestfilt model for animator.
         """
-        return Kestfilt(settings, DummyKestfilt(settings))
+        return Kestfilt(settings)
 
     
     def get_data(self):

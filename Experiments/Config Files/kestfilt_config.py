@@ -9,13 +9,13 @@ set_regs   = [{'name' : 'acc_len',     'val' : 1},
               {'name' : 'filter_acc',  'val' : 1},
               {'name' : 'channel',     'val' : 0}]
 reset_regs = ['cnt_rst', 'filter_on']
+bw         = 1000 # [MHz]
 
 # Snapshot settings
 snapshots  = [['adcsnap0'], ['adcsnap1']]
 snap_samples = 256
 
 # Spectrometer Settings
-bw          = 1000 # [MHz]
 dBFS_const  = 81
 spec_info   = {'addr_width' : 9,
                'data_width' : 64,

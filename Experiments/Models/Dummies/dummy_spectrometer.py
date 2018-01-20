@@ -45,20 +45,20 @@ class DummySpectrometer(DummySnapshot):
         """
         if bram in self.spec_brams:
             acc_len = [reg['val'] for reg in self.regs if reg['name']=='acc_len'][0]
-            spec_len = self.get_n_data(nbytes, self.settings.spec_info['data_width'])
-            signal_arr = self.gen_gaussian_array(mu=0, sigma=0.25, low=-1, high=1,
-                size=(acc_len, 2*spec_len), dtype='>f')
-
-            spec_arr = np.abs(np.fft.rfft(signal_arr, axis=1)[:, :spec_len])
-            spec = np.sum(spec_arr, axis=0)
+            spec_len = get_n_data(nbytes, self.settings.spec_info['data_width'])
+            spec = np.zeros(spec_len)
+            for _ in range(acc_len):
+                signal = self.get_generator_signal(2*spec_len)
+                spec += np.abs(np.fft.rfft(signal)[:spec_len])
+            spec = spec / acc_len
             return struct.pack('>'+str(spec_len)+self.settings.spec_info['data_type'], *spec)
 
         else: 
             raise Exception("BRAM not defined in config file.")
 
-    def get_n_data(self, nbytes, data_width):
-        """
-        Computes the number of data values given the total number of
-        bytes in the data array, and data width in bits.
-        """
-        return 8 * nbytes / data_width
+def get_n_data(nbytes, data_width):
+    """
+    Computes the number of data values given the total number of
+    bytes in the data array, and data width in bits.
+    """
+    return 8 * nbytes / data_width

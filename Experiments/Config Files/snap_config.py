@@ -6,6 +6,7 @@ program    = False
 boffile    = ''
 set_regs   = []
 reset_regs = []
+bw         = 1000 # [MHz]
 
 # Snapshot settings
 snapshots  = [['adcsnap0'], ['adcsnap1']]

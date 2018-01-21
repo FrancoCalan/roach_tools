@@ -36,9 +36,19 @@ class Animator(Plotter):
         """
         Add the basic parameters to the plot and starts the animation.
         """
-        self.add_plot_parameters()
+        self.set_plot_parameters()
+        self.create_window()
         anim = animation.FuncAnimation(self.fig, animate, fargs=(self,), blit=True)
         Tk.mainloop()
+
+    def start_nonblocking_animation(self):
+        """
+        Like start_animation() but it does not block the flow of the program. 
+        Useful for doing tests that involve taking multiple controlling 
+        equipment, taking multiple snapshots, etc. It does not uses Tk, instead uses
+        matplotlib default display window, hence it does not uses widgets.
+        """
+        pass
 
 def animate(_, self):
     """

@@ -39,7 +39,7 @@ class Plotter(Experiment):
         self.config_file = os.path.splitext(sys.argv[1])[0]
         self.line_arr = []
 
-    def add_plot_parameters(self):
+    def set_plot_parameters(self):
         """
         Add the basic parameters to the plot.
         """
@@ -61,7 +61,6 @@ class Plotter(Experiment):
                 self.line_arr.append(ax.plot([], [], lw=2)[0])
 
         self.fig.set_tight_layout(True)
-        self.create_window()
 
     def draw_plot_lines(self):
         """
@@ -75,7 +74,8 @@ class Plotter(Experiment):
         """
         Show plot window.
         """
-        self.add_plot_parameters()
+        self.set_plot_parameters()
+        self.create_window()
         self.draw_plot_lines() 
         Tk.mainloop()
 

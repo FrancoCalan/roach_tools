@@ -20,33 +20,38 @@
 #                                                                             #
 ###############################################################################
 
-import struct
 import numpy as np
-from itertools import chain
-from dummy_roach import DummyRoach
+from dummy_snapshot import DummySnapshot
 
-class DummySnapshot(DummyRoach):
+class DummyAdcSync(DummySnapshot):
     """
-    Emulates a snapshot implemented in ROACH. Used to deliver test data.
+    Emulates an adc_sync implemented in ROACH. Used to deliver test data.
     """
     def __init__(self, settings):
-        DummyRoach.__init__(self, settings)
-        
-        # add registers from config file
-        for reg in settings.set_regs:
-            self.regs.append({'name' : reg['name'], 'val' : 0})
-        for reg in settings.reset_regs:
-            self.regs.append({'name' : reg, 'val' : 0})
+        DummySnapshot.__init__(self, settings)
+        self.snapshot_data = np.zeros(self.settings.snap_samples)
+        self.natural_desync = 50
 
-        # get snapshots
-        self.snapshots = list(chain.from_iterable(self.settings.snapshots)) # flatten list
+    def write_int(self, reg_name, val):
+        """
+        If snap_trig is triggered (0->1), update snapshot data with new signal
+        from generator.
+        """
+        if reg_name == 'snap_trig':
+            if self.read_int('snap_trig') == 0 and val == 1:
+                self.snapshot_data = self.get_generator_signal(self.settings.snap_samples)
+        DummySnapshot.write_int(self, reg_name, val)
         
     def snapshot_get(self, snapshot, man_trig=True, man_valid=True):
         """
-        Returns snapshot signal given by generator.
+        Returns snapshot signal stored in 'ram', adding the delyas from both the natural
+        desync of the adcs, and the ones induced by the model.
         """
         if snapshot in self.snapshots:
-            snap_data = self.get_generator_signal(self.settings.snap_samples)
+            if snapshot == self.snapshots[0]:
+                snap_data = np.roll(self.snapshot_data, self.read_int('adc0_delay'))
+            else: # snapshot[1]
+                snap_data = np.roll(self.snapshot_data, self.read_int('adc1_delay') + self.natural_desync)
             return {'data' : snap_data}
         else:
             raise Exception("Snapshot not defined in config file.")

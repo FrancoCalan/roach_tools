@@ -24,6 +24,7 @@ import os, sys
 from plotter import Plotter
 import matplotlib.animation as animation
 import Tkinter as Tk
+import multiprocessing as mp
 
 class Animator(Plotter):
     """
@@ -48,7 +49,9 @@ class Animator(Plotter):
         equipment, taking multiple snapshots, etc. It does not uses Tk, instead uses
         matplotlib default display window, hence it does not uses widgets.
         """
-        pass
+        anim_process = mp.Process(target=self.start_animation)
+        anim_process.start()
+        
 
 def animate(_, self):
     """

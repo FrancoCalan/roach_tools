@@ -46,7 +46,7 @@ class Snapshot(Model):
         snap_data_arr = []
         for snapshot in chain.from_iterable(self.settings.snapshots): # flatten list
             snap_data = np.fromstring(self.fpga.snapshot_get(snapshot, man_trig=True, 
-                man_valid=True)['data'], dtype='>i1')[0:self.settings.snap_samples]
+                man_valid=True)['data'], dtype='>i1')
             snap_data_arr.append(snap_data)
 
         return snap_data_arr

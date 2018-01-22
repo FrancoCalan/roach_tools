@@ -24,7 +24,7 @@
 
 import numpy as np
 from experiment import Experiment
-from Models.snapshot import Snapshot
+from Models.adc_sync import AdcSync
 from snapshot_animator import SnapshotAnimator
 from Generator.generator import Generator
 from Models.Dummies.dummy_generator import gen_time_arr
@@ -33,17 +33,18 @@ class AdcSynchronator(Experiment):
     """
     This class is used to synchronize two ADC
     """
-
     def __init__(self):
         Experiment.__init__(self)
-        self.snapshot_animator = SnapshotAnimator()
-        self.source = Generator(self.settings.source_ip, self.settings.source_port)
+        if self.settings.simulated:
+            self.source = self.model.fpga.generator
+        else:
+            self.source = Generator(self.settings.source_ip, self.settings.source_port)
 
     def get_model(self, settings):
         """
         Get snapshot model.
         """
-        return Snapshot(settings)
+        return AdcSync(settings)
 
     def synchronize_adcs(self):
         """
@@ -57,18 +58,24 @@ class AdcSynchronator(Experiment):
         # turn source on and set freq and amp
         self.source.set_freq_mhz(self.settings.sync_freq) 
         self.source.set_power_dbm(self.settings.sync_power)
-        self.source.turn_on()
+        self.source.turn_output_on()
 
-        for _ in range(2):
+        while True:
             [snap_adc0, snap_adc1] = self.get_snapshots()
             snap0_phasor = self.estimate_phasor(self.settings.sync_freq, snap_adc0)
             snap1_phasor = self.estimate_phasor(self.settings.sync_freq, snap_adc1)
             phasor_div = self.compute_phasor_div(snap0_phasor, snap1_phasor)
             sync_delay = self.compute_delay_diff(phasor_div)
             print "Sync delay: " + str(sync_delay)
+            snapshot_animator = SnapshotAnimator()
+            snapshot_animator.model = self.model # change animator model to adc_sync
+            snapshot_animator.plot()
+            if sync_delay == 0:
+                break
             self.delay_adcs(sync_delay)
-
-        self.source.turn_off()
+        
+        print "ADCs successfully synchronized"
+        self.source.turn_output_off()
 
     def get_snapshots(self):
         """
@@ -76,8 +83,7 @@ class AdcSynchronator(Experiment):
         in bram. This way both snapshots are synchronized. Returns the 
         snapshot data array.
         """
-        self.model.set_reg(self.settings.snap_trig, 0)
-        self.model.set_reg(self.settings.snap_trig, 1)
+        self.model.reset_reg('snap_trig')
         return self.model.get_snapshots()
 
     def estimate_phasor(self, freq, data):
@@ -86,7 +92,7 @@ class AdcSynchronator(Experiment):
         It's done by computing the single channel DFT at frequency freq.
         """
         Ts = 1.0/(2*self.settings.bw)
-        time_arr = gen_time_arr(Ts, self.settings.snap_samples)
+        time_arr = gen_time_arr(Ts, len(data))
         exp_sig = np.exp(-1j*2*np.pi*freq * time_arr)
         return  np.dot(data, exp_sig)
 
@@ -109,20 +115,20 @@ class AdcSynchronator(Experiment):
         Fs = 2*self.settings.bw
         samples_per_period = Fs / self.settings.sync_freq # = Tsync / Ts
         phase_diff = np.angle(phasor_div)
-        return int(samples_per_period * phase_diff / 2*np.pi)
+        return int(samples_per_period * phase_diff / (2*np.pi))
 
     def delay_adcs(self, delay):
         """
         Delay one of the adcs in order to put synchronize them. Assumes
-        that a postive delay means a delay in adc1, and a negative delay 
-        is a delay in adc0.
+        that a postive delay means a delay in adc0, and a negative delay 
+        means a delay in adc1.
         """
-        # case adc1 is ahead, hence delay adc1
+        # if delay is positive adc1 is ahead, hence delay adc1
         if delay > 0:
-            self.model.set_reg(self.settings.adc_delays[1], delay)
-        # case adc0 is ahead, hence delay adc0
+            self.model.set_reg('adc1_delay', delay)
+        # if delay is negative adc0 is ahead, hence delay adc0
         else:
-            self.model.set_reg(self.settings.adc_delays[0], delay)
+            self.model.set_reg('adc0_delay', -1*delay)
 
 if __name__ == '__main__':
     synchronator = AdcSynchronator()

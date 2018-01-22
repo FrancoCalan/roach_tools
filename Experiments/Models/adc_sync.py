@@ -20,33 +20,18 @@
 #                                                                             #
 ###############################################################################
 
-import struct
-import numpy as np
-from itertools import chain
-from dummy_roach import DummyRoach
+from snapshot import Snapshot
+from Dummies.dummy_adc_sync import DummyAdcSync
 
-class DummySnapshot(DummyRoach):
+class AdcSync(Snapshot):
     """
-    Emulates a snapshot implemented in ROACH. Used to deliver test data.
+    Helper class to read and write data from adc_sync models.
     """
     def __init__(self, settings):
-        DummyRoach.__init__(self, settings)
-        
-        # add registers from config file
-        for reg in settings.set_regs:
-            self.regs.append({'name' : reg['name'], 'val' : 0})
-        for reg in settings.reset_regs:
-            self.regs.append({'name' : reg, 'val' : 0})
+        Snapshot.__init__(self, settings)
 
-        # get snapshots
-        self.snapshots = list(chain.from_iterable(self.settings.snapshots)) # flatten list
-        
-    def snapshot_get(self, snapshot, man_trig=True, man_valid=True):
+    def get_dummy(self):
         """
-        Returns snapshot signal given by generator.
+        Gets dummy adc_sync fpga.
         """
-        if snapshot in self.snapshots:
-            snap_data = self.get_generator_signal(self.settings.snap_samples)
-            return {'data' : snap_data}
-        else:
-            raise Exception("Snapshot not defined in config file.")
+        return DummyAdcSync(self.settings)

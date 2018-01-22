@@ -44,7 +44,7 @@ class DummySpectrometer(DummySnapshot):
         Return random spectra added by acc_len.
         """
         if bram in self.spec_brams:
-            acc_len = [reg['val'] for reg in self.regs if reg['name']=='acc_len'][0]
+            acc_len = self.read_int('acc_len')
             spec_len = get_n_data(nbytes, self.settings.spec_info['data_width'])
             spec = np.zeros(spec_len)
             for _ in range(acc_len):

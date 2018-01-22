@@ -52,7 +52,7 @@ class SnapshotAnimator(Animator):
         """
         Gets the snapshot data form the model.
         """
-        return self.model.get_snapshots()
+        return self.model.get_snapshots()[:self.settings.snap_samples]
 
 if __name__ == '__main__':
     animator = SnapshotAnimator()

@@ -48,5 +48,5 @@ class Snapshot(Model):
             snap_data = np.fromstring(self.fpga.snapshot_get(snapshot, man_trig=True, 
                 man_valid=True)['data'], dtype='>i1')
             snap_data_arr.append(snap_data)
-
+        
         return snap_data_arr

@@ -20,7 +20,8 @@
 #                                                                             #
 ###############################################################################
 
-import time
+import time, struct
+import numpy as np
 import corr
 #import adc5g
 
@@ -121,3 +122,28 @@ class Model():
         self.fpga.write_int(reg, 0)
         time.sleep(0.1)
         print 'done'
+
+    def get_bram_data(self, bram_info):
+        """
+        Receive and unpack data from FPGA using data information from bram_info.
+        """
+        bram_list = bram_info['bram_list']
+        width = bram_info['bram_width']
+        depth = 2**bram_info['addr_width']
+        dtype = bram_info['data_type'] 
+        ndata = (width / type2bits[dtype]) * depth
+
+        bram_data_arr = []
+        for bram in bram_list:
+            bram_data = struct.unpack('>'+str(ndata)+dtype, self.fpga.read(bram, depth*width/8, 0))
+            bram_data_arr.append(np.array(bram_data))
+
+        if len(bram_data_arr)==1:
+            return bram_data_arr[0]
+            
+        return bram_data_arr
+
+type2bits = {'b' :  8, 'B' :  8,
+             'h' : 16, 'H' : 16,
+             'i' : 32, 'I' : 32,
+             'q' : 64, 'Q' : 64} 

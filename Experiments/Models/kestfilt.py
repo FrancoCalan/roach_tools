@@ -22,7 +22,6 @@
 
 import sys
 import numpy as np
-import struct
 from spectrometer import Spectrometer
 from Dummies.dummy_kestfilt import DummyKestfilt
 
@@ -73,22 +72,3 @@ class Kestfilt(Spectrometer):
         stability_data = chnl1_data / chnl0_data
 
         return [np.abs(stability_data), np.angle(stability_data, deg=True)]
-
-    def get_bram_data(self, bram_info):
-        """
-        Receive and unpack data from FPGA using data information from bram_info.
-        """
-        bram_list = bram_info['bram_list']
-        width = bram_info['data_width']
-        depth = 2**bram_info['addr_width']
-        dtype = bram_info['data_type'] 
-
-        bram_data_arr = []
-        for bram in bram_list:
-            bram_data = struct.unpack('>'+str(depth)+dtype, self.fpga.read(bram, depth*width/8, 0))
-            bram_data_arr.append(np.array(bram_data))
-
-        if len(bram_data_arr)==1:
-            return bram_data_arr[0]
-            
-        return bram_data_arr

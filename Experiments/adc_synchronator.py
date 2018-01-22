@@ -22,6 +22,7 @@
 #                                                                             #
 ###############################################################################
 
+import time
 import numpy as np
 from experiment import Experiment
 from Models.adc_sync import AdcSync
@@ -35,6 +36,8 @@ class AdcSynchronator(Experiment):
     """
     def __init__(self):
         Experiment.__init__(self)
+        #self.snapshot_animator = SnapshotAnimator()
+        #self.snapshot_animator.model = self.model # change animator model to adc_sync
         if self.settings.simulated:
             self.source = self.model.fpga.generator
         else:
@@ -67,9 +70,9 @@ class AdcSynchronator(Experiment):
             phasor_div = self.compute_phasor_div(snap0_phasor, snap1_phasor)
             sync_delay = self.compute_delay_diff(phasor_div)
             print "Sync delay: " + str(sync_delay)
-            snapshot_animator = SnapshotAnimator()
-            snapshot_animator.model = self.model # change animator model to adc_sync
-            snapshot_animator.plot()
+            #snapshot_animator = SnapshotAnimator()
+            #snapshot_animator.model = self.model # change animator model to adc_sync
+            #snapshot_animator.plot()
             if sync_delay == 0:
                 break
             self.delay_adcs(sync_delay)
@@ -84,6 +87,7 @@ class AdcSynchronator(Experiment):
         snapshot data array.
         """
         self.model.reset_reg('snap_trig')
+        time.sleep(1)
         return self.model.get_snapshots()
 
     def estimate_phasor(self, freq, data):
@@ -129,6 +133,7 @@ class AdcSynchronator(Experiment):
         # if delay is negative adc0 is ahead, hence delay adc0
         else:
             self.model.set_reg('adc0_delay', -1*delay)
+        time.sleep(1)
 
 if __name__ == '__main__':
     synchronator = AdcSynchronator()

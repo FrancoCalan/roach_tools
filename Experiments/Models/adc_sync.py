@@ -20,10 +20,10 @@
 #                                                                             #
 ###############################################################################
 
-from snapshot import Snapshot
+from model import Model
 from Dummies.dummy_adc_sync import DummyAdcSync
 
-class AdcSync(Snapshot):
+class AdcSync(Model):
     """
     Helper class to read and write data from adc_sync models.
     """
@@ -35,3 +35,9 @@ class AdcSync(Snapshot):
         Gets dummy adc_sync fpga.
         """
         return DummyAdcSync(self.settings)
+
+    def get_snapshots(self):
+        """
+        Get snapshot data from bram. Used for ADC synchronator.
+        """
+        return self.get_bram_data(self.settings.bram_snapshots)

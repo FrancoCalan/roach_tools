@@ -44,8 +44,8 @@ class Kestfilt(Spectrometer):
         max channel power, and mean channel power.
         """
         # single channel
-        [chnl_data_real, chnl_data_imag] = self.get_bram_data(self.settings.conv_info_chnl)
-        chnl_data = np.array(chnl_data_real)**2 + np.array(chnl_data_imag)**2 # compute power
+        [chnl_data_real, chnl_data_imag] = self.get_bram_list_data(self.settings.conv_info_chnl)
+        chnl_data = chnl_data_real**2 + chnl_data_imag**2 # compute power
         chnl_data = self.linear_to_dBFS(chnl_data)
         
         # max channel
@@ -63,8 +63,8 @@ class Kestfilt(Spectrometer):
         Gets the complex data from a single channel within consecutive instantaneous spectra
         for different inputs. Then computes the magnitude ratio and angle difference.
         """
-        [chnl0_data_real, chnl0_data_imag] = self.get_bram_data(self.settings.inst_chnl_info0)
-        [chnl1_data_real, chnl1_data_imag] = self.get_bram_data(self.settings.inst_chnl_info1)
+        [chnl0_data_real, chnl0_data_imag] = self.get_bram_list_data(self.settings.inst_chnl_info0)
+        [chnl1_data_real, chnl1_data_imag] = self.get_bram_list_data(self.settings.inst_chnl_info1)
 
         chnl0_data = np.array(chnl0_data_real) + 1j*np.array(chnl0_data_imag)
         chnl1_data = np.array(chnl1_data_real) + 1j*np.array(chnl0_data_imag)

@@ -44,23 +44,16 @@ class Spectrometer(Snapshot):
         Get spectra data from brams using the information specified in the
         config file.
         """
-        width = self.settings.spec_info['data_width']
-        depth = 2**self.settings.spec_info['addr_width']
-        dtype = self.settings.spec_info['data_type']
+        bram_data_arr2d = self.get_bram_list2d_data(self.settings.spec_info)
 
         spec_data_arr = []
-        for spec in self.settings.spec_info['spec_list']:
-            bram_data_arr = []
-            for bram in spec['bram_list']:
-                bram_data = struct.unpack('>'+str(depth)+dtype, self.fpga.read(bram, 
-                    depth*width/8, 0))
-                bram_data_arr.append(bram_data)
-            spec_data = np.fromiter(chain(*zip(*bram_data_arr)), dtype=dtype) # interleave data
+        for spec_data in bram_data_arr2d:
+            spec_data = np.fromiter(chain(*zip(*spec_data)), dtype=self.settings.spec_info['data_type']) # interleave data
             spec_data = spec_data / float(self.fpga.read_int('acc_len')) # divide by accumulation
             spec_data = self.linear_to_dBFS(spec_data)
             spec_data_arr.append(spec_data)
 
         return spec_data_arr
-
+            
     def linear_to_dBFS(self, data):
         return 10*np.log10(data+1) - self.settings.dBFS_const

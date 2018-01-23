@@ -126,22 +126,53 @@ class Model():
     def get_bram_data(self, bram_info):
         """
         Receive and unpack data from FPGA using data information from bram_info.
+        The bram_info dictionary format is:
+        {'addr_width' : width of bram address in bits.
+         'data_width' : width of bram data (word) in bits.
+         'data_type'  : data type in struct format ('b', 'B', 'h', etc.)
+         'bram_name'  : bram name in the model
+        }
         """
-        bram_list = bram_info['bram_list']
-        width = bram_info['bram_width']
+        width = bram_info['data_width']
         depth = 2**bram_info['addr_width']
         dtype = bram_info['data_type'] 
+        bram  = bram_info['bram_name']
         ndata = (width / type2bits[dtype]) * depth
 
-        bram_data_arr = []
-        for bram in bram_list:
-            bram_data = struct.unpack('>'+str(ndata)+dtype, self.fpga.read(bram, depth*width/8, 0))
-            bram_data_arr.append(np.array(bram_data))
+        bram_data = struct.unpack('>'+str(ndata)+dtype, self.fpga.read(bram, depth*width/8, 0))
+        return np.array(bram_data)
 
-        if len(bram_data_arr)==1:
-            return bram_data_arr[0]
-            
+    def get_bram_list_data(self, bram_info):
+        """
+        Similar to get_bram_data but it gets the data from a list of bram. In this case
+        'bram_name' is 'bram_list', a list of bram names. Returns the data in a list
+        of the same size.
+        """
+        bram_data_arr = []
+        for bram in bram_info['bram_list']:
+            # make a new bram info only with current bram
+            current_bram_info = bram_info
+            current_bram_info['bram_name'] = bram
+            bram_data = self.get_bram_data(current_bram_info)
+            bram_data_arr.append(bram_data)
+
         return bram_data_arr
+
+    def get_bram_list2d_data(self, bram_info):
+        """
+        Similar to get_bram_list_data but it gets the data from a list of list of brams.
+        In this case 'bram_list' is 'bram_list2d', a 2d list of bram names. Returns the 
+        data in a list of the same dimansions.
+        """
+        bram_data_arr2d = []
+        for bram_list in bram_info['bram_list2d']:
+            # make a new bram info only with current bram_list
+            current_bram_info = bram_info
+            current_bram_info['bram_list'] = bram_list
+            bram_data_arr = self.get_bram_list_data(current_bram_info)
+            bram_data_arr2d.append(bram_data_arr)
+
+        return bram_data_arr2d
 
 type2bits = {'b' :  8, 'B' :  8,
              'h' : 16, 'H' : 16,

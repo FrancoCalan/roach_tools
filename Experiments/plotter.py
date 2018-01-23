@@ -84,7 +84,7 @@ class Plotter(Experiment):
         Compute a time array with timestamps for 'n_specs' spetra, starting at 0.
         Used as x-axis for time related plots. In [us].
         """
-        n_brams = len(self.settings.spec_info['spec_list'][0]['bram_list'])
+        n_brams = len(self.settings.spec_info['bram_list2d'][0])
         n_channels = n_brams * 2**self.settings.spec_info['addr_width']
         x_time = np.arange(0, n_specs) * (1.0/self.settings.bw) * n_channels # [us]
         return x_time

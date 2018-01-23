@@ -33,15 +33,11 @@ class DummySpectrometer(DummySnapshot):
         DummySnapshot.__init__(self,settings)
         
         # get spectrometers brams
-        self.spec_brams = []
-        for spec in self.settings.spec_info['spec_list']:
-            for bram in spec['bram_list']:
-                self.spec_brams.append(bram)
-
+        self.spec_brams = list(chain.from_iterable(self.settings.spec_info['bram_list2d'])) # flatten list
             
     def read(self, bram, nbytes, offset=0):
         """
-        Return random spectra added by acc_len.
+        Return spectra of generator signal accumulated acc_len times.
         """
         if bram in self.spec_brams:
             acc_len = self.read_int('acc_len')

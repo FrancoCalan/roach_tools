@@ -44,7 +44,8 @@ class DummyKestfilt(DummySpectrometer):
         inst_chnl_info_arr.append(self.settings.inst_chnl_info1)
         
         for conv_info in conv_info_arr:
-            if bram in conv_info['bram_list']:
+            if ('bram_name' in conv_info and bram == conv_info['bram_name']) or\
+                ('bram_list' in conv_info and bram in conv_info['bram_list']):
                 n_data = get_n_data(nbytes, conv_info['data_width'])
                 
                 # conv data a + exp(b*x)

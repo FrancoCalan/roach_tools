@@ -1,6 +1,6 @@
 # Basic settings
 simulated  = True
-roach_ip   = '0.0.0.0'
+roach_ip   = '192.168.1.12'
 roach_port = 7147
 program    = False
 boffile    = ''

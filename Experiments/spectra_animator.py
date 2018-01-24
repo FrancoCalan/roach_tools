@@ -45,9 +45,8 @@ class SpectraAnimator(Animator):
         self.ylabels = self.nplots * ['Power [dBFS]']
         self.entries = []
         
-        n_brams = len(self.settings.spec_info['bram_list2d'][0])
-        channels = n_brams * 2**self.settings.spec_info['addr_width']
-        self.xdata = np.linspace(0, self.settings.bw, channels, endpoint=False)
+        nchannels = get_nchannels(self.settings.spec_info)
+        self.xdata = np.linspace(0, self.settings.bw, nchannels, endpoint=False)
         
     def get_model(self, settings):
         """
@@ -98,6 +97,13 @@ class SpectraAnimator(Animator):
         except:
             raise Exception('Unable to parse value in textbox')
         self.model.set_reg(reg, val)
+
+def get_nchannels(selc_info):
+    """
+    Compute the number of channels of an spetrum given the spec_info
+    """
+    n_brams = len(spec_info['bram_list2d'][0])
+    return n_brams * 2**self.settings.spec_info['addr_width']
         
 if __name__ == '__main__':
     animator = SpectraAnimator()

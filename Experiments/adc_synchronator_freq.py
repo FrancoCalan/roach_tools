@@ -1,3 +1,5 @@
+#!/usr/bin/env python
+
 ###############################################################################
 #                                                                             #
 #   Millimeter-wave Laboratory, Department of Astronomy, University of Chile  #
@@ -20,24 +22,32 @@
 #                                                                             #
 ###############################################################################
 
-from model import Model
-from Dummies.dummy_adc_sync import DummyAdcSync
+import time
+import numpy as np
+from spectra_animator import SpectraAnimator, get_nchannels
+from Generator.generator import Generator
 
-class AdcSync(Model):
+class AdcSynchronatorFreq(Experiment):
     """
-    Helper class to read and write data from adc_sync models.
+    This class is used to syncronize two ADC using spectra data.
     """
-    def __init__(self, settings):
-        Model.__init__(self, settings)
+    def __init__(self):
+        Experiment.__init__(self):
+        self.spectra_animator = SpectraAnimator()
+        self.source = Generator(self.settings.source_ip, self.settings.source_port)
 
-    def get_dummy(self):
-        """
-        Gets dummy adc_sync fpga.
-        """
-        return DummyAdcSync(self.settings)
+    def get_model(self):
+        return AdcSyncFreq(self.settings)
 
-    def get_snapshots(self):
-        """
-        Get snapshot data from bram. Used for ADC synchronator.
-        """
-        return self.get_bram_data(self.settings.bram_snapshots)
+    def synchronize_adcs(self):
+        nchannels = get_nchannels(spec_info_pow)
+        freqs = np.linspace(0, self.settings.bw, nchannels, endpoint=False)
+
+        for chnl, freq in zip(range(1, nchannels) freqs[1:]):
+            # change frequency
+            self.source.change_freq_mhz(freq)
+            time.sleep(0.1)
+
+            # get data
+            [spec_]
+            

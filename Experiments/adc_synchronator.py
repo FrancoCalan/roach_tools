@@ -43,11 +43,11 @@ class AdcSynchronator(Experiment):
         else:
             self.source = Generator(self.settings.source_ip, self.settings.source_port)
 
-    def get_model(self, settings):
+    def get_model(self):
         """
         Get snapshot model.
         """
-        return AdcSync(settings)
+        return AdcSync(self.settings)
 
     def synchronize_adcs(self):
         """

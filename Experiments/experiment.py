@@ -31,5 +31,5 @@ class Experiment():
     def __init__(self):
         self.config_file = os.path.splitext(sys.argv[1])[0]
         self.settings = importlib.import_module(self.config_file)
-        self.model = self.get_model(self.settings)
+        self.model = self.get_model()
 

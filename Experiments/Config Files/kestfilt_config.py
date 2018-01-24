@@ -1,8 +1,8 @@
 # Basic settings
 simulated  = True
-roach_ip   = '0.0.0.0'
+roach_ip   = '192.168.1.12'
 roach_port = 7147
-program    = False
+program    = True
 boffile    = ''
 set_regs   = [{'name' : 'acc_len',     'val' : 1},
               {'name' : 'filter_gain', 'val' : 2**32-1},
@@ -22,9 +22,9 @@ spec_info   = {'addr_width'   : 9,
                'data_width'   : 64,
                'data_type'    : 'Q',
                'bram_list2d'  :
-               [['dout0_0',],
-                ['dout1_0',],
-                ['dout2_0',]]}
+               [['dout0_0', 'dout0_1', 'dout0_2', 'dout0_3', 'dout0_4', 'dout0_5', 'dout0_6', 'dout0_7'],
+                ['dout1_0', 'dout1_1', 'dout1_2', 'dout1_3', 'dout1_4', 'dout1_5', 'dout1_6', 'dout1_7'],
+                ['dout2_0', 'dout2_1', 'dout2_2', 'dout2_3', 'dout2_4', 'dout2_5', 'dout2_6', 'dout2_7']]}
 
 # Kestfilt Settings
 conv_info_chnl = {'name'       : 'chnl',

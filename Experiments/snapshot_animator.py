@@ -42,11 +42,11 @@ class SnapshotAnimator(Animator):
         self.ylabels = self.nplots * ['Amplitude [a.u.]']
         self.xdata = range(self.settings.snap_samples)
 
-    def get_model(self, settings):
+    def get_model(self):
         """
         Get snapshot model for animator.
         """
-        return Snapshot(settings)
+        return Snapshot(self.settings)
 
     def get_data(self):
         """

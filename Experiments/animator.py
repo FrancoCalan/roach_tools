@@ -51,7 +51,6 @@ class Animator(Plotter):
         """
         anim_process = mp.Process(target=self.start_animation)
         anim_process.start()
-        
 
 def animate(_, self):
     """

@@ -50,11 +50,11 @@ class StabilityPlotter(Plotter):
                        'Channel at freq:' + str(chnl_freq)]
         self.nplots = len(self.titles)
 
-    def get_model(self, settings):
+    def get_model(self):
         """
         Get kestfilt model for plotter.
         """
-        return Kestfilt(settings)
+        return Kestfilt(self.settings)
 
     def get_data(self):
         """

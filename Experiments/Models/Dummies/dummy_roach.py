@@ -39,9 +39,15 @@ class DummyRoach():
         """
         return True
 
-    def upload_program_bof(self, boffile):
+    def upload_bof(self, boffile, port, force_upload=False):
         """
-        Emulates programming of the FPGA. Does nothing.
+        Emulates the uploading of the model to the ROACH. Does nothing.
+        """
+        pass
+    
+    def progdev(self, boffile):
+        """
+        Emulates the programming of the FPGA. Does nothing.
         """
         pass
 

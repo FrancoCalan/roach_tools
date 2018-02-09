@@ -39,11 +39,11 @@ class KestfiltAnimator(SpectraAnimator):
     def __init__(self):
         SpectraAnimator.__init__(self)
 
-    def get_model(self, settings):
+    def get_model(self):
         """
         Get kestfilt model for animator.
         """
-        return Kestfilt(settings)
+        return Kestfilt(self.settings)
 
     
     def get_data(self):

@@ -51,11 +51,11 @@ class ConvergencePlotter(Plotter):
         chnl_freq = self.xdata[self.model.fpga.read_int('channel')]
         self.titles = ['Power v/s time\nChannel at freq:' + str(chnl_freq)]
 
-    def get_model(self, settings):
+    def get_model(self):
         """
         Get kestfilt model for plotter.
         """
-        return Kestfilt(settings)
+        return Kestfilt(self.settings)
 
     def get_data(self):
         """

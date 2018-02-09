@@ -1,10 +1,10 @@
 # Basic settings
 simulated  = True
-ip         = '192.168.1.12'
-port       = 7147
+roach_ip   = '192.168.1.12'
+roach_port = 7147
 program    = False
 boffile    = 'spec2adc_4096ch_800mhz.bof.gz'
-set_regs   = [{'name' : 'acc_len', 'val' : 2**16}]
+set_regs   = [{'name' : 'acc_len', 'val' : 2**0}]
 reset_regs = ['cnt_rst']
 bw          = 800 # [MHz]
 

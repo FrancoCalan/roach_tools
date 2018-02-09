@@ -60,7 +60,7 @@ class Model():
         Upload to RAM and program the .bof model to de FPGA.
         """
         print 'Uploading and programming FPGA with %s... ' %self.settings.boffile,
-        self.fpga.upload_bof(self.settings.boffile, 60000)
+        self.fpga.upload_bof(self.settings.boffile, 60000, force_upload=True)
         self.fpga.progdev(self.settings.boffile)
         time.sleep(0.1)
         print 'done'

@@ -23,20 +23,19 @@
 ###############################################################################
 
 import sys, os, numexpr
-from itertools import chain
 sys.path.append(os.getcwd())
+from itertools import chain
 import numpy as np
-import matplotlib.pyplot as plt
 import Tkinter as Tk
-from Models.spectrometer import Spectrometer
+from calanfpga import CalanFpga
 from animator import Animator
 
 class SpectraAnimator(Animator):
     """
     Class responsable for drawing spectra plots.
     """
-    def __init__(self):
-        Animator.__init__(self)
+    def __init__(self, calanfpga):
+        Animator.__init__(self, calanfpga)
         self.titles = self.settings.plot_titles
         self.nplots = len(self.titles) 
         self.xlim = (0, self.settings.bw)
@@ -48,17 +47,19 @@ class SpectraAnimator(Animator):
         nchannels = self.get_nchannels()
         self.xdata = np.linspace(0, self.settings.bw, nchannels, endpoint=False)
         
-    def get_model(self):
-        """
-        Get spectrometer model for animator.
-        """
-        return Spectrometer(self.settings)
-        
     def get_data(self):
         """
-        Gets the snapshot data form the spectrometer model.
+        Gets the spectra data form the spectrometer model.
         """
-        return self.model.get_spectra()
+        #return self.model.get_spectra()
+        spec_data_arr = self.fpga.get_bram_list_interleaved_data(self.settings.spec_info)
+        spec_plot_arr = []
+        for spec_data in spec_data_arr:
+            spec_data = spec_data / float(self.fpga.read_reg('acc_len')) # divide by accumulation
+            spec_data = self.linear_to_dBFS(spec_data)
+            spec_plot_arr.append(spec_data)
+
+        return spec_plot_arr
 
     def create_window(self):
         """
@@ -67,7 +68,7 @@ class SpectraAnimator(Animator):
         Animator.create_window(self)
 
         # reset button
-        self.reset_button = Tk.Button(self.button_frame, text='Reset', command=lambda: self.model.reset_reg('cnt_rst'))
+        self.reset_button = Tk.Button(self.button_frame, text='Reset', command=lambda: self.fpga.reset_reg('cnt_rst'))
         self.reset_button.pack(side=Tk.LEFT)
 
         # acc_len entry
@@ -75,28 +76,28 @@ class SpectraAnimator(Animator):
 
     def add_reg_entry(self, reg):
         """
-        Add a text entry for modifying regiters in models."
+        Add a text entry for modifying regiters in FPGA."
         """
         frame = Tk.Frame(master=self.root)
         frame.pack(side = Tk.TOP, anchor="w")
         label = Tk.Label(frame, text=reg+":")
         label.pack(side=Tk.LEFT)
         entry = Tk.Entry(frame)
-        entry.insert(Tk.END, self.model.fpga.read_int(reg))
+        entry.insert(Tk.END, self.fpga.fpga.read_int(reg))
         entry.pack(side=Tk.LEFT)
         entry.bind('<Return>', lambda x: self.set_reg_from_entry(reg, entry))
         self.entries.append(entry)
 
     def set_reg_from_entry(self, reg, entry):
         """
-        Modify a model register from the value of an entry.
+        Modify a FPGA register from the value of an entry.
         """
         string_val = entry.get()
         try:
             val = int(numexpr.evaluate(string_val))
         except:
             raise Exception('Unable to parse value in textbox')
-        self.model.set_reg(reg, val)
+        self.fpga.set_reg(reg, val)
 
     def get_nchannels(self):
         """
@@ -106,6 +107,6 @@ class SpectraAnimator(Animator):
         return n_brams * 2**self.settings.spec_info['addr_width']
         
 if __name__ == '__main__':
-    animator = SpectraAnimator()
-    animator.model.initialize_roach()
-    animator.start_animation()
+    fpga = CalanFpga()
+    fpga.initialize()
+    SpectraAnimator(fpga).start_animation()

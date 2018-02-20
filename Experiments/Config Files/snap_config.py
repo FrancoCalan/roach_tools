@@ -9,5 +9,5 @@ reset_regs = []
 bw         = 1000 # [MHz]
 
 # Snapshot settings
-snapshots  = [['adcsnap0'], ['adcsnap1']]
+snapshots  = ['adcsnap0', 'adcsnap1']
 snap_samples = 256

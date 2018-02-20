@@ -31,8 +31,8 @@ class Plotter(Experiment):
     """
     Generic plotter class.
     """
-    def __init__(self):
-        Experiment.__init__(self)
+    def __init__(self, calanfpga):
+        Experiment.__init__(self, calanfpga)
         self.root = Tk.Tk()
         self.fig = plt.Figure()
         self.plot_map = {1:'11', 2:'12', 3:'22', 4:'22'}
@@ -79,17 +79,6 @@ class Plotter(Experiment):
         self.draw_plot_lines() 
         Tk.mainloop()
 
-    def get_spec_time_arr(self, n_specs):
-        """
-        Compute a time array with timestamps for 'n_specs' spetra, starting at 0.
-        Used as x-axis for time related plots. In [us].
-        """
-        n_brams = len(self.settings.spec_info['bram_list2d'][0])
-        n_channels = n_brams * 2**self.settings.spec_info['addr_width']
-        x_time = np.arange(0, n_specs) * (1.0/self.settings.bw) * n_channels # [us]
-        return x_time
-        
-
     def create_window(self):
         """
         Create a Tkinter window with all of the components (plots, toolbar, widgets).
@@ -127,4 +116,21 @@ class Plotter(Experiment):
         """
         pickle.dump(self.fig, open(self.save_entry.get()+".pickle", 'wb'))
         print "Plot saved"
+
+    def linear_to_dBFS(self, data):
+        """
+        Turn data in linear scale to dBFS scale. It uses the dBFS_const value
+        from the configuration file to adjust the zero in the dBFS scale.
+        """
+        return 10*np.log10(data+1) - self.settings.dBFS_const
+
+    def get_spec_time_arr(self, n_specs):
+        """
+        Compute a time array with timestamps for 'n_specs' spetra, starting at 0.
+        Used as x-axis for time related plots. In [us].
+        """
+        n_brams = len(self.settings.spec_info['bram_list2d'][0])
+        n_channels = n_brams * 2**self.settings.spec_info['addr_width']
+        x_time = np.arange(0, n_specs) * (1.0/self.settings.bw) * n_channels # [us]
+        return x_time
 

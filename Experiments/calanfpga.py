@@ -20,25 +20,37 @@
 #                                                                             #
 ###############################################################################
 
-import time, struct
+import os, sys, importlib, time, struct
 import numpy as np
+from itertools import chain
 import corr
-#import adc5g
+from Dummies.dummy_fpga import DummyFpga
 
-class Model():
+class CalanFpga():
     """
-    Helper class used to initialize, program the FPGA, and read and write data
-    from the ROACH.
+    Wrapper around corr's FpgaClient in order to add common functions used in 
+    Calan Lab (Millimeter Wave Laboratory, Univerity of Chile). Examples of the
+    funtions added are: roach initialization, regiter setting/reseting, easy data
+    grab from multiple snapshots, bram arrays, interleaved bram arrays, etc.
     """
-    def __init__(self, settings):
-        self.settings = settings
+    def __init__(self):
+        config_file = os.path.splitext(sys.argv[1])[0]
+        self.settings = importlib.import_module(config_file)
+        self.fpga = corr.katcp_wrapper.FpgaClient(self.settings.roach_ip, self.settings.roach_port)
+        time.sleep(1)
         if self.settings.simulated:
-            self.fpga = self.get_dummy()
+            self.fpga = DummyFpga(self.settings)
         else:
             self.fpga = corr.katcp_wrapper.FpgaClient(self.settings.roach_ip, self.settings.roach_port)
             time.sleep(1)
 
-    def initialize_roach(self):
+    def initialize(self):
+        """
+        Performs a standard ROACH initialization: Check connection,
+        upload and program bof if requested, estimate clock, and
+        set and resset the inital state of register listed in the 
+        configuration file.
+        """
         self.connect_to_roach()
         if self.settings.program:
             self.upload_and_program()
@@ -57,7 +69,7 @@ class Model():
 
     def upload_and_program(self):
         """
-        Upload to RAM and program the .bof model to de FPGA.
+        Upload to RAM and program the .bof model to the FPGA.
         """
         print 'Uploading and programming FPGA with %s... ' %self.settings.boffile,
         self.fpga.upload_bof(self.settings.boffile, 60000, force_upload=True)
@@ -70,23 +82,6 @@ class Model():
         Estimate FPGA clock
         """
         print 'Estimating FPGA clock: ' + str(self.fpga.est_brd_clk()) + '[MHz]'
-
-    #def calibrate_adc(self):
-    #    print 'Calibrating ADC0... ', 
-    #    if self.settings.cal_adc[0]:
-    #        adc5g.calibrate_mmcm_phase(fpga, 0, settings.snap_names[0])
-    #        time.sleep(0.1)
-    #        print 'done'
-    #    else:
-    #        print 'skipped'
-
-    #    print 'Calibrating ADC1... ', 
-    #    if self.settings.cal_adc[0]:
-    #        adc5g.calibrate_mmcm_phase(fpga, 1, settings.snap_names[1])
-    #        time.sleep(0.1)
-    #        print 'done'
-    #    else:
-    #        print 'skipped'
 
     def set_reset_regs(self):
         """
@@ -122,6 +117,26 @@ class Model():
         self.fpga.write_int(reg, 0)
         time.sleep(0.1)
         print 'done'
+
+    def read_reg(self, reg):
+        """
+        Read register.
+        """
+        reg_val = self.fpga.read_int(reg)
+        return reg_val
+
+    def get_snapshots(self):
+        """
+        Get snapshot data from all snapshot blocks specified in the config 
+        file.
+        """
+        snap_data_arr = []
+        for snapshot in self.settings.snapshots:
+            snap_data = np.fromstring(self.fpga.snapshot_get(snapshot, man_trig=True, 
+                man_valid=True)['data'], dtype='>i1')
+            snap_data_arr.append(snap_data)
+        
+        return snap_data_arr
 
     def get_bram_data(self, bram_info):
         """
@@ -162,7 +177,7 @@ class Model():
         """
         Similar to get_bram_list_data but it gets the data from a list of list of brams.
         In this case 'bram_list' is 'bram_list2d', a 2d list of bram names. Returns the 
-        data in a list of the same dimansions.
+        data in a list of the same dimensions.
         """
         bram_data_arr2d = []
         for bram_list in bram_info['bram_list2d']:
@@ -174,6 +189,31 @@ class Model():
 
         return bram_data_arr2d
 
+    def get_bram_interleaved_data(self, bram_info):
+        """
+        Get data using get_bram_list_data and then interleave the data. Useful for easily 
+        getting data from a spectrometer.
+        """
+        bram_data_arr = self.get_bram_list_data(bram_info)
+        interleaved_data = np.fromiter(chain(*zip(*bram_data_arr)), dtype=bram_info['data_type'])
+        return interleaved_data
+
+    def get_bram_list_interleaved_data(self, bram_info):
+        """
+        Get data from a list of a list of interleaved data brams and return the data in a 1d list.
+        Useful to easily get data from multiple spectrometer implemented in the same FPGA, and with
+        the same data type.
+        """
+        interleaved_data_arr = []
+        for bram_list in bram_info['bram_list2d']:
+            # make a new bram info only with current bram_list
+            current_bram_info = bram_info
+            current_bram_info['bram_list'] = bram_list
+            interleaved_data = self.get_bram_interleaved_data(current_bram_info)
+            interleaved_data_arr.append(interleaved_data)
+
+        return interleaved_data_arr
+            
 type2bits = {'b' :  8, 'B' :  8,
              'h' : 16, 'H' : 16,
              'i' : 32, 'I' : 32,

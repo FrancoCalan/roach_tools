@@ -28,8 +28,8 @@ class Experiment():
     It only initialize the most generic attributes for an experiment: configuration 
     settings, and model.
     """
-    def __init__(self):
-        self.config_file = os.path.splitext(sys.argv[1])[0]
-        self.settings = importlib.import_module(self.config_file)
-        self.model = self.get_model()
+    def __init__(self, calanfpga):
+        config_file = os.path.splitext(sys.argv[1])[0]
+        self.settings = importlib.import_module(config_file)
+        self.fpga = calanfpga
 

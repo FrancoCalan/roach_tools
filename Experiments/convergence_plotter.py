@@ -24,7 +24,7 @@
 
 import sys, os
 sys.path.append(os.getcwd())
-from Models.kestfilt import Kestfilt
+from calanfpga import CalanFpga
 from plotter import Plotter
 
 class ConvergencePlotter(Plotter):
@@ -32,8 +32,8 @@ class ConvergencePlotter(Plotter):
     Class responsable for drawing power plots v/s time for filter output. 
     It includes channel power, max power, and mean power.
     """
-    def __init__(self):
-        Plotter.__init__(self)
+    def __init__(self, calanfpga):
+        Plotter.__init__(self, calanfpga)
         self.nplots = 1
         self.ylims = [(-100, 10)]
         self.xlabel = 'Time [$\mu$s]'
@@ -48,21 +48,29 @@ class ConvergencePlotter(Plotter):
         self.xlim = (0, self.xdata[-1])
 
         # get current channel frequency for title
-        chnl_freq = self.xdata[self.model.fpga.read_int('channel')]
-        self.titles = ['Power v/s time\nChannel at freq:' + str(chnl_freq)]
-
-    def get_model(self):
-        """
-        Get kestfilt model for plotter.
-        """
-        return Kestfilt(self.settings)
+        chnl_freq = self.xdata[self.fpga.read_reg('channel')]
+        self.titles = ['Power v/s time\nChannel at freq: ' + str(chnl_freq)]
 
     def get_data(self):
         """
-        Gets the stability data from kestfilt.
+        Gets the convergence analysis data. This includes single channel power,
+        max channel power, and mean channel power.
         """
-        return self.model.get_convergence_data()
+        # single channel
+        [chnl_data_real, chnl_data_imag] = self.fpga.get_bram_list_data(self.settings.conv_info_chnl)
+        chnl_data = chnl_data_real**2 + chnl_data_imag**2 # compute power
+        chnl_data = self.linear_to_dBFS(chnl_data)
+        
+        # max channel
+        max_data = self.fpga.get_bram_data(self.settings.conv_info_max)
+        max_data = self.linear_to_dBFS(max_data)
+
+        # mean channel
+        mean_data = self.fpga.get_bram_data(self.settings.conv_info_mean)
+        mean_data = self.linear_to_dBFS(mean_data)
+
+        return [chnl_data, max_data, mean_data]
 
 if __name__ == '__main__':
-    plotter = PowerPlotter()
-    plotter.plot()
+    fpga = CalanFpga()
+    ConvergencePlotter(fpga).plot()

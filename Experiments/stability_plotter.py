@@ -23,9 +23,9 @@
 ###############################################################################
 
 import sys, os
-sys.path.append('../Models')
 sys.path.append(os.getcwd())
-from Models.kestfilt import Kestfilt
+import numpy as np
+from calanfpga import CalanFpga
 from plotter import Plotter
 
 class StabilityPlotter(Plotter):
@@ -33,35 +33,38 @@ class StabilityPlotter(Plotter):
     Class responsable for drawing magnitude ratio and angle difference
     in order to visualize the stability between two signals.
     """
-    def __init__(self):
-        Plotter.__init__(self)
+    def __init__(self, calanfpga):
+        Plotter.__init__(self, calanfpga)
         self.ylims = [(-1, 10), (-200, 200)]
         self.xlabel = 'Time [$\mu$s]'
         self.ylabels = ['Magnitude ratio', 'Angle difference']
 
         # get xdata
-        n_specs = 2**self.settings.inst_chnl_info0['addr_width']
+        n_specs = 2**self.settings.inst_chnl_info['addr_width']
         self.xdata = self.get_spec_time_arr(n_specs)
         self.xlim = (0, self.xdata[-1])
 
         # get current channel frequency for title
-        chnl_freq = self.xdata[self.model.fpga.read_int('channel')]
-        self.titles = ['Channel at freq:' + str(chnl_freq), 
-                       'Channel at freq:' + str(chnl_freq)]
+        chnl_freq = self.xdata[self.fpga.read_reg('channel')]
+        self.titles = ['Channel at freq: ' + str(chnl_freq), 
+                       'Channel at freq: ' + str(chnl_freq)]
         self.nplots = len(self.titles)
-
-    def get_model(self):
-        """
-        Get kestfilt model for plotter.
-        """
-        return Kestfilt(self.settings)
 
     def get_data(self):
         """
-        Gets the stability data from kestfilt.
+        Gets the complex data from a single channel within consecutive instantaneous spectra
+        for different inputs. Then computes the magnitude ratio and angle difference.
         """
-        return self.model.get_stability_data()
+        [[chnl0_data_real, chnl0_data_imag], [chnl1_data_real, chnl1_data_imag]] =\
+            self.fpga.get_bram_list2d_data(self.settings.inst_chnl_info)
+
+        chnl0_data = np.array(chnl0_data_real) + 1j*np.array(chnl0_data_imag)
+        chnl1_data = np.array(chnl1_data_real) + 1j*np.array(chnl0_data_imag)
+
+        stability_data = chnl1_data / chnl0_data
+
+        return [np.abs(stability_data), np.angle(stability_data, deg=True)]
 
 if __name__ == '__main__':
-    plotter = StabilityPlotter()
-    plotter.plot()
+    fpga = CalanFpga()
+    StabilityPlotter(fpga).plot()

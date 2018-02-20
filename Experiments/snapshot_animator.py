@@ -23,18 +23,17 @@
 ###############################################################################
 
 import sys, os
-from itertools import chain
 sys.path.append(os.getcwd())
-from Models.snapshot import Snapshot
+from calanfpga import CalanFpga
 from animator import Animator
 
 class SnapshotAnimator(Animator):
     """
     Class responsable for drawing snapshot plots.
     """
-    def __init__(self):
-        Animator.__init__(self)
-        self.titles = list(chain.from_iterable(self.settings.snapshots)) # flatten list
+    def __init__(self, calanfpga):
+        Animator.__init__(self, calanfpga)
+        self.titles = self.settings.snapshots
         self.nplots = len(self.titles)
         self.xlim = (0, self.settings.snap_samples)
         self.ylims = self.nplots * [(-140, 140)]
@@ -42,20 +41,15 @@ class SnapshotAnimator(Animator):
         self.ylabels = self.nplots * ['Amplitude [a.u.]']
         self.xdata = range(self.settings.snap_samples)
 
-    def get_model(self):
-        """
-        Get snapshot model for animator.
-        """
-        return Snapshot(self.settings)
-
     def get_data(self):
         """
-        Gets the snapshot data form the model.
+        Gets the snapshot data form fpga.
         """
-        sliced_snapshots = [snapshot[:self.settings.snap_samples] for snapshot in self.model.get_snapshots()]
+        snapshots = self.fpga.get_snapshots()
+        sliced_snapshots = [snapshot[:self.settings.snap_samples] for snapshot in snapshots]
         return sliced_snapshots
 
 if __name__ == '__main__':
-    animator = SnapshotAnimator()
-    animator.model.initialize_roach()
-    animator.start_animation()
+    fpga = CalanFpga()
+    fpga.initialize()
+    SnapshotAnimator(fpga).start_animation()

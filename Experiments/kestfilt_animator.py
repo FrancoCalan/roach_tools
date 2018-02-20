@@ -25,32 +25,18 @@
 import sys, os
 sys.path.append(os.getcwd())
 import numpy as np
-import matplotlib.pyplot as plt
 import Tkinter as Tk
-from Models.kestfilt import Kestfilt
+from calanfpga import CalanFpga
 from spectra_animator import SpectraAnimator
 from convergence_plotter import ConvergencePlotter
 from stability_plotter import StabilityPlotter
 
 class KestfiltAnimator(SpectraAnimator):
     """
-    Class responsable for drawing spectra plots.
+    Class responsable for drawing spectra plots in a Kestfilt implementation.
     """
-    def __init__(self):
-        SpectraAnimator.__init__(self)
-
-    def get_model(self):
-        """
-        Get kestfilt model for animator.
-        """
-        return Kestfilt(self.settings)
-
-    
-    def get_data(self):
-        """
-        Gets the snapshot data form the spectrometer model.
-        """
-        return self.model.get_spectra()
+    def __init__(self, calanfpga):
+        SpectraAnimator.__init__(self, calanfpga)
 
     def create_window(self):
         """
@@ -60,7 +46,7 @@ class KestfiltAnimator(SpectraAnimator):
         
         # filter_on button
         self.filter_on_label = Tk.StringVar()
-        if self.model.fpga.read_int('filter_on') == 0:
+        if self.fpga.read_reg('filter_on') == 0:
             self.filter_on_label.set('Filter off')
         else:
             self.filter_on_label.set('Filter on')
@@ -68,11 +54,11 @@ class KestfiltAnimator(SpectraAnimator):
         self.filter_on_button.pack(side=Tk.LEFT)
 
         # plot conv button
-        self.plot_conv_button = Tk.Button(self.button_frame, text='Plot conv', command=plot_convergence)
+        self.plot_conv_button = Tk.Button(self.button_frame, text='Plot conv', command=self.plot_convergence)
         self.plot_conv_button.pack(side=Tk.LEFT)
 
-        # plot conv button
-        self.plot_stab_button = Tk.Button(self.button_frame, text='Plot stab', command=plot_stability)
+        # plot stab button
+        self.plot_stab_button = Tk.Button(self.button_frame, text='Plot stab', command=self.plot_stability)
         self.plot_stab_button.pack(side=Tk.LEFT)
        
         # filter_gain entry
@@ -85,24 +71,22 @@ class KestfiltAnimator(SpectraAnimator):
         self.add_reg_entry('channel')
 
     def toggle_filter(self):
-        if self.model.fpga.read_int('filter_on') == 1:
-            self.model.set_reg('filter_on', 0)
+        if self.fpga.read_reg('filter_on') == 1:
+            self.fpga.set_reg('filter_on', 0)
             self.filter_on_label.set('Filter Off')
             print('Filter is off')
         else:
-            self.model.set_reg('filter_on', 1)
+            self.fpga.set_reg('filter_on', 1)
             self.filter_on_label.set('Filter On')
             print('Filter is on')
 
-def plot_convergence():
-    plotter = ConvergencePlotter()
-    plotter.plot()
+    def plot_convergence(self):
+        ConvergencePlotter(self.fpga).plot()
 
-def plot_stability():
-    plotter = StabilityPlotter()
-    plotter.plot()
+    def plot_stability(self):
+        StabilityPlotter(self.fpga).plot()
 
 if __name__ == '__main__':
-    animator = KestfiltAnimator()
-    animator.model.initialize_roach()
-    animator.start_animation()
+    fpga = CalanFpga()
+    fpga.initialize()
+    KestfiltAnimator(fpga).start_animation()

@@ -30,8 +30,8 @@ class Animator(Plotter):
     """
     Generic animator class.
     """
-    def __init__(self):
-        Plotter.__init__(self)
+    def __init__(self, calanfpga):
+        Plotter.__init__(self, calanfpga)
 
     def start_animation(self):
         """

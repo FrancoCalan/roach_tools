@@ -9,7 +9,7 @@ reset_regs = ['cnt_rst']
 bw          = 800 # [MHz]
 
 # Snapshot settings
-snapshots  = [['adcsnap0'], ['adcsnap1']]
+snapshots  = ['adcsnap0', 'adcsnap1']
 snap_samples = 256
 
 # Spectrometer Settings

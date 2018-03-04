@@ -36,8 +36,6 @@ class CalanFpga():
     def __init__(self):
         config_file = os.path.splitext(sys.argv[1])[0]
         self.settings = importlib.import_module(config_file)
-        self.fpga = corr.katcp_wrapper.FpgaClient(self.settings.roach_ip, self.settings.roach_port)
-        time.sleep(1)
         if self.settings.simulated:
             self.fpga = DummyFpga(self.settings)
         else:
@@ -74,7 +72,7 @@ class CalanFpga():
         print 'Uploading and programming FPGA with %s... ' %self.settings.boffile,
         self.fpga.upload_bof(self.settings.boffile, 60000, force_upload=True)
         self.fpga.progdev(self.settings.boffile)
-        time.sleep(0.1)
+        time.sleep(1)
         print 'done'
 
     def estimate_clock(self):

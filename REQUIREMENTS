@@ -2,4 +2,5 @@ construct==2.5.3
 corr==0.7.3
 katcp==0.5.5
 numpy==1.13.3
+matplotlib==2.0.2
 numexpr==2.4.3

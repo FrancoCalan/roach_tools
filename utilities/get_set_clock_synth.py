@@ -19,7 +19,6 @@ parser.add_argument("-i", "--int_ref", dest="int_ref", action="store_true",
 parser.add_argument("-e", "--ext_ref", dest="ext_ref", action="store_true",
                    help="set external reference")
 parser.set_defaults(ref=True)
-
 args = parser.parse_args()
 
 s = Synthesizer(args.usb)

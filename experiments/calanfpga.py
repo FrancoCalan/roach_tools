@@ -67,12 +67,14 @@ class CalanFpga():
 
     def upload_and_program(self):
         """
-        Upload to RAM and program the .bof model to the FPGA.
+        Upload to RAM and program the .bof/.bof.gz model to the FPGA.
         """
         print 'Uploading and programming FPGA with %s... ' %self.settings.boffile,
+        time.sleep(0.5)
         self.fpga.upload_bof(self.settings.boffile, 60000, force_upload=True)
+        time.sleep(0.5)
         self.fpga.progdev(self.settings.boffile)
-        time.sleep(1)
+        time.sleep(0.5)
         print 'done'
 
     def estimate_clock(self):

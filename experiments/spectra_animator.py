@@ -51,7 +51,6 @@ class SpectraAnimator(Animator):
         """
         Gets the spectra data form the spectrometer model.
         """
-        #return self.model.get_spectra()
         spec_data_arr = self.fpga.get_bram_list_interleaved_data(self.settings.spec_info)
         spec_plot_arr = []
         for spec_data in spec_data_arr:

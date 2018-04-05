@@ -71,6 +71,21 @@ class ConvergencePlotter(Plotter):
 
         return [chnl_data, max_data, mean_data]
 
+    def data2dict(self):
+        """
+        Creates dict with convergence data for file saving.
+        """
+        data_dict = {}
+
+        data_arr = self.get_data()
+        for i, data in enumerate(data_arr):
+            data_dict[self.legends[i] + ' ' + self.ylabels[0]] = data.tolist()
+        
+        data_dict[self.xlabel] = self.xdata.tolist()
+        data_dict['filter_gain'] = self.fpga.read_reg('filter_gain')
+        data_dict['filter_acc'] = self.fpga.read_reg('filter_acc')
+        return data_dict
+
 if __name__ == '__main__':
     fpga = CalanFpga()
     ConvergencePlotter(fpga).plot()

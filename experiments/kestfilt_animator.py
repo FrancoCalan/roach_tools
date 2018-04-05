@@ -70,6 +70,15 @@ class KestfiltAnimator(SpectraAnimator):
         # channel entry
         self.add_reg_entry('channel')
 
+    def data2dict(self):
+        """
+        Creates dict with kestfilt data for file saving.
+        """
+        data_dict = SpectraAnimator.data2dict(self)
+        data_dict['filter_gain'] = self.fpga.read_reg('filter_gain')
+        data_dict['filter_acc'] = self.fpga.read_reg('filter_acc')
+        return data_dict
+
     def toggle_filter(self):
         if self.fpga.read_reg('filter_on') == 1:
             self.fpga.set_reg('filter_on', 0)

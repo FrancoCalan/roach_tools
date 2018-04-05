@@ -73,6 +73,21 @@ class SpectraAnimator(Animator):
         # acc_len entry
         self.add_reg_entry('acc_len')
 
+    def data2dict(self):
+        """
+        Creates dict with spectrometer data for file saving.
+        """
+        data_dict = {}
+        
+        data_arr = self.get_data()
+        for i, data in enumerate(data_arr):
+            data_dict[self.titles[i] + ' ' + self.ylabels[i]] = data.tolist()
+
+        data_dict['acc_len'] = self.fpga.read_reg('acc_len')
+        data_dict[self.xlabel] = self.xdata.tolist()
+
+        return data_dict
+
     def add_reg_entry(self, reg):
         """
         Add a text entry for modifying regiters in FPGA."

@@ -65,6 +65,20 @@ class StabilityPlotter(Plotter):
 
         return [np.abs(stability_data), np.angle(stability_data, deg=True)]
 
+    def data2dict(self):
+        """
+        Creates dict with stability data for file saving.
+        """
+        data_dict = {}
+
+        data_arr = self.get_data()
+        for i, data in enumerate(data_arr):
+            data_dict[self.titles[i] + ' ' + self.ylabels[i]] = data.tolist()
+
+        data_dict[self.xlabel] = self.xdata.tolist()
+
+        return data_dict
+
 if __name__ == '__main__':
     fpga = CalanFpga()
     StabilityPlotter(fpga).plot()

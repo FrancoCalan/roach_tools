@@ -20,7 +20,7 @@
 #                                                                             #
 ###############################################################################
 
-import os, sys, importlib, pickle
+import os, sys, importlib, json
 import numpy as np
 import matplotlib.pyplot as plt
 import Tkinter as Tk
@@ -98,7 +98,7 @@ class Plotter(Experiment):
         self.button_frame.pack(side=Tk.TOP, anchor="w")
 
         # save button
-        self.save_button = Tk.Button(self.button_frame, text='Save', command=self.save_plot)
+        self.save_button = Tk.Button(self.button_frame, text='Save', command=self.save_data)
         self.save_button.pack(side=Tk.LEFT)
         
         # save entry
@@ -110,12 +110,18 @@ class Plotter(Experiment):
         self.save_entry.insert(Tk.END, self.config_file)
         self.save_entry.pack(side=Tk.LEFT)
 
-    def save_plot(self):
+    def save_data(self):
         """
-        Save plot using pickle format.
+        Save plot data if data2dict is implemented.
         """
-        pickle.dump(self.fig, open(self.save_entry.get()+".pickle", 'wb'))
-        print "Plot saved"
+        try:
+            json_data = self.data2dict()
+            with open(self.save_entry.get()+'.json', 'w') as jsonfile:
+                json.dump(json_data, jsonfile,  indent=4)
+            print "Data saved."
+    
+        except AttributeError as e:
+            print "This plot doesn't have save option."
 
     def linear_to_dBFS(self, data):
         """

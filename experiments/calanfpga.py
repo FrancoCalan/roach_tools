@@ -51,7 +51,7 @@ class CalanFpga():
         """
         self.connect_to_roach()
         if self.settings.program:
-            self.upload_and_program()
+            self.program_fpga()
         self.estimate_clock()
         self.set_reset_regs()
 
@@ -59,22 +59,20 @@ class CalanFpga():
         """
         Verify communication with ROACH.
         """
-        print 'Connecting to ROACH server %s on port %i... ' %(self.settings.roach_ip, self.settings.roach_port),
+        print 'Connecting to ROACH server ' + self.settings.roach_ip + 
+            ' on port ' + self.settings.roach_port + '... ' 
         if self.fpga.is_connected():
             print 'ok'
         else:
             raise Exception('Unable to connect to ROACH.')
 
-    def upload_and_program(self):
+    def upload_fpga(self):
         """
-        Upload to RAM and program the .bof/.bof.gz model to the FPGA.
+        Program the .bof/.bof.gz model to the FPGA.
         """
-        print 'Uploading and programming FPGA with %s... ' %self.settings.boffile,
-        time.sleep(0.5)
-        self.fpga.upload_bof(self.settings.boffile, 60000, force_upload=True)
-        time.sleep(0.5)
-        self.fpga.progdev(self.settings.boffile)
-        time.sleep(0.5)
+        print 'Programming FPGA with %s... ' %self.settings.boffile
+        self.fpga.progdev(os.path.basename(self.settings.boffile))
+        time.sleep(1)
         print 'done'
 
     def estimate_clock(self):
@@ -102,7 +100,7 @@ class CalanFpga():
         """
         Set register.
         """
-        print '\tSetting %s to %i... ' %(reg, val),
+        print '\tSetting %s to %i... ' %(reg, val)
         self.fpga.write_int(reg, val)
         time.sleep(0.1)
         print 'done'
@@ -111,7 +109,7 @@ class CalanFpga():
         """
         Reset register.
         """
-        print '\tResetting %s... ' %reg,
+        print '\tResetting %s... ' %reg
         self.fpga.write_int(reg, 1)
         time.sleep(0.1)
         self.fpga.write_int(reg, 0)

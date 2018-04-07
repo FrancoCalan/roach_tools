@@ -21,10 +21,10 @@
 ###############################################################################
 
 import os, sys
-from plotter import Plotter
 import matplotlib.animation as animation
 import Tkinter as Tk
 import multiprocessing as mp
+from plotter import Plotter
 
 class Animator(Plotter):
     """

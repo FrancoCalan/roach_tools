@@ -59,7 +59,7 @@ class CalanFpga():
         """
         Verify communication with ROACH.
         """
-        print 'Connecting to ROACH server ' + self.settings.roach_ip + 
+        print 'Connecting to ROACH server ' + self.settings.roach_ip + \
             ' on port ' + self.settings.roach_port + '... ' 
         if self.fpga.is_connected():
             print 'ok'

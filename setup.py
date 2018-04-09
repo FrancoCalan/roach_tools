@@ -22,6 +22,7 @@ setup(name='roach_tools',
             'katcp', 
             'numpy', 
             'matplotlib',
-            'numexpr'],
+            'numexpr',
+            'spead'],
       dependency_links=['https://github.com/nrao/ValonSynth'],
       zip_safe=False)

@@ -50,7 +50,9 @@ class CalanFpga():
         configuration file.
         """
         self.connect_to_roach()
-        if self.settings.program:
+        if self.settings.upload and self.settings.program:
+            self.upload_program_fpga()
+        elif self.settings.program:
             self.program_fpga()
         self.estimate_clock()
         self.set_reset_regs()
@@ -60,18 +62,28 @@ class CalanFpga():
         Verify communication with ROACH.
         """
         print 'Connecting to ROACH server ' + self.settings.roach_ip + \
-            ' on port ' + self.settings.roach_port + '... ' 
+            ' on port ' + str(self.settings.roach_port) + '... ' 
         if self.fpga.is_connected():
             print 'ok'
         else:
             raise Exception('Unable to connect to ROACH.')
 
-    def upload_fpga(self):
+    def program_fpga(self):
         """
         Program the .bof/.bof.gz model to the FPGA.
         """
-        print 'Programming FPGA with %s... ' %self.settings.boffile
+        print 'Programming FPGA with ' + self.settings.boffile + '...'
         self.fpga.progdev(os.path.basename(self.settings.boffile))
+        time.sleep(1)
+        print 'done'
+
+    def upload_program_fpga(self):
+        """
+        Upload .bof/.bof.gz model to ROACH memory and program
+        FPGA with this model.
+        """
+        print 'Uploading and programming FPGA with ' + self.settings.boffile + '...'
+        self.fpga.upload_program_bof(self.settings.boffile, 3000)
         time.sleep(1)
         print 'done'
 
@@ -136,16 +148,16 @@ class CalanFpga():
         
         return snap_data_arr
 
-    def get_snapshot_sync(self):
+    def get_snapshots_sync(self):
         """
-        Same as get_snapshot() but it uses a 'snapshot trigger' register to sync
+        Same as get_snapshots() but it uses a 'snapshot trigger' register to sync
         the snapshot recording, i.e., all snapshot start recording at the same clock cycle.
         """
         # reset snapshot trigger form initial state 
         self.fpga.write_int('snap_trig', 0)
         
         # activate snapshots to get data
-        for snapshot in self.settings.snapshot:
+        for snapshot in self.settings.snapshots:
             self.fpga.write_int(snapshot + '_ctrl', 0)
             self.fpga.write_int(snapshot + '_ctrl', 1)
         

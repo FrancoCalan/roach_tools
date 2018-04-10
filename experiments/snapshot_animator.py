@@ -45,7 +45,10 @@ class SnapshotAnimator(Animator):
         """
         Gets the snapshot data form fpga.
         """
-        snapshots = self.fpga.get_snapshots()
+        if self.settings.sync_snaps:
+            snapshots = self.fpga.get_snapshots_sync()
+        else:
+            snapshots = self.fpga.get_snapshots()
         sliced_snapshots = [snapshot[:self.settings.snap_samples] for snapshot in snapshots]
         return sliced_snapshots
 

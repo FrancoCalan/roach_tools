@@ -2,12 +2,13 @@
 simulated  = True
 roach_ip   = '192.168.1.12'
 roach_port = 7147
-program    = True
-boffile    = 'snapshots.bof.gz'
-set_regs   = []
+upload     = False
+program    = False
+boffile    = ''
+set_regs   = [{'name' : 'snap_trig', 'val' : 1}]
 reset_regs = []
-bw         = 1000 # [MHz]
 
 # Snapshot settings
-snapshots  = ['adcsnap0', 'adcsnap1']
+snapshots    = ['adcsnap0', 'adcsnap1']
 snap_samples = 256
+sync_snaps   = False 

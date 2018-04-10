@@ -24,30 +24,26 @@
 
 import time
 import numpy as np
+from calanfpga import CalanFpga
 from experiment import Experiment
-from Models.adc_sync import AdcSync
 from snapshot_animator import SnapshotAnimator
-from Generator.generator import Generator
-from Models.Dummies.dummy_generator import gen_time_arr
+from generator import Generator
+from dummies.dummy_generator import gen_time_arr
 
 class AdcSynchronator(Experiment):
     """
     This class is used to synchronize two ADC
     """
-    def __init__(self):
-        Experiment.__init__(self)
-        #self.snapshot_animator = SnapshotAnimator()
-        #self.snapshot_animator.model = self.model # change animator model to adc_sync
+    def __init__(self, calanfpga):
+        Experiment.__init__(self, calanfpga)
+        self.snapshot_animator = SnapshotAnimator(self.fpga)
+        # update snapshot_animator settings
         if self.settings.simulated:
             self.source = self.model.fpga.generator
         else:
             self.source = Generator(self.settings.source_ip, self.settings.source_port)
-
-    def get_model(self):
-        """
-        Get snapshot model.
-        """
-        return AdcSync(self.settings)
+        self.synced_counter = 0
+        self.required_synced_count = 5
 
     def synchronize_adcs(self):
         """
@@ -56,7 +52,9 @@ class AdcSynchronator(Experiment):
         single frequency DFT.
         """
         # start plot
-        #self.snapshot_animator.start_animation()
+        self.snapshot_animator.set_plot_parameters()
+        self.snapshot_animator.create_window()
+        #self.snapshot_animator.root.update()
 
         # turn source on and set freq and amp
         self.source.set_freq_mhz(self.settings.sync_freq) 
@@ -64,31 +62,26 @@ class AdcSynchronator(Experiment):
         self.source.turn_output_on()
 
         while True:
-            [snap_adc0, snap_adc1] = self.get_snapshots()
+            [snap_adc0, snap_adc1] = self.fpga.get_snapshots_sync()
+            self.snapshot_animator.line_arr[0].set_data(self.snapshot_animator.xdata, snap_adc0)
+            self.snapshot_animator.line_arr[1].set_data(self.snapshot_animator.xdata, snap_adc1)
+            self.snapshot_animator.root.update()
+            time.sleep(1)
             snap0_phasor = self.estimate_phasor(self.settings.sync_freq, snap_adc0)
             snap1_phasor = self.estimate_phasor(self.settings.sync_freq, snap_adc1)
             phasor_div = self.compute_phasor_div(snap0_phasor, snap1_phasor)
             sync_delay = self.compute_delay_diff(phasor_div)
             print "Sync delay: " + str(sync_delay)
-            #snapshot_animator = SnapshotAnimator()
-            #snapshot_animator.model = self.model # change animator model to adc_sync
-            #snapshot_animator.plot()
             if sync_delay == 0:
-                break
-            self.delay_adcs(sync_delay)
+                self.synced_counter += 1
+                if self.synced_counter >= self.required_synced_count:
+                    break
+            else:
+                self.synced_counter = 0
+                self.delay_adcs(sync_delay)
         
         print "ADCs successfully synchronized"
         self.source.turn_output_off()
-
-    def get_snapshots(self):
-        """
-        Activate snapshot trigger so a single snapshot per adc is saved
-        in bram. This way both snapshots are synchronized. Returns the 
-        snapshot data array.
-        """
-        self.model.reset_reg('snap_trig')
-        time.sleep(1)
-        return self.model.get_snapshots()
 
     def estimate_phasor(self, freq, data):
         """
@@ -129,13 +122,13 @@ class AdcSynchronator(Experiment):
         """
         # if delay is positive adc1 is ahead, hence delay adc1
         if delay > 0:
-            self.model.set_reg('adc1_delay', delay)
+            self.fpga.set_reg('adc1_delay', delay)
         # if delay is negative adc0 is ahead, hence delay adc0
         else:
-            self.model.set_reg('adc0_delay', -1*delay)
+            self.fpga.set_reg('adc0_delay', -1*delay)
         time.sleep(1)
 
 if __name__ == '__main__':
-    synchronator = AdcSynchronator()
-    synchronator.model.initialize_roach()
-    synchronator.synchronize_adcs()
+    fpga = CalanFpga()
+    fpga.initialize()
+    AdcSynchronator(fpga).synchronize_adcs()

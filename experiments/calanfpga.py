@@ -136,6 +136,30 @@ class CalanFpga():
         
         return snap_data_arr
 
+    def get_snapshot_sync(self):
+        """
+        Same as get_snapshot() but it uses a 'snapshot trigger' register to sync
+        the snapshot recording, i.e., all snapshot start recording at the same clock cycle.
+        """
+        # reset snapshot trigger form initial state 
+        self.fpga.write_int('snap_trig', 0)
+        
+        # activate snapshots to get data
+        for snapshot in self.settings.snapshot:
+            self.fpga.write_int(snapshot + '_ctrl', 0)
+            self.fpga.write_int(snapshot + '_ctrl', 1)
+        
+        # activate the trigger to start recording in all snapshots at the same time 
+        self.fpga.write_int('snap_trig', 1)
+        
+        # get data without activating a new recording (arm=False)
+        snap_data_arr = []
+        for snapshot in self.settings.snapshots:
+            snap_data = np.fromstring(self.fpga.snapshot_get(snapshot, arm=False)['data'], dtype='>i1')
+            snap_data_arr.append(snap_data)
+        
+        return snap_data_arr
+
     def get_bram_data(self, bram_info):
         """
         Receive and unpack data from FPGA using data information from bram_info.

@@ -5,3 +5,4 @@ matplotlib==2.0.2
 numexpr==2.4.3
 git+https://github.com/ska-sa/PySPEAD.git
 git+https://github.com/ska-sa/corr.git
+git+https://github.com/nrao/ValonSynth.git

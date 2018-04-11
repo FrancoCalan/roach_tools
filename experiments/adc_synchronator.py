@@ -37,9 +37,9 @@ class AdcSynchronator(Experiment):
     def __init__(self, calanfpga):
         Experiment.__init__(self, calanfpga)
         self.snapshot_animator = SnapshotAnimator(self.fpga)
-        # update snapshot_animator settings
         if self.settings.simulated:
-            self.source = self.model.fpga.generator
+            print "Simulated version not yet implemented"
+            exit()
         else:
             self.source = Generator(self.settings.source_ip, self.settings.source_port)
         self.synced_counter = 0
@@ -53,8 +53,7 @@ class AdcSynchronator(Experiment):
         """
         # start plot
         self.snapshot_animator.set_plot_parameters()
-        self.snapshot_animator.create_window()
-        #self.snapshot_animator.root.update()
+        self.snapshot_animator.create_window(create_gui=False)
 
         # turn source on and set freq and amp
         self.source.set_freq_mhz(self.settings.sync_freq) 
@@ -63,9 +62,9 @@ class AdcSynchronator(Experiment):
 
         while True:
             [snap_adc0, snap_adc1] = self.fpga.get_snapshots_sync()
-            self.snapshot_animator.line_arr[0].set_data(self.snapshot_animator.xdata, snap_adc0)
-            self.snapshot_animator.line_arr[1].set_data(self.snapshot_animator.xdata, snap_adc1)
-            self.snapshot_animator.root.update()
+            self.snapshot_animator.line_arr[0].set_data(self.snapshot_animator.xdata, snap_adc0[:self.settings.snap_samples])
+            self.snapshot_animator.line_arr[1].set_data(self.snapshot_animator.xdata, snap_adc1[:self.settings.snap_samples])
+            self.snapshot_animator.canvas.draw()
             time.sleep(1)
             snap0_phasor = self.estimate_phasor(self.settings.sync_freq, snap_adc0)
             snap1_phasor = self.estimate_phasor(self.settings.sync_freq, snap_adc1)

@@ -79,36 +79,37 @@ class Plotter(Experiment):
         self.draw_plot_lines() 
         Tk.mainloop()
 
-    def create_window(self):
+    def create_window(self, create_gui=True):
         """
         Create a Tkinter window with all of the components (plots, toolbar, widgets).
         """
         # plots
-        canvas = FigureCanvasTkAgg(self.fig, master=self.root)
-        canvas.show()
-        canvas.get_tk_widget().pack(side=Tk.TOP, fill=Tk.BOTH, expand=1)
-
-        # navigation bar
-        toolbar = NavigationToolbar2TkAgg(canvas, self.root)
-        toolbar.update()
-        canvas._tkcanvas.pack(side=Tk.TOP, fill=Tk.BOTH, expand=1)        
+        self.canvas = FigureCanvasTkAgg(self.fig, master=self.root)
+        self.canvas.show()
+        self.canvas.get_tk_widget().pack(side=Tk.TOP, fill=Tk.BOTH, expand=1)
         
-        # button frame
-        self.button_frame = Tk.Frame(master=self.root)
-        self.button_frame.pack(side=Tk.TOP, anchor="w")
+        if create_gui:
+            # navigation bar
+            toolbar = NavigationToolbar2TkAgg(self.canvas, self.root)
+            toolbar.update()
+            self.canvas._tkcanvas.pack(side=Tk.TOP, fill=Tk.BOTH, expand=1)        
+            
+            # button frame
+            self.button_frame = Tk.Frame(master=self.root)
+            self.button_frame.pack(side=Tk.TOP, anchor="w")
 
-        # save button
-        self.save_button = Tk.Button(self.button_frame, text='Save', command=self.save_data)
-        self.save_button.pack(side=Tk.LEFT)
-        
-        # save entry
-        save_frame = Tk.Frame(master=self.root)
-        save_frame.pack(side = Tk.TOP, anchor="w")
-        save_label = Tk.Label(save_frame, text="Save filename:")
-        save_label.pack(side=Tk.LEFT)
-        self.save_entry = Tk.Entry(save_frame)
-        self.save_entry.insert(Tk.END, self.config_file)
-        self.save_entry.pack(side=Tk.LEFT)
+            # save button
+            self.save_button = Tk.Button(self.button_frame, text='Save', command=self.save_data)
+            self.save_button.pack(side=Tk.LEFT)
+            
+            # save entry
+            save_frame = Tk.Frame(master=self.root)
+            save_frame.pack(side = Tk.TOP, anchor="w")
+            save_label = Tk.Label(save_frame, text="Save filename:")
+            save_label.pack(side=Tk.LEFT)
+            self.save_entry = Tk.Entry(save_frame)
+            self.save_entry.insert(Tk.END, self.config_file)
+            self.save_entry.pack(side=Tk.LEFT)
 
     def save_data(self):
         """

@@ -12,7 +12,7 @@ parser.add_argument("-s", "--synth", type=str, dest="synth",
                    default = "B", help="Chosen synthesizer.")
 parser.add_argument("-f", "--freq", type=int, dest="freq",
                    default=None, help="Set frequency.")
-parser.add_argument("-p", "--pow", type=int, dest="pow",
+parser.add_argument("-l", "--lev", type=int, dest="level",
                    default=None, help="Set power level.")
 parser.add_argument("-i", "--int_ref", dest="int_ref", action="store_true",
                    help="set internal reference")
@@ -28,18 +28,22 @@ except:
     print "Synth name error."
     exit()
 
-print "Frequency SYNTH_" + str(args.synth) + ": " + str(s.get_frequency(synth_num))
-print "RF level SYNTH_" + str(args.synth) + ": " + str(s.get_rf_level(synth_num))
+synth_freq = s.get_frequency(synth_num)
+synth_levl = s.get_rf_level(synth_num)
+print "Frequency SYNTH_" + str(args.synth) + ": " + str(synth_freq) + "[MHz]"
+print "RF level SYNTH_"  + str(args.synth) + ": " + str(synth_levl) + " (=" + str(synth_levl+2) + "[dBm])"
 # False = internal, True = external
 print "Reference : " + "external" if s.get_ref_select() else "internal"
 
 if args.freq is not None:
     s.set_frequency(synth[args.synth], args.freq)
-    print "Updated frequency SYNTH_" + str(args.synth) + ": " + str(s.get_frequency(synth_num))
+    synth_freq = s.get_frequency(synth_num)
+    print "Updated frequency SYNTH_" + str(args.synth) + ": " + str(synth_freq) + "[MHz]"
     
-if args.pow is not None:
-    s.set_rf_level(synth[args.synth], args.pow)
-    print "Updated power SYNTH_" + str(args.synth) + ": " + str(s.get_rf_level(synth_num))
+if args.level is not None:
+    s.set_rf_level(synth[args.synth], args.level)
+    synth_levl = s.get_rf_level(synth_num)
+    print "Updated power level SYNTH_" + str(args.synth) + ": " + str(synth_levl) + " (=" + str(synth_levl+2) + "[dBm])"
 
 if args.int_ref:
     s.set_ref_select(False)

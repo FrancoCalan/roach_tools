@@ -7,10 +7,10 @@ program    = False
 boffile    = ''
 set_regs   = [{'name' : 'acc_len', 'val' : 2**0}]
 reset_regs = ['cnt_rst']
-bw         = 800 # [MHz]
+bw         = 800.0 # [MHz]
 
 # Snapshot settings
-snapshots  = ['adcsnap0', 'adcsnap1']
+snapshots    = ['adcsnap0', 'adcsnap1']
 snap_samples = 256
 
 # Spectrometer Settings

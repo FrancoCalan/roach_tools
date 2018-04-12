@@ -124,6 +124,13 @@ class Plotter(Experiment):
         except AttributeError as e:
             print "This plot doesn't have save option."
 
+    def get_nchannels(self):
+        """
+        Compute the number of channels of an spetrum given the spec_info
+        """
+        n_brams = len(self.settings.spec_info['bram_list2d'][0])
+        return n_brams * 2**self.settings.spec_info['addr_width']
+
     def linear_to_dBFS(self, data):
         """
         Turn data in linear scale to dBFS scale. It uses the dBFS_const value

@@ -132,7 +132,7 @@ class CalanFpga():
         """
         Read register.
         """
-        reg_val = self.fpga.read_int(reg)
+        reg_val = self.fpga.read_uint(reg)
         return reg_val
 
     def get_snapshots(self):

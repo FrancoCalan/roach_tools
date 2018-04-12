@@ -97,7 +97,7 @@ class SpectraAnimator(Animator):
         label = Tk.Label(frame, text=reg+":")
         label.pack(side=Tk.LEFT)
         entry = Tk.Entry(frame)
-        entry.insert(Tk.END, self.fpga.fpga.read_int(reg))
+        entry.insert(Tk.END, self.fpga.read_reg(reg))
         entry.pack(side=Tk.LEFT)
         entry.bind('<Return>', lambda x: self.set_reg_from_entry(reg, entry))
         self.entries.append(entry)
@@ -113,13 +113,6 @@ class SpectraAnimator(Animator):
             raise Exception('Unable to parse value in textbox')
         self.fpga.set_reg(reg, val)
 
-    def get_nchannels(self):
-        """
-        Compute the number of channels of an spetrum given the spec_info
-        """
-        n_brams = len(self.settings.spec_info['bram_list2d'][0])
-        return n_brams * 2**self.settings.spec_info['addr_width']
-        
 if __name__ == '__main__':
     fpga = CalanFpga()
     fpga.initialize()

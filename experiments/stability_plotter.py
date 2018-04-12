@@ -37,7 +37,7 @@ class StabilityPlotter(Plotter):
         Plotter.__init__(self, calanfpga)
         self.ylims = [(-1, 10), (-200, 200)]
         self.xlabel = 'Time [$\mu$s]'
-        self.ylabels = ['Magnitude ratio', 'Angle difference']
+        self.ylabels = ['Magnitude ratio', 'Angle difference [deg]']
 
         # get xdata
         n_specs = 2**self.settings.inst_chnl_info['addr_width']
@@ -45,7 +45,7 @@ class StabilityPlotter(Plotter):
         self.xlim = (0, self.xdata[-1])
 
         # get current channel frequency for title
-        chnl_freq = self.xdata[self.fpga.read_reg('channel')]
+        chnl_freq = self.settings.bw * self.fpga.read_reg('channel') / self.get_nchannels()
         self.titles = ['Channel at freq: ' + str(chnl_freq), 
                        'Channel at freq: ' + str(chnl_freq)]
         self.nplots = len(self.titles)

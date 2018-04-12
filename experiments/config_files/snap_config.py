@@ -11,4 +11,3 @@ reset_regs = []
 # Snapshot settings
 snapshots    = ['adcsnap0', 'adcsnap1']
 snap_samples = 256
-sync_snaps   = False 

@@ -1,12 +1,13 @@
 # Basic settings
 simulated  = True
-roach_ip   = '192.168.1.12'
+roach_ip   = '0.0.0.0'
 roach_port = 7147
+upload     = False
 program    = False
-boffile    = 'spec2adc_4096ch_800mhz.bof.gz'
+boffile    = ''
 set_regs   = [{'name' : 'acc_len', 'val' : 2**0}]
 reset_regs = ['cnt_rst']
-bw          = 800 # [MHz]
+bw         = 800 # [MHz]
 
 # Snapshot settings
 snapshots  = ['adcsnap0', 'adcsnap1']

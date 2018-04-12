@@ -1,8 +1,9 @@
 # Basic settings
 simulated  = True
-roach_ip   = '192.168.1.12'
+roach_ip   = '0.0.0.0'
 roach_port = 7147
-program    = True
+upload     = False
+program    = False
 boffile    = ''
 set_regs   = [{'name' : 'acc_len',     'val' : 1},
               {'name' : 'filter_gain', 'val' : 2**32-1},

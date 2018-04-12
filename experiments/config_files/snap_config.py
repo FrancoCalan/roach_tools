@@ -1,6 +1,6 @@
 # Basic settings
 simulated  = True
-roach_ip   = '192.168.1.12'
+roach_ip   = '0.0.0.0'
 roach_port = 7147
 upload     = False
 program    = False

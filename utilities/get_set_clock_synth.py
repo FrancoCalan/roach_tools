@@ -33,7 +33,7 @@ synth_levl = s.get_rf_level(synth_num)
 print "Frequency SYNTH_" + str(args.synth) + ": " + str(synth_freq) + "[MHz]"
 print "RF level SYNTH_"  + str(args.synth) + ": " + str(synth_levl)
 # False = internal, True = external
-print "Reference : " + "external" if s.get_ref_select() else "internal"
+print "Reference : " + ("external" if s.get_ref_select() else "internal")
 
 if args.freq is not None:
     s.set_frequency(synth[args.synth], args.freq)

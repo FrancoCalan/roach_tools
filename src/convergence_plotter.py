@@ -24,7 +24,6 @@
 
 import sys, os
 sys.path.append(os.getcwd())
-from calanfpga import CalanFpga
 from plotter import Plotter
 
 class ConvergencePlotter(Plotter):
@@ -85,7 +84,3 @@ class ConvergencePlotter(Plotter):
         data_dict['filter_gain'] = self.fpga.read_reg('filter_gain')
         data_dict['filter_acc'] = self.fpga.read_reg('filter_acc')
         return data_dict
-
-if __name__ == '__main__':
-    fpga = CalanFpga()
-    ConvergencePlotter(fpga).plot()

@@ -20,8 +20,6 @@
 #                                                                             #
 ###############################################################################
 
-import os, sys, importlib
-
 class Experiment():
     """
     Most generic class. Repesents a generic experiment in roach with any model.
@@ -29,7 +27,6 @@ class Experiment():
     settings, and model.
     """
     def __init__(self, calanfpga):
-        config_file = os.path.splitext(sys.argv[1])[0]
-        self.settings = importlib.import_module(config_file)
         self.fpga = calanfpga
+        self.settings = self.fpga.settings
 

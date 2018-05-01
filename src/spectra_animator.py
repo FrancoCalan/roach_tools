@@ -27,7 +27,6 @@ sys.path.append(os.getcwd())
 from itertools import chain
 import numpy as np
 import Tkinter as Tk
-from calanfpga import CalanFpga
 from animator import Animator
 
 class SpectraAnimator(Animator):
@@ -112,8 +111,3 @@ class SpectraAnimator(Animator):
         except:
             raise Exception('Unable to parse value in textbox')
         self.fpga.set_reg(reg, val)
-
-if __name__ == '__main__':
-    fpga = CalanFpga()
-    fpga.initialize()
-    SpectraAnimator(fpga).start_animation()

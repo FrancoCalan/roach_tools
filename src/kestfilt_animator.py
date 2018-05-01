@@ -26,7 +26,6 @@ import sys, os
 sys.path.append(os.getcwd())
 import numpy as np
 import Tkinter as Tk
-from calanfpga import CalanFpga
 from spectra_animator import SpectraAnimator
 from convergence_plotter import ConvergencePlotter
 from stability_plotter import StabilityPlotter
@@ -94,8 +93,3 @@ class KestfiltAnimator(SpectraAnimator):
 
     def plot_stability(self):
         StabilityPlotter(self.fpga).plot()
-
-if __name__ == '__main__':
-    fpga = CalanFpga()
-    fpga.initialize()
-    KestfiltAnimator(fpga).start_animation()

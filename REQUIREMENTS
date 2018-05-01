@@ -3,6 +3,7 @@ katcp==0.5.5
 numpy==1.13.3
 matplotlib==2.0.2
 numexpr==2.4.3
+pyserial==3.4
 git+https://github.com/ska-sa/PySPEAD.git
 git+https://github.com/ska-sa/corr.git
 git+https://github.com/nrao/ValonSynth.git

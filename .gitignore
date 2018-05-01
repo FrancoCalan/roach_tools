@@ -2,3 +2,6 @@
 *.pickle
 *.swp
 *.json
+build/
+dist/
+*.egg-info/

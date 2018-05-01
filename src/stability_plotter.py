@@ -25,7 +25,6 @@
 import sys, os
 sys.path.append(os.getcwd())
 import numpy as np
-from calanfpga import CalanFpga
 from plotter import Plotter
 
 class StabilityPlotter(Plotter):
@@ -78,7 +77,3 @@ class StabilityPlotter(Plotter):
         data_dict[self.xlabel] = self.xdata.tolist()
 
         return data_dict
-
-if __name__ == '__main__':
-    fpga = CalanFpga()
-    StabilityPlotter(fpga).plot()

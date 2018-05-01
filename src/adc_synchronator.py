@@ -24,11 +24,10 @@
 
 import time
 import numpy as np
-from calanfpga import CalanFpga
 from experiment import Experiment
 from snapshot_animator import SnapshotAnimator
 from generator import Generator
-from dummies.dummy_generator import gen_time_arr
+from dummy_generator import gen_time_arr
 
 class AdcSynchronator(Experiment):
     """
@@ -126,8 +125,3 @@ class AdcSynchronator(Experiment):
         else:
             self.fpga.set_reg('adc0_delay', -1*delay)
         time.sleep(1)
-
-if __name__ == '__main__':
-    fpga = CalanFpga()
-    fpga.initialize()
-    AdcSynchronator(fpga).synchronize_adcs()

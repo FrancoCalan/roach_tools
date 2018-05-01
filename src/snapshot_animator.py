@@ -1,5 +1,3 @@
-#!/usr/bin/env python
-
 ###############################################################################
 #                                                                             #
 #   Millimeter-wave Laboratory, Department of Astronomy, University of Chile  #
@@ -24,7 +22,6 @@
 
 import sys, os
 sys.path.append(os.getcwd())
-from calanfpga import CalanFpga
 from animator import Animator
 
 class SnapshotAnimator(Animator):
@@ -48,8 +45,3 @@ class SnapshotAnimator(Animator):
         snapshots = self.fpga.get_snapshots()
         sliced_snapshots = [snapshot[:self.settings.snap_samples] for snapshot in snapshots]
         return sliced_snapshots
-
-if __name__ == '__main__':
-    fpga = CalanFpga()
-    fpga.initialize()
-    SnapshotAnimator(fpga).start_animation()

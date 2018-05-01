@@ -107,7 +107,7 @@ class DummyFpga():
             raise Exception('No register found with name ' + reg_name)
         write_reg['val'] = val
 
-    def read_int(self, reg_name):
+    def read_uint(self, reg_name):
         """
         Reads the int value from the Dummy ROACH.
         """
@@ -140,7 +140,7 @@ class DummyFpga():
         """
         if bram in self.spec_brams:
             # Returns spectra of generator signal accumulated acc_len times.
-            acc_len = self.read_int('acc_len')
+            acc_len = self.read_uint('acc_len')
             spec_len = get_n_data(nbytes, self.settings.spec_info['data_width'])
             spec = np.zeros(spec_len)
             for _ in range(acc_len):

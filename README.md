@@ -41,3 +41,7 @@ CalanFpga is a wrapper around corr's FpgaClient. It implements most of the FpgaC
 * Read and interleave bram data
 
 To create a CalanFpga object you must provide a config file settings file. 
+
+## TODO
+* Improve CalanFpga documentation
+* Add config file settings descriptions

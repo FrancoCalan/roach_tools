@@ -27,7 +27,7 @@ program    = False        # True: program FPGA with .bof model
 boffile    = ''           # .bof file to upload/program
 set_regs   = [{'name' : 'reg_name', 'val' : 1}] # Registers to set at startup
 reset_regs = ['reg_name'] # Registers to reset (1->0) st startup
-bw         = 1000         # Bandwidth used for plotting/simulation propuses (in MHz)
+bw         = 1000         # Bandwidth used for plotting/simulation purposes (in MHz)
 ```
 For more complete examples check [here](https://github.com/FrancoCalan/roach_tools/tree/master/bin/config_files). for a full description of all posible parameters in a config file check here(add link).
 

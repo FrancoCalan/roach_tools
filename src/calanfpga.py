@@ -20,7 +20,7 @@
 #                                                                             #
 ###############################################################################
 
-import os, time, struct
+import sys, os, importlib, time, struct
 import numpy as np
 from itertools import chain
 import corr
@@ -33,8 +33,12 @@ class CalanFpga():
     funtions added are: roach initialization, regiter setting/reseting, easy data
     grab from multiple snapshots, bram arrays, interleaved bram arrays, etc.
     """
-    def __init__(self, settings):
-        self.settings = settings
+    def __init__(self):
+        if len(sys.argv) <= 1:
+            print "Please provide a config file as a command line argument: " + os.path.basename(sys.argv[0]) + " [config file]"  
+            exit()
+        config_file = os.path.splitext(sys.argv[1])[0]
+        self.settings = importlib.import_module(config_file)
         if self.settings.simulated:
             self.fpga = DummyFpga(self.settings)
         else:

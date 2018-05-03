@@ -1,12 +1,12 @@
 # roach_tools
 
-High level Python library for interfacing with ROACH1/2 using the [corr](https://github.com/ska-sa/corr) package.
+High level python library for interfacing with ROACH1/2 using the [corr](https://github.com/ska-sa/corr) package.
 
 ## Installation
 
 Installation instruction only for Linux-based system provided:
 
-0. It is recommended to use this software in a [Python virtual enviroment](https://virtualenv.pypa.io/en/stable/).
+0. It is recommended to use this software in a [python virtual enviroment](https://virtualenv.pypa.io/en/stable/).
 1. `git clone` or download/unzip repository
 2. Install repository dependencies, in roach_tools root folder: `pip install -r REQUIREMENTS` (install pip if necesarry)
 3. Install repository: `python setup.py install`
@@ -15,7 +15,7 @@ Installation instruction only for Linux-based system provided:
 
 ### Config files
 
-roach_tools use config files to configure all the desired parameters to interface with the ROACH. A config file is a simple Python script which contains only variable definitions. Here is an example the simplest config file:
+roach_tools use config files to configure all the desired parameters to interface with the ROACH. A config file is a simple python script which contains only variable definitions. Here is an example the simplest config file:
 
 ```python
 # Basic settings
@@ -40,7 +40,17 @@ CalanFpga is a wrapper around corr's FpgaClient. It implements most of the FpgaC
 * Synchronized snapshot data read
 * Read and interleave bram data
 
-To create a CalanFpga object you must provide a config file settings file. 
+To create a CalanFpga object you must provide a config file as a command-line argument. A simple ROACH initialization script would look like this:
+
+```python
+# Script: init_roach.py
+from roach_tools.calanfpga import CalanFpga
+fpga = CalanFpga()
+fpga.initialize()
+```
+
+Then you run this script by typing in terminal: `python init_roach.py config_file.py`. *Note: due to python's importlib module limitations you must always run a roach_tools script in the same location as the config file. The python script can be in other location though.*
+
 
 ## TODO
 * Improve CalanFpga documentation

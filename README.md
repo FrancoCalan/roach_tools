@@ -49,9 +49,16 @@ fpga = CalanFpga()
 fpga.initialize()
 ```
 
-Then you run this script by typing in terminal: `python init_roach.py config_file.py`. *Note: due to python's importlib module limitations you must always run a roach_tools script in the same location as the config file. The python script can be in other location though.*
+Then you run this script by typing in terminal: `python init_roach.py config_file.py`. 
+*Note: due to python's importlib module limitations you must always run a roach_tools script in the same location as the config file. The python script can be in other location though.*
 
+To learn about all the functions of CalanFpga, read them directly form the [code documentation](https://github.com/FrancoCalan/roach_tools/blob/master/src/calanfpga.py).
+
+### Script Files
+
+The repository also provides out of the box script files to easily perform common ROACH tasks. For a list of all implemented scripts go here(add link). for example of the scripts usage look at the [Calan wiki](https://sites.google.com/site/calandigital/home/tutorials/roach_tools-and-calanfpga).
 
 ## TODO
 * Improve CalanFpga documentation
 * Add config file settings descriptions
+* Add scripts descriptions

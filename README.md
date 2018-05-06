@@ -10,6 +10,7 @@ Installation instruction only for Linux-based system provided:
 1. `git clone` or download/unzip repository
 2. Install repository dependencies, in roach_tools root folder: `pip install -r REQUIREMENTS` (install pip if necesarry)
 3. Install repository: `python setup.py install`
+
 *Note: If you are getting errors while installing the dependencies or the package, updating pip and/or virtualenv may help. Installation in virtual environment should work with pip>=10.0.1 and virtualenv>=15.0.1.*
 
 ## Usage

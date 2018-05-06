@@ -26,16 +26,16 @@ roach_ip   = '0.0.0.0'    # ROACH IP address
 roach_port = 7147         # ROACH communication port
 upload     = False        # True: upload .bof/.bof.gz model to ROACH
 program    = False        # True: program FPGA with .bof model
-boffile    = ''           # .bof file to upload/program
+boffile    = ''           # Filepath of the .bof to upload/program
 set_regs   = [{'name' : 'reg_name', 'val' : 1}] # Registers to set at startup
-reset_regs = ['reg_name'] # Registers to reset (1->0) st startup
+reset_regs = ['reg_name'] # Registers to reset (1->0) at startup
 bw         = 1000         # Bandwidth used for plotting/simulation purposes (in MHz)
 ```
-For more complete examples check [here](https://github.com/FrancoCalan/roach_tools/tree/master/bin/config_files). for a full description of all posible parameters in a config file check here(add link).
+For more complete examples check [here](https://github.com/FrancoCalan/roach_tools/tree/master/bin/config_files). For a full description of all possible parameters in a config file check here(add link).
 
 ### CalanFpga
 
-CalanFpga is a wrapper around corr's FpgaClient. It implements most of the FpgaClients functions and adds new high level functions for easy ROACH development. Between these you can find:
+CalanFpga is a wrapper around corr's FpgaClient. It implements most of the FpgaClients functions and adds new high level functions for easy ROACH development. Among these you can find:
 
 * ROACH initialization
 * Read multiple snapshots/bram at the same time
@@ -52,6 +52,7 @@ fpga.initialize()
 ```
 
 Then you run this script by typing in terminal: `python init_roach.py config_file.py`. 
+
 *Note: due to python's importlib module limitations you must always run a roach_tools script in the same location as the config file. The python script can be in other location though.*
 
 To learn about all the functions of CalanFpga, read them directly form the [code documentation](https://github.com/FrancoCalan/roach_tools/blob/master/src/calanfpga.py).

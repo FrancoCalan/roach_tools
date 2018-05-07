@@ -55,7 +55,6 @@ class CalanFpga():
         upload and program bof if requested, estimate clock, and
         set and reset the inital state of register listed in the 
         configuration file.
-        :return:
         """
         self.connect_to_roach()
         if self.settings.upload and self.settings.program:

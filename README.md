@@ -31,7 +31,7 @@ set_regs   = [{'name' : 'reg_name', 'val' : 1}] # Registers to set at startup
 reset_regs = ['reg_name'] # Registers to reset (->1->0) at startup
 bw         = 1000         # Bandwidth used for plotting/simulation purposes (in MHz)
 ```
-For more complete examples check [here](https://github.com/FrancoCalan/roach_tools/tree/master/bin/config_files). For a full description of all possible parameters in a config file check here(add link).
+For more complete examples check [here](https://github.com/FrancoCalan/roach_tools/tree/master/bin/config_files). For a full description of all possible parameters in a config file check [here](https://github.com/FrancoCalan/roach_tools/wiki/Config-File-Parameters).
 
 ### CalanFpga
 
@@ -62,5 +62,4 @@ To learn about all the functions of CalanFpga, read them directly form the [code
 The repository also provides out of the box script files to easily perform common ROACH tasks. For a list of all implemented scripts go here(add link). for example of the scripts usage look at the [Calan wiki](https://sites.google.com/site/calandigital/home/tutorials/roach_tools-and-calanfpga).
 
 ## TODO
-* Add config file settings descriptions
 * Add scripts descriptions

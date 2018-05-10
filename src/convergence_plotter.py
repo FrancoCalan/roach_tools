@@ -37,9 +37,7 @@ class ConvergencePlotter(Plotter):
         self.ylims = [(-100, 10)]
         self.xlabel = 'Time [$\mu$s]'
         self.ylabels = ['Power [dBFS]']
-        self.legends = [self.settings.conv_info_chnl['name'], 
-                        self.settings.conv_info_max['name'], 
-                        self.settings.conv_info_mean['name']]
+        self.legends = ['chnl', 'max', 'mean']
 
         # get xdata
         n_specs = 2**self.settings.conv_info_chnl['addr_width']

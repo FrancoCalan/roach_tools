@@ -80,10 +80,12 @@ class KestfiltAnimator(SpectraAnimator):
 
     def toggle_filter(self):
         if self.fpga.read_reg('filter_on') == 1:
+            self.filter_on_button.config(relief=Tk.RAISED)
             self.fpga.set_reg('filter_on', 0)
             self.filter_on_label.set('Filter Off')
             print('Filter is off')
         else:
+            self.filter_on_button.config(relief=Tk.SUNKEN)
             self.fpga.set_reg('filter_on', 1)
             self.filter_on_label.set('Filter On')
             print('Filter is on')

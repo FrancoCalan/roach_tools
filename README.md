@@ -59,7 +59,7 @@ To learn about all the functions of CalanFpga, read them directly form the [code
 
 ### Script Files
 
-The repository also provides out of the box script files to easily perform common ROACH tasks. For a list of all implemented scripts go here(add link). for example of the scripts usage look at the [Calan wiki](https://sites.google.com/site/calandigital/home/tutorials/roach_tools-and-calanfpga).
+The repository also provides script files to easily perform common ROACH tasks out of thebox. For a list of all implemented scripts go here(add link). for example of the scripts usage look at the [Calan wiki](https://sites.google.com/site/calandigital/home/tutorials/roach_tools-and-calanfpga).
 
 ## TODO
 * Add scripts descriptions

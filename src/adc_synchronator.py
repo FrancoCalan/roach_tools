@@ -22,7 +22,7 @@
 #                                                                             #
 ###############################################################################
 
-import time
+import sys, time
 import numpy as np
 from experiment import Experiment
 from snapshot_animator import SnapshotAnimator
@@ -37,8 +37,7 @@ class AdcSynchronator(Experiment):
         Experiment.__init__(self, calanfpga)
         self.snapshot_animator = SnapshotAnimator(self.fpga)
         if self.settings.simulated:
-            print "Simulated version not yet implemented"
-            exit()
+            raise RuntimeError("Simulated version not yet implemented")
         else:
             self.source = Generator(self.settings.source_ip, self.settings.source_port)
         self.synced_counter = 0

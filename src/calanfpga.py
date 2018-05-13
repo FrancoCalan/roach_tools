@@ -39,8 +39,7 @@ class CalanFpga():
         second argument in the command-line arguments.
         """
         if len(sys.argv) <= 1:
-            print "Please provide a config file as a command line argument: " + os.path.basename(sys.argv[0]) + " [config file]"  
-            exit()
+            raise RuntimeError("Please provide a config file as a command line argument: " + os.path.basename(sys.argv[0]) + " [config file]")  
         config_file = os.path.splitext(sys.argv[1])[0]
         self.settings = importlib.import_module(config_file)
         if self.settings.simulated:

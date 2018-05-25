@@ -43,8 +43,11 @@ class SpectraAnimator(Animator):
         self.ylabels = self.nplots * ['Power [dBFS]']
         self.entries = []
         
-        nchannels = self.get_nchannels()
-        self.xdata = np.linspace(0, self.settings.bw, nchannels, endpoint=False)
+        self.nchannels = self.get_nchannels()
+        self.xdata = np.linspace(0, self.settings.bw, self.nchannels, endpoint=False)
+        
+        self.maxhold_on = False
+        self.maxhold_data = self.nplots * [-np.inf*np.ones(self.nchannels)]
         
     def get_data(self):
         """
@@ -52,9 +55,12 @@ class SpectraAnimator(Animator):
         """
         spec_data_arr = self.fpga.get_bram_list_interleaved_data(self.settings.spec_info)
         spec_plot_arr = []
-        for spec_data in spec_data_arr:
+        for i, spec_data in enumerate(spec_data_arr):
             spec_data = spec_data / float(self.fpga.read_reg('acc_len')) # divide by accumulation
             spec_data = self.linear_to_dBFS(spec_data)
+            if self.maxhold_on:
+                self.maxhold_data[i] = np.maximum(self.maxhold_data[i], spec_data)
+                spec_data = self.maxhold_data[i]
             spec_plot_arr.append(spec_data)
 
         return spec_plot_arr
@@ -66,8 +72,12 @@ class SpectraAnimator(Animator):
         Animator.create_window(self)
 
         # reset button
-        self.reset_button = Tk.Button(self.button_frame, text='Reset', command=lambda: self.fpga.reset_reg('cnt_rst'))
+        self.reset_button = Tk.Button(self.button_frame, text='Reset', command=self.reset_spec)
         self.reset_button.pack(side=Tk.LEFT)
+
+        # max hold button
+        self.maxhold_button = Tk.Button(self.button_frame, text='Max Hold', command=self.toggle_maxhold)
+        self.maxhold_button.pack(side=Tk.LEFT)
 
         # acc_len entry
         self.add_reg_entry('acc_len')
@@ -111,3 +121,25 @@ class SpectraAnimator(Animator):
         except:
             raise Exception('Unable to parse value in textbox')
         self.fpga.set_reg(reg, val)
+
+    def reset_spec(self):
+        """
+        Reset spectra counters, accumulators and software max hold.
+        """
+        self.fpga.reset_reg('cnt_rst')
+        if self.maxhold_on:
+            self.toggle_maxhold()
+
+    def toggle_maxhold(self):
+        """
+        Activate and deactivate max hold of spectral data on button press.
+        """
+        if self.maxhold_on:
+            self.maxhold_on = False
+            self.maxhold_button.config(relief=Tk.RAISED)
+            self.maxhold_data = self.nplots * [-np.inf*np.ones(self.nchannels)]
+            print "Max Hold off"
+        else:
+            self.maxhold_on = True
+            self.maxhold_button.config(relief=Tk.SUNKEN)
+            print "Max Hold on"

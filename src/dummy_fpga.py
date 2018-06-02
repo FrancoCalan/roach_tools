@@ -107,6 +107,19 @@ class DummyFpga():
             raise Exception('No register found with name ' + reg_name)
         write_reg['val'] = val
 
+    def listbof(self):
+        """
+        List nothing
+        """
+        return []
+
+    def listdev(self):
+        """
+        List dummy registers.
+        """
+        return self.regs + self.snapshots + self.spec + self.conv_info_chnl_brams +\
+            self.conv_info_max_brams + self.conv_info_mean_brams + self.stab_brams
+
     def read_uint(self, reg_name):
         """
         Reads the int value from the Dummy ROACH.

@@ -137,6 +137,20 @@ class CalanFpga():
         time.sleep(0.1)
         print 'done'
 
+    def listbof(self):
+        """
+        List .bof files availables in ROACH memory.
+        """
+        print "BOF files:"
+        print self.fpga.listbof()
+
+    def listdev(self):
+        """
+        List FPGA available registers and brams.
+        """
+        print "Registers and brams:"
+        print self.fpga.listdev()
+
     def read_reg(self, reg):
         """
         Read a register.

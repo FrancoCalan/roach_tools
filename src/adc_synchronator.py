@@ -41,7 +41,8 @@ class AdcSynchronator(Experiment):
         else:
             self.source = Generator(self.settings.source_ip, self.settings.source_port)
         self.synced_counter = 0
-        self.required_synced_count = 5
+        self.required_synced_count = 5 # number of simultaneous iterations with ADCs in sync
+                                       # required to consider the ADC synchronized
 
     def synchronize_adcs(self):
         """

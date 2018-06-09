@@ -1,5 +1,3 @@
-#!/usr/bin/env python
-
 ###############################################################################
 #                                                                             #
 #   Millimeter-wave Laboratory, Department of Astronomy, University of Chile  #
@@ -22,8 +20,6 @@
 #                                                                             #
 ###############################################################################
 
-import sys, os
-sys.path.append(os.getcwd())
 import numpy as np
 import Tkinter as Tk
 from spectra_animator import SpectraAnimator
@@ -91,7 +87,7 @@ class KestfiltAnimator(SpectraAnimator):
             print('Filter is on')
 
     def plot_convergence(self):
-        ConvergencePlotter(self.fpga).plot()
+        ConvergencePlotter(self.fpga).show_plot()
 
     def plot_stability(self):
-        StabilityPlotter(self.fpga).plot()
+        StabilityPlotter(self.fpga).show_plot()

@@ -22,12 +22,12 @@
 #                                                                             #
 ###############################################################################
 
-import sys, os, numexpr
-sys.path.append(os.getcwd())
 from itertools import chain
+import numexpr
 import numpy as np
 import Tkinter as Tk
 from animator import Animator
+from single_line_axis import SingleLineAxis
 
 class SpectraAnimator(Animator):
     """
@@ -35,16 +35,21 @@ class SpectraAnimator(Animator):
     """
     def __init__(self, calanfpga):
         Animator.__init__(self, calanfpga)
-        self.titles = self.settings.plot_titles
-        self.nplots = len(self.titles) 
-        self.xlim = (0, self.settings.bw)
-        self.ylims = self.nplots * [(-100, 10)]
-        self.xlabel = 'Frequency [MHz]'
-        self.ylabels = self.nplots * ['Power [dBFS]']
-        self.entries = []
+        self.nplots = len(self.settings.plot_titles)
+        mpl_axes = self.create_axes()
         
         self.nchannels = self.get_nchannels()
         self.xdata = np.linspace(0, self.settings.bw, self.nchannels, endpoint=False)
+
+        for i, ax in enumerate(mpl_axes):
+            ax.set_title(self.settings.plot_titles[i])
+            ax.set_xlim(0, self.settings.bw)
+            ax.set_ylim((-100, 10))
+            ax.set_xlabel('Frequency [MHz]')
+            ax.set_ylabel('Power [dBFS]')
+            self.axes.append(SingleLineAxis(ax, self.xdata))
+
+        self.entries = []
         
         self.maxhold_on = False
         self.maxhold_data = self.nplots * [-np.inf*np.ones(self.nchannels)]
@@ -89,11 +94,11 @@ class SpectraAnimator(Animator):
         data_dict = {}
         
         data_arr = self.get_data()
-        for i, data in enumerate(data_arr):
-            data_dict[self.titles[i] + ' ' + self.ylabels[i]] = data.tolist()
+        for axis, data in zip(self.axes, data_arr):
+            data_dict[axis.ax.get_title() + ' ' + axis.ax.get_ylabel()] = data.tolist()
 
         data_dict['acc_len'] = self.fpga.read_reg('acc_len')
-        data_dict[self.xlabel] = self.xdata.tolist()
+        data_dict[axis.ax.get_xlabel()] = self.xdata.tolist()
 
         return data_dict
 
@@ -119,7 +124,7 @@ class SpectraAnimator(Animator):
         try:
             val = int(numexpr.evaluate(string_val))
         except:
-            raise Exception('Unable to parse value in textbox')
+            raise Exception('Unable to parse value in textbox: ' + string_val)
         self.fpga.set_reg(reg, val)
 
     def reset_spec(self):

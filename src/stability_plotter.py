@@ -26,6 +26,7 @@ import sys, os
 sys.path.append(os.getcwd())
 import numpy as np
 from plotter import Plotter
+from single_line_axis import SingleLineAxis
 
 class StabilityPlotter(Plotter):
     """
@@ -35,19 +36,26 @@ class StabilityPlotter(Plotter):
     def __init__(self, calanfpga):
         Plotter.__init__(self, calanfpga)
         self.ylims = [(-1, 10), (-200, 200)]
-        self.xlabel = 'Time [$\mu$s]'
         self.ylabels = ['Magnitude ratio', 'Angle difference [deg]']
-
-        # get xdata
-        n_specs = 2**self.settings.inst_chnl_info['addr_width']
-        self.xdata = self.get_spec_time_arr(n_specs)
-        self.xlim = (0, self.xdata[-1])
 
         # get current channel frequency for title
         chnl_freq = self.settings.bw * self.fpga.read_reg('channel') / self.get_nchannels()
         self.titles = ['Channel at freq: ' + str(chnl_freq), 
                        'Channel at freq: ' + str(chnl_freq)]
         self.nplots = len(self.titles)
+        mpl_axes = self.create_axes()
+
+        # get xdata
+        n_specs = 2**self.settings.inst_chnl_info['addr_width']
+        self.xdata = self.get_spec_time_arr(n_specs)
+
+        for i, ax in enumerate(mpl_axes):
+            ax.set_title(self.titles[i])
+            ax.set_xlim((0, self.xdata[-1]))
+            ax.set_ylim(self.ylims[i])
+            ax.set_xlabel('Time [$\mu$s]')
+            ax.set_ylabel(self.ylabels[i])
+            self.axes.append(SingleLineAxis(ax, self.xdata))
 
     def get_data(self):
         """
@@ -71,9 +79,9 @@ class StabilityPlotter(Plotter):
         data_dict = {}
 
         data_arr = self.get_data()
-        for i, data in enumerate(data_arr):
-            data_dict[self.titles[i] + ' ' + self.ylabels[i]] = data.tolist()
+        for axis, data in zip(self.axes, data_arr):
+            data_dict[axis.ax.get_title() + ' ' + axis.ax.get_ylabel()] = data.tolist()
 
-        data_dict[self.xlabel] = self.xdata.tolist()
+        data_dict[axis.ax.get_xlabel()] = self.xdata.tolist()
 
         return data_dict

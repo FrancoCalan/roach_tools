@@ -25,6 +25,7 @@
 import sys, os
 sys.path.append(os.getcwd())
 from plotter import Plotter
+from multi_line_axis import MultiLineAxis
 
 class ConvergencePlotter(Plotter):
     """
@@ -34,19 +35,24 @@ class ConvergencePlotter(Plotter):
     def __init__(self, calanfpga):
         Plotter.__init__(self, calanfpga)
         self.nplots = 1
-        self.ylims = [(-100, 10)]
-        self.xlabel = 'Time [$\mu$s]'
-        self.ylabels = ['Power [dBFS]']
         self.legends = ['chnl', 'max', 'mean']
+        mpl_axis = self.create_axes()[0]
 
         # get xdata
         n_specs = 2**self.settings.conv_info_chnl['addr_width']
         self.xdata = self.get_spec_time_arr(n_specs)
-        self.xlim = (0, self.xdata[-1])
 
         # get current channel frequency for title
         chnl_freq = self.settings.bw * self.fpga.read_reg('channel') / self.get_nchannels()
-        self.titles = ['Power v/s time\nChannel at freq: ' + str(chnl_freq)]
+        title = 'Power v/s time\nChannel at freq: ' + str(chnl_freq)
+
+        mpl_axis.set_title(title)
+        mpl_axis.set_xlim(0, self.xdata[-1])
+        mpl_axis.set_ylim((-100, 10))
+        mpl_axis.set_xlabel('Time [$\mu$s]')
+        mpl_axis.set_ylabel('Power [dBFS]')
+        self.axes.append(MultiLineAxis(mpl_axis, self.xdata, self.legends))
+
 
     def get_data(self):
         """
@@ -66,7 +72,7 @@ class ConvergencePlotter(Plotter):
         mean_data = self.fpga.get_bram_data(self.settings.conv_info_mean)
         mean_data = self.linear_to_dBFS(mean_data)
 
-        return [chnl_data, max_data, mean_data]
+        return [[chnl_data, max_data, mean_data]]
 
     def data2dict(self):
         """
@@ -75,10 +81,10 @@ class ConvergencePlotter(Plotter):
         data_dict = {}
 
         data_arr = self.get_data()
-        for i, data in enumerate(data_arr):
-            data_dict[self.legends[i] + ' ' + self.ylabels[0]] = data.tolist()
+        for i, data in enumerate(data_arr[0]):
+            data_dict[self.legends[i] + ' ' + self.axes[0].ax.get_ylabel()] = data.tolist()
         
-        data_dict[self.xlabel] = self.xdata.tolist()
+        data_dict[self.axes[0].ax.get_xlabel()] = self.xdata.tolist()
         data_dict['filter_gain'] = self.fpga.read_reg('filter_gain')
         data_dict['filter_acc'] = self.fpga.read_reg('filter_acc')
         return data_dict

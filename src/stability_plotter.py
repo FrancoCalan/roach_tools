@@ -39,9 +39,8 @@ class StabilityPlotter(Plotter):
         self.ylabels = ['Magnitude ratio', 'Angle difference [deg]']
 
         # get current channel frequency for title
-        chnl_freq = self.settings.bw * self.fpga.read_reg('channel') / self.get_nchannels()
-        self.titles = ['Channel at freq: ' + str(chnl_freq), 
-                       'Channel at freq: ' + str(chnl_freq)]
+        chnl_freq = self.get_freq_from_channel(self.fpga.read_reg('channel'))
+        self.titles = ['Stability Test\nChannel at freq: ' + str(chnl_freq), '']
         self.nplots = len(self.titles)
         mpl_axes = self.create_axes()
 

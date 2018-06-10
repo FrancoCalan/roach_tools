@@ -115,6 +115,7 @@ class SpectraAnimator(Animator):
         entry.pack(side=Tk.LEFT)
         entry.bind('<Return>', lambda x: self.set_reg_from_entry(reg, entry))
         self.entries.append(entry)
+        return frame
 
     def set_reg_from_entry(self, reg, entry):
         """

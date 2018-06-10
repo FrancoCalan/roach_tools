@@ -43,7 +43,7 @@ class ConvergencePlotter(Plotter):
         self.xdata = self.get_spec_time_arr(n_specs)
 
         # get current channel frequency for title
-        chnl_freq = self.settings.bw * self.fpga.read_reg('channel') / self.get_nchannels()
+        chnl_freq = self.get_freq_from_channel(self.fpga.read_reg('channel'))
         title = 'Power v/s time\nChannel at freq: ' + str(chnl_freq)
 
         mpl_axis.set_title(title)

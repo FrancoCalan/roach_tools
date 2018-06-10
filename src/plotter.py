@@ -118,6 +118,12 @@ class Plotter(Experiment):
         n_brams = len(self.settings.spec_info['bram_list2d'][0])
         return n_brams * 2**self.settings.spec_info['addr_width']
 
+    def get_freq_from_channel(self, channel):
+        """
+        Compute the frequency of channel using the bandwidth information.
+        """
+        return self.settings.bw * channel / self.get_nchannels()
+
     def linear_to_dBFS(self, data):
         """
         Turn data in linear scale to dBFS scale. It uses the dBFS_const value

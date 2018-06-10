@@ -62,7 +62,7 @@ class KestfiltAnimator(SpectraAnimator):
         self.add_reg_entry('filter_acc')
 
         # channel entry
-        self.add_reg_entry('channel')
+        self.add_channel_entry('channel')
 
     def data2dict(self):
         """
@@ -85,6 +85,29 @@ class KestfiltAnimator(SpectraAnimator):
             self.filter_on_button.config(relief=Tk.SUNKEN)
             self.fpga.set_reg('filter_on', 1)
             print('Filter is on')
+
+    def add_channel_entry(self, chnl_reg):
+        """
+        Add the channel reg entry with the extra label indicating the
+        corresponding frequency for that channel.
+        """
+        frame = SpectraAnimator.add_reg_entry(self, chnl_reg)
+        chnl_entry = self.entries[-1]
+        chnl_value = self.fpga.read_reg(chnl_reg)
+        chnl_freq = self.get_freq_from_channel(chnl_value)
+        freq_label = Tk.Label(frame, text= str(chnl_freq) + " MHz")
+        freq_label.pack(side=Tk.LEFT)
+        chnl_entry.bind('<Return>', lambda x: self.set_channel_reg(chnl_reg, chnl_entry, freq_label))
+
+    def set_channel_reg(self, chnl_reg, chnl_entry, freq_label):
+        """
+        Set the channel register and update the channel frequency label.
+        """
+        SpectraAnimator.set_reg_from_entry(self, chnl_reg, chnl_entry)
+        chnl_value = self.fpga.read_reg(chnl_reg)
+        chnl_freq = self.get_freq_from_channel(chnl_value)
+        freq_label['text'] = str(chnl_freq) + " MHz" 
+        
 
     def plot_convergence(self):
         ConvergencePlotter(self.fpga).show_plot()

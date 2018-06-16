@@ -63,3 +63,8 @@ The repository also provides script files to easily perform common ROACH tasks o
 
 ## TODO
 * Add scripts descriptions
+
+## Author
+Franco Curotto
+Millimeter-wave Laboratory, Department of Astronomy, University of Chile
+http://www.das.uchile.cl/lab_mwl

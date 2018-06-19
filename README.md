@@ -63,7 +63,7 @@ The repository also provides script files to easily perform common ROACH tasks o
 
 ## TODO
 * Add scripts descriptions
-* Add suport for DRAM spectrograms
+* Add support for DRAM spectrograms
 
 ## Author
 Franco Curotto

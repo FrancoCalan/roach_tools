@@ -17,7 +17,7 @@ Installation instruction only for Linux-based system provided:
 
 ### Config files
 
-roach_tools use config files to configure all the desired parameters to interface with the ROACH. A config file is a simple python script which contains only variable definitions. Here is an example the simplest config file:
+roach_tools use config files to configure all the desired parameters to interface with the ROACH. A config file is a simple python script which contains only variable definitions. Here is an example a simple config file:
 
 ```python
 # Basic settings
@@ -59,7 +59,15 @@ To learn about all the functions of CalanFpga, read them directly form the [code
 
 ### Script Files
 
-The repository also provides script files to easily perform common ROACH tasks out of thebox. For a list of all implemented scripts go here(add link). For an explanation on how to use the scripts look at the [Calan wiki](https://sites.google.com/site/calandigital/home/tutorials/roach_tools-and-calanfpga).
+The repository also provides script files to easily perform common ROACH tasks out of the box. For a list of all implemented scripts go here(TODO: add link). For an explanation on how to use the scripts look at the [Calan wiki](https://sites.google.com/site/calandigital/home/tutorials/roach_tools-and-calanfpga).
 
 ## TODO
 * Add scripts descriptions
+* Add support for DRAM spectrograms
+
+## Author
+Franco Curotto
+
+Millimeter-wave Laboratory, Department of Astronomy, University of Chile
+
+http://www.das.uchile.cl/lab_mwl

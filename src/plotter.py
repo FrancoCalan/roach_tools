@@ -1,25 +1,3 @@
-###############################################################################
-#                                                                             #
-#   Millimeter-wave Laboratory, Department of Astronomy, University of Chile  #
-#   http://www.das.uchile.cl/lab_mwl                                          #
-#   Copyright (C) 2017 Franco Curotto                                         #
-#                                                                             #
-#   This program is free software; you can redistribute it and/or modify      #
-#   it under the terms of the GNU General Public License as published by      #
-#   the Free Software Foundation; either version 3 of the License, or         #
-#   (at your option) any later version.                                       #
-#                                                                             #
-#   This program is distributed in the hope that it will be useful,           #
-#   but WITHOUT ANY WARRANTY; without even the implied warranty of            #
-#   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the             #
-#   GNU General Public License for more details.                              #
-#                                                                             #
-#   You should have received a copy of the GNU General Public License along   #
-#   with this program; if not, write to the Free Software Foundation, Inc.,   #
-#   51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.               #
-#                                                                             #
-###############################################################################
-
 import os, sys, importlib, json
 import numpy as np
 import matplotlib.pyplot as plt
@@ -37,46 +15,25 @@ class Plotter(Experiment):
         self.fig = plt.Figure()
         self.plot_map = {1:'11', 2:'12', 3:'22', 4:'22'}
         self.config_file = os.path.splitext(sys.argv[1])[0]
-        self.line_arr = []
+        self.axes = []
 
-    def set_plot_parameters(self):
+    def create_axes(self):
         """
-        Add the basic parameters to the plot.
+        Return an array of Matplotlib Axes given the number of plots in the plotter.
         """
+        axes = []
         for i in range(self.nplots):
-            ax = self.fig.add_subplot(self.plot_map[self.nplots]+str(i+1))
-            ax.set_xlim(self.xlim)
-            ax.set_ylim(self.ylims[i])
-            ax.set_xlabel(self.xlabel)
-            ax.set_ylabel(self.ylabels[i])
-            ax.set_title(self.titles[i])
-            ax.grid(True)
-            # for multiline plot with legends
-            if hasattr(self, 'legends'):
-                for legend in self.legends:
-                    self.line_arr.append(ax.plot([], [], lw=2, label=legend)[0])
-                ax.legend()
-            # for single line plots
-            else:
-                self.line_arr.append(ax.plot([], [], lw=2)[0])
+            axes.append(self.fig.add_subplot(self.plot_map[self.nplots]+str(i+1)))
 
-        self.fig.set_tight_layout(True)
+        return axes
 
-    def draw_plot_lines(self):
-        """
-        Draw plot lines in canvas.
-        """
-        data_arr = self.get_data()
-        for i, ydata in enumerate(data_arr):
-            self.line_arr[i].set_data(self.xdata, ydata)
- 
-    def plot(self):
+    def show_plot(self):
         """
         Show plot window.
         """
-        self.set_plot_parameters()
+        self.fig.set_tight_layout(True)
         self.create_window()
-        self.draw_plot_lines() 
+        self.plot_axes() 
         Tk.mainloop()
 
     def create_window(self, create_gui=True):
@@ -111,6 +68,14 @@ class Plotter(Experiment):
             self.save_entry.insert(Tk.END, self.config_file)
             self.save_entry.pack(side=Tk.LEFT)
 
+    def plot_axes(self):
+        """
+        Draw plot for every axes in canvas.
+        """
+        data_arr = self.get_data()
+        for axis, ydata in zip(self.axes, data_arr):
+            axis.plot(ydata)
+
     def save_data(self):
         """
         Save plot data if data2dict is implemented.
@@ -120,7 +85,7 @@ class Plotter(Experiment):
             with open(self.save_entry.get()+'.json', 'w') as jsonfile:
                 json.dump(json_data, jsonfile,  indent=4)
             print "Data saved."
-    
+
         except AttributeError as e:
             print "This plot doesn't have save option."
 
@@ -130,6 +95,12 @@ class Plotter(Experiment):
         """
         n_brams = len(self.settings.spec_info['bram_list2d'][0])
         return n_brams * 2**self.settings.spec_info['addr_width']
+
+    def get_freq_from_channel(self, channel):
+        """
+        Compute the frequency of channel using the bandwidth information.
+        """
+        return self.settings.bw * channel / self.get_nchannels()
 
     def linear_to_dBFS(self, data):
         """

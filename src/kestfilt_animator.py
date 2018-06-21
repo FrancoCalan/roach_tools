@@ -1,29 +1,3 @@
-#!/usr/bin/env python
-
-###############################################################################
-#                                                                             #
-#   Millimeter-wave Laboratory, Department of Astronomy, University of Chile  #
-#   http://www.das.uchile.cl/lab_mwl                                          #
-#   Copyright (C) 2017 Franco Curotto                                         #
-#                                                                             #
-#   This program is free software; you can redistribute it and/or modify      #
-#   it under the terms of the GNU General Public License as published by      #
-#   the Free Software Foundation; either version 3 of the License, or         #
-#   (at your option) any later version.                                       #
-#                                                                             #
-#   This program is distributed in the hope that it will be useful,           #
-#   but WITHOUT ANY WARRANTY; without even the implied warranty of            #
-#   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the             #
-#   GNU General Public License for more details.                              #
-#                                                                             #
-#   You should have received a copy of the GNU General Public License along   #
-#   with this program; if not, write to the Free Software Foundation, Inc.,   #
-#   51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.               #
-#                                                                             #
-###############################################################################
-
-import sys, os
-sys.path.append(os.getcwd())
 import numpy as np
 import Tkinter as Tk
 from spectra_animator import SpectraAnimator
@@ -66,7 +40,7 @@ class KestfiltAnimator(SpectraAnimator):
         self.add_reg_entry('filter_acc')
 
         # channel entry
-        self.add_reg_entry('channel')
+        self.add_channel_entry('channel')
 
     def data2dict(self):
         """
@@ -90,8 +64,31 @@ class KestfiltAnimator(SpectraAnimator):
             self.fpga.set_reg('filter_on', 1)
             print('Filter is on')
 
+    def add_channel_entry(self, chnl_reg):
+        """
+        Add the channel reg entry with the extra label indicating the
+        corresponding frequency for that channel.
+        """
+        frame = SpectraAnimator.add_reg_entry(self, chnl_reg)
+        chnl_entry = self.entries[-1]
+        chnl_value = self.fpga.read_reg(chnl_reg)
+        chnl_freq = self.get_freq_from_channel(chnl_value)
+        freq_label = Tk.Label(frame, text= str(chnl_freq) + " MHz")
+        freq_label.pack(side=Tk.LEFT)
+        chnl_entry.bind('<Return>', lambda x: self.set_channel_reg(chnl_reg, chnl_entry, freq_label))
+
+    def set_channel_reg(self, chnl_reg, chnl_entry, freq_label):
+        """
+        Set the channel register and update the channel frequency label.
+        """
+        SpectraAnimator.set_reg_from_entry(self, chnl_reg, chnl_entry)
+        chnl_value = self.fpga.read_reg(chnl_reg)
+        chnl_freq = self.get_freq_from_channel(chnl_value)
+        freq_label['text'] = str(chnl_freq) + " MHz" 
+        
+
     def plot_convergence(self):
-        ConvergencePlotter(self.fpga).plot()
+        ConvergencePlotter(self.fpga).show_plot()
 
     def plot_stability(self):
-        StabilityPlotter(self.fpga).plot()
+        StabilityPlotter(self.fpga).show_plot()

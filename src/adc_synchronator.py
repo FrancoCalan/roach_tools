@@ -1,27 +1,3 @@
-#!/usr/bin/env python
-
-###############################################################################
-#                                                                             #
-#   Millimeter-wave Laboratory, Department of Astronomy, University of Chile  #
-#   http://www.das.uchile.cl/lab_mwl                                          #
-#   Copyright (C) 2017 Franco Curotto                                         #
-#                                                                             #
-#   This program is free software; you can redistribute it and/or modify      #
-#   it under the terms of the GNU General Public License as published by      #
-#   the Free Software Foundation; either version 3 of the License, or         #
-#   (at your option) any later version.                                       #
-#                                                                             #
-#   This program is distributed in the hope that it will be useful,           #
-#   but WITHOUT ANY WARRANTY; without even the implied warranty of            #
-#   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the             #
-#   GNU General Public License for more details.                              #
-#                                                                             #
-#   You should have received a copy of the GNU General Public License along   #
-#   with this program; if not, write to the Free Software Foundation, Inc.,   #
-#   51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.               #
-#                                                                             #
-###############################################################################
-
 import sys, time
 import numpy as np
 from experiment import Experiment
@@ -51,7 +27,6 @@ class AdcSynchronator(Experiment):
         single frequency DFT.
         """
         # start plot
-        self.snapshot_animator.set_plot_parameters()
         self.snapshot_animator.create_window(create_gui=False)
 
         # turn source on and set freq and amp
@@ -61,8 +36,8 @@ class AdcSynchronator(Experiment):
 
         while True:
             [snap_adc0, snap_adc1] = self.fpga.get_snapshots_sync()
-            self.snapshot_animator.line_arr[0].set_data(self.snapshot_animator.xdata, snap_adc0[:self.settings.snap_samples])
-            self.snapshot_animator.line_arr[1].set_data(self.snapshot_animator.xdata, snap_adc1[:self.settings.snap_samples])
+            self.snapshot_animator.axes[0].plot(snap_adc0[:self.settings.snap_samples])
+            self.snapshot_animator.axes[1].plot(snap_adc1[:self.settings.snap_samples])
             self.snapshot_animator.canvas.draw()
             time.sleep(1)
             snap0_phasor = self.estimate_phasor(self.settings.sync_freq, snap_adc0)

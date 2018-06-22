@@ -1,7 +1,7 @@
 import sys, os, importlib, time, struct
 import numpy as np
 from itertools import chain
-import corr
+import corr, adc5g
 from dummy_fpga import DummyFpga
 
 class CalanFpga():
@@ -138,6 +138,35 @@ class CalanFpga():
         reg_val = self.fpga.read_uint(reg)
         return reg_val
 
+    def calibrate_adcs(self):
+        """
+        Calibrate adcs using external calibration routines.
+        """
+        # Hardcoded ADC5G calibration
+        for snap_data in self.settings.snapshots:
+            adc5g.set_test_mode(self.fpga, snap_data['zdok'])
+        adc5g.sync_adc(self.fpga)
+
+        for snap_data in self.settings.snapshots:
+            print "Calibrating ADC5G ZDOK" + str(snap_data['zdok']) + "..."
+            opt, glitches = adc5g.calibrate_mmcm_phase(self.fpga, \
+                snap_data['zdok'], snap_data['names'])
+
+            print "done"
+            adc5g.unset_test_mode(self.fpga, snap_data['zdok'])
+
+    def get_snapshot_names(self):
+        """
+        Get snapshot names from snapshots setting format:
+            {'zdok' : adc zdok input number,
+             'names' : list of snapshots associated to that ADC.}
+        """
+        snapshots = []
+        for snap_data in self.settings.snapshots:
+            snapshots += snap_data['names']
+
+        return snapshots
+
     def get_snapshots(self):
         """
         Get snapshot data from all snapshot blocks specified in the config 
@@ -146,7 +175,7 @@ class CalanFpga():
         data type is fixed to 8 bits as all of our ADC work at that size. 
         """
         snap_data_arr = []
-        for snapshot in self.settings.snapshots:
+        for snapshot in self.get_snapshot_names():
             snap_data = np.fromstring(self.fpga.snapshot_get(snapshot, man_trig=True, 
                 man_valid=True)['data'], dtype='>i1')
             snap_data_arr.append(snap_data)
@@ -163,7 +192,7 @@ class CalanFpga():
         self.fpga.write_int('snap_trig', 0)
         
         # activate snapshots to get data
-        for snapshot in self.settings.snapshots:
+        for snapshot in self.get_snapshot_names():
             self.fpga.write_int(snapshot + '_ctrl', 0)
             self.fpga.write_int(snapshot + '_ctrl', 1)
         
@@ -172,7 +201,7 @@ class CalanFpga():
         
         # get data without activating a new recording (arm=False)
         snap_data_arr = []
-        for snapshot in self.settings.snapshots:
+        for snapshot in self.get_snapshot_names():
             snap_data = np.fromstring(self.fpga.snapshot_get(snapshot, arm=False)['data'], dtype='>i1')
             snap_data_arr.append(snap_data)
         

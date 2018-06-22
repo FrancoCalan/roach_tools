@@ -7,4 +7,6 @@ from roach_tools.kestfilt_animator import KestfiltAnimator
 
 fpga = CalanFpga()
 fpga.initialize()
+if fpga.settings.cal_adcs:
+    fpga.calibrate_adcs()
 KestfiltAnimator(fpga).start_animation()

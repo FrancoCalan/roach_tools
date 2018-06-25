@@ -41,7 +41,7 @@ class StabilityPlotter(Plotter):
             self.fpga.get_bram_list2d_data(self.settings.inst_chnl_info)
 
         chnl0_data = np.array(chnl0_data_real) + 1j*np.array(chnl0_data_imag)
-        chnl1_data = np.array(chnl1_data_real) + 1j*np.array(chnl0_data_imag)
+        chnl1_data = np.array(chnl1_data_real) + 1j*np.array(chnl1_data_imag)
 
         stability_data = chnl1_data / chnl0_data
 

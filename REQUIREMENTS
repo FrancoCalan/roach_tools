@@ -6,4 +6,5 @@ numexpr==2.4.3
 pyserial==3.4
 git+https://github.com/ska-sa/PySPEAD.git
 git+https://github.com/ska-sa/corr.git
+git+https://github.com/jack-h/adc_tests.git@disentangle#version_subpkg\&subdirectory=adc5g
 git+https://github.com/nrao/ValonSynth.git

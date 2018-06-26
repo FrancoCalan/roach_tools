@@ -11,6 +11,7 @@ class AdcHistogram(SnapshotAnimator):
     """
     def __init__(self, calanfpga):
         Animator.__init__(self, calanfpga)
+        self.snapshots = self.fpga.get_snapshot_names()
         self.nplots = 2 * len(self.settings.snapshots)
         mpl_axes = self.create_axes()
         
@@ -20,7 +21,7 @@ class AdcHistogram(SnapshotAnimator):
 
         # set axes for histograms
         for i, ax in enumerate(mpl_axes[self.nplots/2:]):
-            ax.set_title(self.settings.snapshots[i] + "hist")
+            ax.set_title(self.snapshots[i] + "hist")
             ax.set_xlim((-2**7, 2**7-1)) # Hardcoded 8-bit ADC
             ax.set_ylim((0, 0.035))
             ax.set_xlabel('Code')

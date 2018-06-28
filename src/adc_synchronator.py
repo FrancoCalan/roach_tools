@@ -3,6 +3,7 @@ import numpy as np
 from experiment import Experiment
 from snapshot_animator import SnapshotAnimator
 from generator import Generator
+from dummy_generator import DummyGenerator
 from dummy_generator import gen_time_arr
 
 class AdcSynchronator(Experiment):
@@ -12,8 +13,9 @@ class AdcSynchronator(Experiment):
     def __init__(self, calanfpga):
         Experiment.__init__(self, calanfpga)
         self.snapshot_animator = SnapshotAnimator(self.fpga)
+        self.Ts = 1.0/(2*self.settings.bw)
         if self.settings.simulated:
-            raise RuntimeError("Simulated version not yet implemented")
+            self.source = DummyGenerator(self.Ts)
         else:
             self.source = Generator(self.settings.source_ip, self.settings.source_port)
         self.synced_counter = 0
@@ -51,7 +53,7 @@ class AdcSynchronator(Experiment):
                     break
             else:
                 self.synced_counter = 0
-                #self.delay_adcs(sync_delay)
+                self.delay_adcs(sync_delay)
         
         print "ADCs successfully synchronized"
         self.source.turn_output_off()
@@ -61,8 +63,7 @@ class AdcSynchronator(Experiment):
         Estimates a phasor associated with frequency freq from data.
         It's done by computing the single channel DFT at frequency freq.
         """
-        Ts = 1.0/(2*self.settings.bw)
-        time_arr = gen_time_arr(Ts, len(data))
+        time_arr = gen_time_arr(self.Ts, len(data))
         exp_sig = np.exp(-1j*2*np.pi*freq * time_arr)
         return  np.dot(data, exp_sig)
 

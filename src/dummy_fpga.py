@@ -23,9 +23,13 @@ class DummyFpga():
         self.snapshots = []
         try:
             for snap_data in self.settings.snapshots:
-                snapshots += snap_data['names']
+                self.snapshots += snap_data['names']
         except:
             pass
+        # add snapshots register
+        for snapshot in self.snapshots:
+            self.regs.append({'name' : snapshot+'_ctrl', 'val' : 0})
+            print self.regs
 
         # add spectrometers brams
         try:
@@ -109,23 +113,30 @@ class DummyFpga():
         except:
             raise Exception('No register found with name ' + reg_name)
     
-    def get_generator_signal(self, nsamples):
+    def get_generator_signal(self, nsamples, delay=None):
         """
         Get the generator signal, clipped to simulate ADC saturation, and casted to the
         corresponding type to simulate ADC bitwidth.
         """
-        signal = np.clip(self.generator.get_signal(nsamples), -128, 127)
+        if delay is None:
+            signal = np.clip(self.generator.get_signal(nsamples), -128, 127)
+        else:
+            signal = np.clip(self.generator.get_signal(nsamples, phase=0), -128, 127)
+            signal = np.roll(signal, delay)
         return signal.astype('>i1')
 
-    def snapshot_get(self, snapshot, man_trig=True, man_valid=True):
+    def snapshot_get(self, snapshot, man_trig=True, man_valid=True, arm=True):
         """
         Returns snapshot signal given by generator.
         """
-        if snapshot == "adcsnap0":
-            snap_data = self.get_generator_signal(self.settings.snap_samples, phase=0) # hardcode phase to test adc_sync
-        elif snapshot == "adcsnap1":
-            snap_data = self.get_generator_signal(self.settings.snap_samples, phase=30) # hardcode phase to test adc_sync
-        elif snapshot in self.snapshot:
+        if arm:
+            if snapshot == "adcsnap0":
+                snap_data = self.get_generator_signal(self.settings.snap_samples, delay=0) # hardcode delay to test adc_sync
+            elif snapshot == "adcsnap1":
+                snap_data = self.get_generator_signal(self.settings.snap_samples, delay=30) # hardcode delay to test adc_sync
+            else:
+                raise Exception("Snapshot not defined in config file.")
+        elif snapshot in self.snapshots:
             snap_data = self.get_generator_signal(self.settings.snap_samples)
         else:
             raise Exception("Snapshot not defined in config file.")

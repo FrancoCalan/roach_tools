@@ -51,7 +51,7 @@ class AdcSynchronator(Experiment):
                     break
             else:
                 self.synced_counter = 0
-                self.delay_adcs(sync_delay)
+                #self.delay_adcs(sync_delay)
         
         print "ADCs successfully synchronized"
         self.source.turn_output_off()
@@ -89,7 +89,7 @@ class AdcSynchronator(Experiment):
 
     def delay_adcs(self, delay):
         """
-        Delay one of the adcs in order to put synchronize them. Assumes
+        Delay one of the adcs in order to synchronize them. Assumes
         that a postive delay means a delay in adc0, and a negative delay 
         means a delay in adc1.
         """

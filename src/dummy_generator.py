@@ -53,7 +53,7 @@ class DummyGenerator():
         pass
         print "Connection with generator closed"
 
-    def get_signal(self, nsamples):
+    def get_signal(self, nsamples, phase=None):
         """
         Returns the corresponding signal array.
         """
@@ -65,7 +65,8 @@ class DummyGenerator():
         else:
             corrected_power = 100 * 10**(self.power/10.0)
             time_arr = gen_time_arr(self.Ts, nsamples)
-            phase = 2*np.pi*np.random.random()
+            if phase is None:
+                phase = 2*np.pi*np.random.random()
             sin_signal = corrected_power * np.sin(2*np.pi*self.freq*time_arr + phase)
             return  sin_signal + random_signal
 

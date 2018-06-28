@@ -20,10 +20,12 @@ class DummyFpga():
             self.regs.append({'name' : reg, 'val' : 0})
 
         # add snapshots
+        self.snapshots = []
         try:
-            self.snapshots = self.settings.snapshots
+            for snap_data in self.settings.snapshots:
+                snapshots += snap_data['names']
         except:
-            self.snapshots = []
+            pass
 
         # add spectrometers brams
         try:
@@ -119,11 +121,16 @@ class DummyFpga():
         """
         Returns snapshot signal given by generator.
         """
-        if snapshot in self.snapshots:
+        if snapshot == "adcsnap0":
+            snap_data = self.get_generator_signal(self.settings.snap_samples, phase=0) # hardcode phase to test adc_sync
+        elif snapshot == "adcsnap1":
+            snap_data = self.get_generator_signal(self.settings.snap_samples, phase=30) # hardcode phase to test adc_sync
+        elif snapshot in self.snapshot:
             snap_data = self.get_generator_signal(self.settings.snap_samples)
-            return {'data' : snap_data}
         else:
             raise Exception("Snapshot not defined in config file.")
+        
+        return {'data' : snap_data}
 
     def read(self, bram, nbytes, offset=0):
         """

@@ -12,8 +12,8 @@ parser.add_argument("-s", "--synth", type=str, dest="synth",
                    default = "B", help="Chosen synthesizer.")
 parser.add_argument("-f", "--freq", type=int, dest="freq",
                    default=None, help="Set frequency.")
-parser.add_argument("-l", "--lev", type=int, dest="level",
-                   default=None, help="Set power level.")
+parser.add_argument("-l", "--lev", type=int, dest="level", choices=[-4, -1, 2, 5],
+                   default=None, help="Set power level. Valid levels: -4: 0dBm, -1: 3dBm, 2: 6dBm , 5: 8dBm")
 parser.add_argument("-i", "--int_ref", dest="int_ref", action="store_true",
                    help="set internal reference")
 parser.add_argument("-e", "--ext_ref", dest="ext_ref", action="store_true",

@@ -18,12 +18,14 @@ class KestfiltAnimator(SpectraAnimator):
         SpectraAnimator.create_window(self)
         
         # filter_on button
-        self.filter_on_button = Tk.Button(self.button_frame, text='RFI Filter', command=self.toggle_filter)
+        self.filter_on_button = Tk.Button(self.button_frame, command=self.toggle_filter)
         self.filter_on_button.pack(side=Tk.LEFT)
         if self.fpga.read_reg('filter_on') == 0:
             self.filter_on_button.config(relief=Tk.RAISED)
+            self.filter_on_button.config(text="RFI Filter Off")
         else:
             self.filter_on_button.config(relief=Tk.SUNKEN)
+            self.filter_on_button.config(text="RFI Filter On")
 
         # plot conv button
         self.plot_conv_button = Tk.Button(self.button_frame, text='Plot conv', command=self.plot_convergence)
@@ -57,10 +59,12 @@ class KestfiltAnimator(SpectraAnimator):
         """
         if self.fpga.read_reg('filter_on') == 1:
             self.filter_on_button.config(relief=Tk.RAISED)
+            self.filter_on_button.config(text="RFI Filter Off")
             self.fpga.set_reg('filter_on', 0)
             print('Filter is off')
         else:
             self.filter_on_button.config(relief=Tk.SUNKEN)
+            self.filter_on_button.config(text="RFI Filter On")
             self.fpga.set_reg('filter_on', 1)
             print('Filter is on')
 

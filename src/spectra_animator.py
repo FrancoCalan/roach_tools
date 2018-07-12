@@ -57,7 +57,7 @@ class SpectraAnimator(Animator):
         self.reset_button.pack(side=Tk.LEFT)
 
         # max hold button
-        self.maxhold_button = Tk.Button(self.button_frame, text='Max Hold', command=self.toggle_maxhold)
+        self.maxhold_button = Tk.Button(self.button_frame, text='Max Hold Off', command=self.toggle_maxhold)
         self.maxhold_button.pack(side=Tk.LEFT)
 
         # acc_len entry
@@ -119,9 +119,11 @@ class SpectraAnimator(Animator):
         if self.maxhold_on:
             self.maxhold_on = False
             self.maxhold_button.config(relief=Tk.RAISED)
+            self.maxhold_button.config(text="Max Hold Off")
             self.maxhold_data = self.nplots * [-np.inf*np.ones(self.nchannels)]
             print "Max Hold off"
         else:
             self.maxhold_on = True
             self.maxhold_button.config(relief=Tk.SUNKEN)
+            self.maxhold_button.config(text="Max Hold On")
             print "Max Hold on"

@@ -29,7 +29,6 @@ class DummyFpga():
         # add snapshots register
         for snapshot in self.snapshots:
             self.regs.append({'name' : snapshot+'_ctrl', 'val' : 0})
-            print self.regs
 
         # add spectrometers brams
         try:
@@ -129,7 +128,7 @@ class DummyFpga():
         """
         Returns snapshot signal given by generator.
         """
-        if arm:
+        if not arm:
             if snapshot == "adcsnap0":
                 snap_data = self.get_generator_signal(self.settings.snap_samples, delay=0) # hardcode delay to test adc_sync
             elif snapshot == "adcsnap1":

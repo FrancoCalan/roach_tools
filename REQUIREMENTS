@@ -1,9 +1,10 @@
 construct==2.5.3
 katcp==0.5.5
-numpy==1.13.3
-matplotlib==2.0.2
-numexpr==2.4.3
-pyserial==3.4
+h5py
+numpy
+matplotlib
+numexpr
+pyserial
 git+https://github.com/ska-sa/PySPEAD.git
 git+https://github.com/ska-sa/corr.git
 git+https://github.com/jack-h/adc_tests.git@disentangle#version_subpkg\&subdirectory=adc5g

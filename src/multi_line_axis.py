@@ -10,6 +10,7 @@ class MultiLineAxis(CalanAxis):
         self.legends = legends
         for legend in self.legends:
             self.lines.append(self.ax.plot([], [], lw=2, label=legend)[0])
+        self.ax.legend()
 
     def plot(self, ydata_arr):
         """

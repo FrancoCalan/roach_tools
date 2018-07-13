@@ -3,7 +3,7 @@ from datetime import datetime
 import numpy as np
 import matplotlib.pyplot as plt
 import Tkinter as Tk
-from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg, NavigationToolbar2TkAgg
+from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg, NavigationToolbar2Tk
 from experiment import Experiment
 
 class Plotter(Experiment):
@@ -43,12 +43,12 @@ class Plotter(Experiment):
         """
         # plots
         self.canvas = FigureCanvasTkAgg(self.fig, master=self.root)
-        self.canvas.show()
+        self.canvas.draw()
         self.canvas.get_tk_widget().pack(side=Tk.TOP, fill=Tk.BOTH, expand=1)
         
         if create_gui:
             # navigation bar
-            toolbar = NavigationToolbar2TkAgg(self.canvas, self.root)
+            toolbar = NavigationToolbar2Tk(self.canvas, self.root)
             toolbar.update()
             self.canvas._tkcanvas.pack(side=Tk.TOP, fill=Tk.BOTH, expand=1)        
             

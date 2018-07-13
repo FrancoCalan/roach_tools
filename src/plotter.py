@@ -1,4 +1,5 @@
 import os, sys, importlib, json
+from datetime import datetime
 import numpy as np
 import matplotlib.pyplot as plt
 import Tkinter as Tk
@@ -62,11 +63,20 @@ class Plotter(Experiment):
             # save entry
             save_frame = Tk.Frame(master=self.root)
             save_frame.pack(side = Tk.TOP, anchor="w")
-            save_label = Tk.Label(save_frame, text="Save filename:")
+            save_label = Tk.Label(save_frame, text="Save/Print filename:")
             save_label.pack(side=Tk.LEFT)
             self.save_entry = Tk.Entry(save_frame)
             self.save_entry.insert(Tk.END, self.config_file)
             self.save_entry.pack(side=Tk.LEFT)
+
+            # save datetime checkbox
+            self.datetime_check = Tk.IntVar()
+            self.save_datetime_checkbox = Tk.Checkbutton(save_frame, text="add datetime", variable=self.datetime_check)
+            self.save_datetime_checkbox.pack(side=Tk.LEFT)
+
+            # print button
+            self.print_button = Tk.Button(self.button_frame, text='Print', command=self.save_fig)
+            self.print_button.pack(side=Tk.LEFT)
 
     def plot_axes(self):
         """
@@ -82,12 +92,25 @@ class Plotter(Experiment):
         """
         try:
             json_data = self.data2dict()
-            with open(self.save_entry.get()+'.json', 'w') as jsonfile:
+            json_filename = self.save_entry.get()
+            if self.datetime_check.get():
+                json_filename += ' ' + datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+            with open(json_filename+'.json', 'w') as jsonfile:
                 json.dump(json_data, jsonfile,  indent=4)
             print "Data saved."
 
         except AttributeError as e:
             print "This plot doesn't have save option."
+
+    def save_fig(self):
+        """
+        Save current plot as a .pdf figure.
+        """
+        fig_filename = self.save_entry.get()
+        if self.datetime_check.get():
+            fig_filename += ' ' + datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+        self.fig.savefig(fig_filename + '.pdf')
+        print "Plot saved."
 
     def get_nchannels(self):
         """

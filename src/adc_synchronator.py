@@ -17,7 +17,12 @@ class AdcSynchronator(Experiment):
         if self.settings.simulated:
             self.source = DummyGenerator(self.Ts)
         else:
-            self.source = Generator(self.settings.source_ip, self.settings.source_port)
+            try:
+                self.source = Generator(self.settings.source_ip, self.settings.source_port)
+            except:
+                print "WARNING: Unable to connect to source generator. Using dummy generator instead."
+                self.source = DummyGenerator(self.Ts)
+
         self.synced_counter = 0
         self.required_synced_count = 5 # number of simultaneous iterations with ADCs in sync
                                        # required to consider the ADC synchronized

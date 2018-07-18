@@ -13,8 +13,10 @@ reset_regs = ['cnt_rst', 'filter_on']
 bw         = 1000.0 # [MHz]
 
 # Snapshot settings
-snapshots    = ['adcsnap0', 'adcsnap1']
+snapshots    = [{'zdok' : 0, 'names' : ['adcsnap0']}, 
+                {'zdok' : 1, 'names' : ['adcsnap1']}]
 snap_samples = 256
+cal_adcs     = False
 
 # Spectrometer Settings
 plot_titles = ['Primary Signal', 'Reference Signal', 'Filter Output']

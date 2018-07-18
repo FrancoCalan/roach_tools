@@ -7,7 +7,7 @@ class Generator():
     def __init__(self, ip, port):
         self.ip = ip
         self.port = port
-        print 'Connecting to generator %s on port %i... ' %(self.ip, self.port),
+        print 'Connecting to generator %s on port %i... ' %(self.ip, self.port)
         self.connection = telnetlib.Telnet(self.ip, self.port)
         print "ok"
         

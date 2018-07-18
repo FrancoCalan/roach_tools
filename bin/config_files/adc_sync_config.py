@@ -12,9 +12,10 @@ reset_regs = []
 bw         = 1000.0 # [MHz]
 
 # Snapshot settings
-snapshots    = ['adcsnap0', 'adcsnap1']
+snapshots    = [{'zdok' : 0, 'names' : ['adcsnap0']}, 
+                {'zdok' : 1, 'names' : ['adcsnap1']}]
 snap_samples = 400
-sync_snaps   = True
+cal_adcs     = False
 
 # Adc synchronator settings
 source_ip    = '0.0.0.0'

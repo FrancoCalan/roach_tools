@@ -17,6 +17,7 @@ class Plotter(Experiment):
         self.plot_map = {1:'11', 2:'12', 3:'22', 4:'22'}
         self.config_file = os.path.splitext(sys.argv[1])[0]
         self.axes = []
+        self.data_dict = {}
 
     def create_axes(self):
         """
@@ -90,17 +91,25 @@ class Plotter(Experiment):
         """
         Save plot data if data2dict is implemented.
         """
-        try:
-            json_data = self.data2dict()
-            json_filename = self.save_entry.get()
-            if self.datetime_check.get():
-                json_filename += ' ' + datetime.now().strftime('%Y-%m-%d %H:%M:%S')
-            with open(json_filename+'.json', 'w') as jsonfile:
-                json.dump(json_data, jsonfile,  indent=4)
-            print "Data saved."
+        #try:
+        self.data2dict()
+        json_filename = self.save_entry.get()
+        if self.datetime_check.get():
+            json_filename += ' ' + datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+        with open(json_filename+'.json', 'w') as jsonfile:
+            json.dump(self.data_dict, jsonfile,  indent=4)
+        print "Data saved."
 
-        except AttributeError as e:
-            print "This plot doesn't have save option."
+        #except AttributeError as e:
+        #    print "This plot doesn't have save option."
+
+    def get_ydata_to_dict(self):
+        """
+        Get the data from axes, and save the to the data dict. 
+        """
+        for axis in self.axes:
+            axis_data_dict = axis.gen_ydata_dict()
+            self.data_dict.update(axis_data_dict)
 
     def save_fig(self):
         """

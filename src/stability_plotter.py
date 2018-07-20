@@ -14,9 +14,7 @@ class StabilityPlotter(Plotter):
         self.ylims = [(-1, 10), (-200, 200)]
         self.ylabels = ['Magnitude ratio', 'Angle difference [deg]']
 
-        # get current channel frequency for title
-        chnl_freq = self.get_freq_from_channel(self.fpga.read_reg('channel'))
-        self.titles = ['Stability Test\nChannel at freq: ' + str(chnl_freq), '']
+        self.titles = ['', '']
         self.nplots = len(self.titles)
         mpl_axes = self.create_axes()
 
@@ -51,12 +49,6 @@ class StabilityPlotter(Plotter):
         """
         Creates dict with stability data for file saving.
         """
-        data_dict = {}
-
-        data_arr = self.get_data()
-        for axis, data in zip(self.axes, data_arr):
-            data_dict[axis.ax.get_title() + ' ' + axis.ax.get_ylabel()] = data.tolist()
-
-        data_dict[axis.ax.get_xlabel()] = self.xdata.tolist()
-
-        return data_dict
+        self.get_ydata_to_dict()
+        self.data_dict.update(self.axes[0].gen_xdata_dict())
+        self.data_dict['channel'] = self.fpga.read_reg('channel')

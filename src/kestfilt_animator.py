@@ -48,10 +48,9 @@ class KestfiltAnimator(SpectraAnimator):
         """
         Creates dict with kestfilt data for file saving.
         """
-        data_dict = SpectraAnimator.data2dict(self)
-        data_dict['filter_gain'] = self.fpga.read_reg('filter_gain')
-        data_dict['filter_acc'] = self.fpga.read_reg('filter_acc')
-        return data_dict
+        SpectraAnimator.data2dict(self)
+        self.data_dict['filter_gain'] = self.fpga.read_reg('filter_gain')
+        self.data_dict['filter_acc'] = self.fpga.read_reg('filter_acc')
 
     def toggle_filter(self):
         """

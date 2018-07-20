@@ -18,11 +18,7 @@ class ConvergencePlotter(Plotter):
         n_specs = 2**self.settings.conv_info_chnl['addr_width']
         self.xdata = self.get_spec_time_arr(n_specs)
 
-        # get current channel frequency for title
-        chnl_freq = self.get_freq_from_channel(self.fpga.read_reg('channel'))
-        title = 'Power v/s time\nChannel at freq: ' + str(chnl_freq)
-
-        mpl_axis.set_title(title)
+        mpl_axis.set_title('')
         mpl_axis.set_xlim(0, self.xdata[-1])
         mpl_axis.set_ylim((-100, 10))
         mpl_axis.set_xlabel('Time [$\mu$s]')
@@ -54,13 +50,8 @@ class ConvergencePlotter(Plotter):
         """
         Creates dict with convergence data for file saving.
         """
-        data_dict = {}
-
-        data_arr = self.get_data()
-        for i, data in enumerate(data_arr[0]):
-            data_dict[self.legends[i] + ' ' + self.axes[0].ax.get_ylabel()] = data.tolist()
-        
-        data_dict[self.axes[0].ax.get_xlabel()] = self.xdata.tolist()
-        data_dict['filter_gain'] = self.fpga.read_reg('filter_gain')
-        data_dict['filter_acc'] = self.fpga.read_reg('filter_acc')
-        return data_dict
+        self.get_ydata_to_dict()
+        self.data_dict.update(self.axes[0].gen_xdata_dict())
+        self.data_dict['filter_gain'] = self.fpga.read_reg('filter_gain')
+        self.data_dict['filter_acc'] = self.fpga.read_reg('filter_acc')
+        self.data_dict['channel'] = self.fpga.read_reg('channel')

@@ -18,3 +18,15 @@ class MultiLineAxis(CalanAxis):
         """
         for line, ydata in zip(self.lines, ydata_arr):
             line.set_data(self.xdata, ydata)
+
+    def gen_ydata_dict(self):
+        """
+        Generate a dictionary with the plotted data in the axis. The
+        key assigned to the data is 'axis label' + 'line legend'
+        """
+        axis_dict = {}
+        for line, legend in zip(self.lines, self.legends):
+            key = self.format_key(self.ax.get_title() + ' ' + legend)
+            axis_dict[key] = line.get_ydata().tolist()
+
+        return axis_dict

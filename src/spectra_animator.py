@@ -65,18 +65,11 @@ class SpectraAnimator(Animator):
 
     def data2dict(self):
         """
-        Creates dict with spectrometer data for file saving.
+        Fills the data_dict dictuinary with spectrometer data for file saving.
         """
-        data_dict = {}
-        
-        data_arr = self.get_data()
-        for axis, data in zip(self.axes, data_arr):
-            data_dict[axis.ax.get_title() + ' ' + axis.ax.get_ylabel()] = data.tolist()
-
-        data_dict['acc_len'] = self.fpga.read_reg('acc_len')
-        data_dict[axis.ax.get_xlabel()] = self.xdata.tolist()
-
-        return data_dict
+        self.get_ydata_to_dict()
+        self.data_dict.update(self.axes[0].gen_xdata_dict())
+        self.data_dict['acc_len'] = self.fpga.read_reg('acc_len')
 
     def add_reg_entry(self, reg):
         """

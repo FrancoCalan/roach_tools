@@ -91,17 +91,16 @@ class Plotter(Experiment):
         """
         Save plot data if data2dict is implemented.
         """
-        #try:
-        self.data2dict()
-        json_filename = self.save_entry.get()
-        if self.datetime_check.get():
-            json_filename += ' ' + datetime.now().strftime('%Y-%m-%d %H:%M:%S')
-        with open(json_filename+'.json', 'w') as jsonfile:
-            json.dump(self.data_dict, jsonfile,  indent=4)
-        print "Data saved."
-
-        #except AttributeError as e:
-        #    print "This plot doesn't have save option."
+        try:
+            self.data2dict()
+            json_filename = self.save_entry.get()
+            if self.datetime_check.get():
+                json_filename += ' ' + datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+            with open(json_filename+'.json', 'w') as jsonfile:
+                json.dump(self.data_dict, jsonfile,  indent=4)
+            print "Data saved."
+        except AttributeError as e:
+            print "This plot doesn't have save option."
 
     def get_ydata_to_dict(self):
         """

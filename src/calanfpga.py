@@ -307,7 +307,51 @@ class CalanFpga():
             interleaved_data_arr.append(interleaved_data)
 
         return interleaved_data_arr
-            
+
+    def write_bram_data(self, bram_info, data):
+        """
+        Write and array of data into the FPGA using data information from bram_info.
+        :param bram_info: dictionary with the info from the bram. The dictionary format is the
+            same as for get_bram_data().
+        :param data: array to write on the bram.
+        """
+        depth = 2**bram_info['addr_width']
+        dtype = bram_info['data_type'] 
+        bram  = bram_info['bram_name']
+        
+        ndata = len(data)
+        raw_data = np.struct.pack('>'+str(ndata)+dtype, *data)
+        fpga.write(bram, raw_data)
+
+    def write_bram_list_data(self, bram_info, data_list):
+        """
+        Similar to write_bram_data but it receives a list of data arrays, and write it into 
+        a list of brams. In this case 'bram_name' is 'bram_list', a list of bram names.
+        :param bram_info: dictionary with the info of the brams. The dictionary format is the
+            same as for get_bram_list_data().
+        :param data_list: list of data array to write on the brams.
+        """
+        for bram, data in zip(bram_info['bram_list'], data_list):
+            # make a new bram info only with current bram
+            current_bram_info = bram_info
+            current_bram_info['bram_name'] = bram
+            self.write_bram_data(current_bram_info, data)
+
+    def write_bram_list2d_data(self, bram_info, data_list2d):
+        """
+        Similar to write_bram_list2d_data but it receives a list of list of data arrays, 
+        and write them into a list of list of brams. In this case 'bram_list' is 'bram_list2d', 
+        a 2d list of bram names.
+        :param bram_info: dictionary with the info of the brams. The dictionary format is the
+            same as for get_bram_list2d_data().
+        :param data_list2d: list of list data array to write on the brams.
+        """
+        for bram_list, data_list in zip(bram_info['bram_list2d'], data_list2d):
+            # make a new bram info only with current bram_list
+            current_bram_info = bram_info
+            current_bram_info['bram_list'] = bram_list
+            self.write_bram_list_data(current_bram_info)
+
 type2bits = {'b' :  8, 'B' :  8,
              'h' : 16, 'H' : 16,
              'i' : 32, 'I' : 32,

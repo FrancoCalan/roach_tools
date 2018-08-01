@@ -2,10 +2,11 @@ class CalanAxis():
     """
     Generic axis class for plotting.
     """
-    def __init__(self, ax, xdata):
+    def __init__(self, ax, xdata, title):
         self.ax = ax
         self.ax.grid()
         self.xdata = xdata
+        self.ax.set_title(title)
 
     def gen_xdata_dict(self):
         """

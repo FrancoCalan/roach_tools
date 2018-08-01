@@ -1,5 +1,5 @@
 from animator import Animator
-from single_line_axis import SingleLineAxis
+from snapshot_axis import SnapshotAxis
 
 class SnapshotAnimator(Animator):
     """
@@ -11,20 +11,9 @@ class SnapshotAnimator(Animator):
         self.nplots = len(self.settings.snapshots)
         mpl_axes = self.create_axes()
         
-        self.set_axes_parameters(mpl_axes)
-
-    def set_axes_parameters(self, mpl_axes):
-        """
-        Set axes paramters for snapshot plots.
-        """
-        xdata = range(self.settings.snap_samples)
         for i, ax in enumerate(mpl_axes):
-            ax.set_title(self.snapshots[i])
-            ax.set_xlim(0, self.settings.snap_samples)
-            ax.set_ylim((-140, 140)) # Hardcoded 8-bit ADC
-            ax.set_xlabel('Sample')
-            ax.set_ylabel('Amplitude [a.u.]')
-            self.axes.append(SingleLineAxis(ax, xdata))
+            self.axes.append(SnapshotAxis(ax, self.settings.snap_samples, 
+                self.snapshots[i]))
         
     def get_data(self):
         """

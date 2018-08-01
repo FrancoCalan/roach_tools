@@ -3,7 +3,7 @@ import numexpr
 import numpy as np
 import Tkinter as Tk
 from animator import Animator
-from single_line_axis import SingleLineAxis
+from spectrum_axis import SpectrumAxis
 
 class SpectraAnimator(Animator):
     """
@@ -14,16 +14,10 @@ class SpectraAnimator(Animator):
         self.nplots = len(self.settings.plot_titles)
         mpl_axes = self.create_axes()
         
-        self.nchannels = self.get_nchannels()
-        self.xdata = np.linspace(0, self.settings.bw, self.nchannels, endpoint=False)
-
+        self.nchannels = self.get_nchannels(self.settings.spec_info)
         for i, ax in enumerate(mpl_axes):
-            ax.set_title(self.settings.plot_titles[i])
-            ax.set_xlim(0, self.settings.bw)
-            ax.set_ylim((-100, 10))
-            ax.set_xlabel('Frequency [MHz]')
-            ax.set_ylabel('Power [dBFS]')
-            self.axes.append(SingleLineAxis(ax, self.xdata))
+            self.axes.append(SpectrumAxis(ax, self.nchannels,
+                self.settings.bw, self.settings.plot_titles[i]))
 
         self.entries = []
         

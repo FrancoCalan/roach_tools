@@ -7,4 +7,4 @@ from roach_tools.dss_calibrator import DssCalibrator
 
 fpga = CalanFpga()
 fpga.initialize()
-DssCalibrator(fpga).run_srr_computation()
+DssCalibrator(fpga).run_consts_computation()

@@ -308,6 +308,50 @@ class CalanFpga():
 
         return interleaved_data_arr
 
+    def get_bram_sync_data(self, bram_info, read_funct, req_reg, readok_reg):
+        """
+        Get bram data but issuing a request to FPGA and waiting for the data
+        to be ready to read. Useful when need to get spectral data with an
+        specific input condition controlled by a script.
+        :param bram_info: dictionary with the info of the brams. The bram format
+            must be valid for the read_funct.
+        :param read_funct: read function to read the data from brams (ex. get_bram_data,
+            get_bram_list_data)
+        :param req_reg: register used for data request.
+            is set 0->1 to request new data.
+            is set 1->0 to inform that data read finished.
+        :param readok_reg: register is set by the FPGA when the data is ready to read.
+            When 0 data not ready to read.
+            When 1 data is ready to read.
+            This register should be reset by the FPGA when req_reg 1->0.
+        """
+        if self.read_reg(req_reg) != 0:
+            print "WARNING: attempt to sync read brams when request reg is not zero."
+            print "Sync read failed."
+            return
+
+        # request new bram data
+        print "WWW"
+        print "readok: " + str(self.read_reg(readok_reg))
+        self.set_reg(req_reg, 1)
+        print "readok: " + str(self.read_reg(readok_reg))
+
+        # wait for read ok register to report valid data to read
+        while True:
+            if self.read_reg(readok_reg) == 1:
+                break
+            print "AAA"
+
+        print "XXX"
+        # read data
+        read_data = read_funct(bram_info)
+
+        # inform read data finished
+        self.set_reg(req_reg, 0)
+        print "readok: " + str(self.read_reg(readok_reg))
+
+        return read_data
+
     def write_bram_data(self, bram_info, data):
         """
         Write and array of data into the FPGA using data information from bram_info.
@@ -320,8 +364,8 @@ class CalanFpga():
         bram  = bram_info['bram_name']
         
         ndata = len(data)
-        raw_data = np.struct.pack('>'+str(ndata)+dtype, *data)
-        fpga.write(bram, raw_data)
+        raw_data = struct.pack('>'+str(ndata)+dtype, *data)
+        self.fpga.write(bram, raw_data)
 
     def write_bram_list_data(self, bram_info, data_list):
         """

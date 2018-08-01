@@ -13,7 +13,7 @@ class Plotter(Experiment):
     def __init__(self, calanfpga):
         Experiment.__init__(self, calanfpga)
         self.root = Tk.Tk()
-        self.fig = plt.Figure()
+        self.fig = plt.figure()
         self.plot_map = {1:'11', 2:'12', 3:'22', 4:'22'}
         self.config_file = os.path.splitext(sys.argv[1])[0]
         self.axes = []
@@ -33,7 +33,6 @@ class Plotter(Experiment):
         """
         Show plot window.
         """
-        self.fig.set_tight_layout(True)
         self.create_window()
         self.plot_axes() 
         Tk.mainloop()
@@ -42,17 +41,20 @@ class Plotter(Experiment):
         """
         Create a Tkinter window with all of the components (plots, toolbar, widgets).
         """
+        self.fig.set_tight_layout(True)
         # plots
         self.canvas = FigureCanvasTkAgg(self.fig, master=self.root)
-        self.canvas.draw()
         self.canvas.get_tk_widget().pack(side=Tk.TOP, fill=Tk.BOTH, expand=1)
+        self.root.attributes('-zoomed', True)
+
+        # navigation bar
+        toolbar = NavigationToolbar2Tk(self.canvas, self.root)
+        toolbar.update()
+        self.canvas._tkcanvas.pack(side=Tk.TOP, fill=Tk.BOTH, expand=1)        
         
+        self.canvas.draw()
+
         if create_gui:
-            # navigation bar
-            toolbar = NavigationToolbar2Tk(self.canvas, self.root)
-            toolbar.update()
-            self.canvas._tkcanvas.pack(side=Tk.TOP, fill=Tk.BOTH, expand=1)        
-            
             # button frame
             self.button_frame = Tk.Frame(master=self.root)
             self.button_frame.pack(side=Tk.TOP, anchor="w")
@@ -120,25 +122,11 @@ class Plotter(Experiment):
         self.fig.savefig(fig_filename + '.pdf')
         print "Plot saved."
 
-    def get_nchannels(self):
-        """
-        Compute the number of channels of an spetrum given the spec_info
-        """
-        n_brams = len(self.settings.spec_info['bram_list2d'][0])
-        return n_brams * 2**self.settings.spec_info['addr_width']
-
     def get_freq_from_channel(self, channel):
         """
         Compute the frequency of channel using the bandwidth information.
         """
         return self.settings.bw * channel / self.get_nchannels()
-
-    def linear_to_dBFS(self, data):
-        """
-        Turn data in linear scale to dBFS scale. It uses the dBFS_const value
-        from the configuration file to adjust the zero in the dBFS scale.
-        """
-        return 10*np.log10(data+1) - self.settings.dBFS_const
 
     def get_spec_time_arr(self, n_specs):
         """

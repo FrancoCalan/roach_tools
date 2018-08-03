@@ -12,7 +12,6 @@ class Plotter(Experiment):
     """
     def __init__(self, calanfpga):
         Experiment.__init__(self, calanfpga)
-        self.root = Tk.Tk()
         self.fig = plt.figure()
         self.plot_map = {1:'11', 2:'12', 3:'22', 4:'22'}
         self.config_file = os.path.splitext(sys.argv[1])[0]
@@ -41,20 +40,19 @@ class Plotter(Experiment):
         """
         Create a Tkinter window with all of the components (plots, toolbar, widgets).
         """
-        self.fig.set_tight_layout(True)
-        # plots
-        self.canvas = FigureCanvasTkAgg(self.fig, master=self.root)
-        self.canvas.get_tk_widget().pack(side=Tk.TOP, fill=Tk.BOTH, expand=1)
-        self.root.attributes('-zoomed', True)
-
-        # navigation bar
-        toolbar = NavigationToolbar2Tk(self.canvas, self.root)
-        toolbar.update()
-        self.canvas._tkcanvas.pack(side=Tk.TOP, fill=Tk.BOTH, expand=1)        
-        
-        self.canvas.draw()
-
         if create_gui:
+            # tkinter window
+            self.root = Tk.Tk()
+            
+            # plot cnavas
+            self.canvas = FigureCanvasTkAgg(self.fig, master=self.root)
+            self.canvas.get_tk_widget().pack(side=Tk.TOP, fill=Tk.BOTH, expand=1)
+
+            # navigation bar
+            toolbar = NavigationToolbar2Tk(self.canvas, self.root)
+            toolbar.update()
+            self.canvas._tkcanvas.pack(side=Tk.TOP, fill=Tk.BOTH, expand=1)        
+
             # button frame
             self.button_frame = Tk.Frame(master=self.root)
             self.button_frame.pack(side=Tk.TOP, anchor="w")
@@ -80,6 +78,10 @@ class Plotter(Experiment):
             # print button
             self.print_button = Tk.Button(self.button_frame, text='Print', command=self.save_fig)
             self.print_button.pack(side=Tk.LEFT)
+
+        else:
+            self.fig.set_tight_layout(True)
+            self.fig.show()
 
     def plot_axes(self):
         """

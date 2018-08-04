@@ -28,7 +28,7 @@ class DssCalibrator(Experiment):
             self.run_consts_computation()
         run_srr_computation(self)
 
-    def compute_sb_ratio(self, center_freq=0, tone_in_usb=True):
+    def compute_sb_ratios(self, center_freq=0, tone_in_usb=True):
         """
         Sweep a tone through the receiver bandwidth and computes the
         sideband ratio for a number of FFT channel. The total number
@@ -41,9 +41,9 @@ class DssCalibrator(Experiment):
             False: tone is swept over the LSB, and the ratio computed
             is USB/LSB.
         """
-        nchnls = self.nchannels
-        cstep = self.settings.cal_chnl_step
-        sb_ratio = np.zeros(self.nchannels, dtype=np.complex128)
+        channels = range(self.nchannels)[1::self.settings.cal_chnl_step]
+        partial_freqs = [] # for plotting
+        sb_ratios = []
 
         self.calplotter = DssCalibrationPlotter(self.fpga)
         self.calplotter.create_window(create_gui=False)
@@ -52,12 +52,13 @@ class DssCalibrator(Experiment):
         self.source.set_power_dbm(self.settings.sync_power)
         self.source.turn_output_on()
 
-        for chnl in range(1, nchnls, cstep):
+        for chnl in channels:
+            freq = self.freqs[chnl]
             # set generator frequency
             if tone_in_usb:
-                self.source.set_freq_mhz(center_freq + self.freqs[chnl])
+                self.source.set_freq_mhz(center_freq + freq)
             else: # tone in lsb
-                self.source.set_freq_mhz(center_freq - self.freqs[chnl])    
+                self.source.set_freq_mhz(center_freq - freq)    
             # plot while the generator is changing to frequency to give the system time to update
             plt.pause(1) 
 
@@ -68,9 +69,9 @@ class DssCalibrator(Experiment):
             # compute constant
             ab = cal_ab_re[chnl] + 1j*cal_ab_im[chnl]
             if tone_in_usb:
-                sb_ratio[chnl] = np.conj(ab) / cal_a2[chnl] # (ab*)* / aa* = a*b / aa* = b/a = LSB/USB
+                sb_ratios.append(np.conj(ab) / cal_a2[chnl]) # (ab*)* / aa* = a*b / aa* = b/a = LSB/USB
             else: # tone in lsb
-                sb_ratio[chnl] = ab / cal_b2[chnl] # ab* / bb* = a/b = USB/LSB
+                sb_ratios.append(ab / cal_b2[chnl]) # ab* / bb* = a/b = USB/LSB
 
             # plot data specta
             for spec_data, axis in zip([cal_a2, cal_b2], self.calplotter.axes[:2]):
@@ -78,26 +79,21 @@ class DssCalibrator(Experiment):
                 spec_data = self.linear_to_dBFS(spec_data)
                 axis.plot(spec_data)
             
-            # partial freq array for magnitude ratio and angle difference plotting
-            freqs = [self.freqs[index] for index in range(1, chnl+1, cstep)]
-
+            partial_freqs.append(freq)
             # plot magnitude ratio
-            self.calplotter.axes[2].plot(np.abs(sb_ratio)[1:chnl+1:cstep], freqs)
-
+            self.calplotter.axes[2].plot(partial_freqs, np.abs(sb_ratios))
             # plot angle difference
-            self.calplotter.axes[3].plot(np.angle(sb_ratio, deg=True)[1:chnl+1:cstep], freqs)
+            self.calplotter.axes[3].plot(partial_freqs, np.angle(sb_ratios, deg=True))
 
         # plot last frequency
         plt.pause(1) 
 
         # compute interpolations
         print "Computing interpolations..."
-        for chnl in range(1, nchnls, cstep):
+        sb_ratios = np.interp(range(self.nchannels), channels, sb_ratios)
+        print "done"
             
-
-
-        return sb_ratio
-
+        return sb_ratios
 
     def run_srr_computation(self):
         """

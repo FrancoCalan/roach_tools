@@ -8,14 +8,16 @@ class SingleLineAxis(CalanAxis):
         CalanAxis.__init__(self, ax, xdata, title)
         self.line = self.ax.plot([], [], lw=2)[0]
 
-    def plot(self, ydata, xdata=None):
+    def plot(self, *args):
         """
         Plot y data in axis.
+        If want to use the default xdata of axis, args[0] = ydata
+        else args[0] = xdata, args[1] = ydata.
         """
-        if xdata is None:
-            self.line.set_data(self.xdata, ydata)
+        if len(args) == 1:
+            self.line.set_data(self.xdata, args[0])
         else:
-            self.line.set_data(xdata, ydata)
+            self.line.set_data(args[0], args[1])
 
     def gen_ydata_dict(self):
         """

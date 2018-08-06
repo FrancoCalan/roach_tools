@@ -1,4 +1,4 @@
-import time
+import time, itertools
 import numpy as np
 import matplotlib.pyplot as plt
 from experiment import Experiment
@@ -14,19 +14,65 @@ class DssCalibrator(Experiment):
     """
     def __init__(self, calanfpga):
         Experiment.__init__(self, calanfpga)
-        self.source = Generator(self.settings.source_ip, self.settings.source_port)
         self.nchannels = self.get_nchannels(self.settings.spec_info)
         self.freqs = np.linspace(0, self.settings.bw, self.nchannels, endpoint=False)
-        self.usb_consts = np.zeros(self.nchannels, dtype=np.complex128)
-        self.lsb_consts = np.zeros(self.nchannels, dtype=np.complex128)
+
+        # sources (RF and LOs)
+        self.rf_source = Generator(self.settings.sync_ip, self.settings.sync_port)
+        self.lo_sources = [Generator(s['ip'], s['port']) for s in self.settings.lo_sources]
         
     def run_dss_test(self):
         """
         Perform a full DSS test, with constants and SRR computation. 
         """
-        if not self.settings.ideal:
-            self.run_consts_computation()
-        run_srr_computation(self)
+        # set power and turn on sources
+        self.rf_source
+
+        lo_combinations = self.get_lo_combination()
+
+        for lo_comb in lo_combinations:
+            print ', '.join(['LO'+str(i+1)+': '+str(l)+'MHz' for i,lo in enumerate(lo_comb)])
+
+            for i, lo in enumerate(lo_comb):
+                self.lo_sources[i].set_freq_mhz(lo)
+                time.sleep(1)
+                
+                # Hot-Cold Measurement
+                if.self.settings.kerr_correction:
+                    M_DSB = self.make_hotcold_measurement()
+                else:
+                    M_DSB = np.ones(self.nchannels)
+                
+                # compute calibration constants (sideband ratios)
+                if not self.settings.ideal_consts:
+                    sb_ratios_usb = self.compute_sb_ratios(center_freq=sum(lo_comb), tone_in_usb=True)
+                    sb_ratios_lsb = self.compute_sb_ratios(center_freq=sum(lo_comb), tone_in_usb=False)
+                else:
+                    sb_ratios_usb = np.zeros(self.nchannels, dtype=np.complex128)
+                    sb_ratios_lsb = np.zeros(self.nchannels, dtype=np.complex128)
+
+                # load constants
+                self.load_constants([sb_ratios_usb, sb_ratios_lsb])
+
+                # compute SRR
+                self.compute_ssr(M_DSB)
+    
+    def get_lo_combination(self):
+        """
+        Creates a list of tuples with all the possible LO combinations from
+        the lo_sources parameter of the config file. Used to perform a
+        nested loop that set all LO combinations in generators.
+        """
+        lo_freqs_arr = [lo_source['lo_freqs'] for lo_source in self.settings.lo_sources]
+        return list(itertools.product(*lo_freqs_arr))
+
+    def make_hotclod_test(self):
+        """
+        Perform a hotcold test (Kerr calibration) to the determine the M_DSB parameter to
+        correctly compute the Sideband Rejection Ratio (SRR) in Sideband separating receivers.
+        More information in ALMA's Memo 357 (http://legacy.nrao.edu/alma/memos/html-memos/abstracts/abs357.html)
+        """
+        # TODO this function
 
     def compute_sb_ratios(self, center_freq=0, tone_in_usb=True):
         """
@@ -49,16 +95,18 @@ class DssCalibrator(Experiment):
         self.calplotter.create_window(create_gui=False)
         
         # set generator power
-        self.source.set_power_dbm(self.settings.sync_power)
-        self.source.turn_output_on()
+        #self.rf_source.set_power_dbm(self.settings.sync_power)
+        #self.rf_source.turn_output_on()
 
         for chnl in channels:
             freq = self.freqs[chnl]
             # set generator frequency
             if tone_in_usb:
-                self.source.set_freq_mhz(center_freq + freq)
+                self.rf_source.set_freq_mhz(center_freq + freq)
+                print "Computing Sideband Ratios tone in USB..."
             else: # tone in lsb
-                self.source.set_freq_mhz(center_freq - freq)    
+                self.rf_source.set_freq_mhz(center_freq - freq)    
+                print "Computing Sideband Ratios tone in LSB..."
             # plot while the generator is changing to frequency to give the system time to update
             plt.pause(1) 
 
@@ -87,6 +135,7 @@ class DssCalibrator(Experiment):
 
         # plot last frequency
         plt.pause(1) 
+        print "done"
 
         # compute interpolations
         print "Computing interpolations..."

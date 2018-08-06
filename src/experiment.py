@@ -1,6 +1,5 @@
 import numpy as np
 
-
 class Experiment():
     """
     Most generic class. Repesents a generic experiment in roach with any model.

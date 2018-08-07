@@ -1,4 +1,4 @@
-import sys, os, importlib, time, struct
+import sys, os, importlib, time
 import numpy as np
 from itertools import chain
 import corr, adc5g
@@ -214,19 +214,18 @@ class CalanFpga():
             The bram_info dictionary format is:
             {'addr_width'  : width of bram address in bits.
              'data_width'  : width of bram data (word) in bits.
-             'data_type'   : data type in struct format ('b', 'B', 'h', etc.)
+             'sign_type'   : 'u' unsigned, 'i': signed
              'bram_name'   : bram name in the model
             }
         :return: numpy array with the bram data.
         """
         width = bram_info['data_width']
         depth = 2**bram_info['addr_width']
-        dtype = bram_info['data_type'] 
+        sign  = bram_info['sign_type'] 
         bram  = bram_info['bram_name']
-        ndata = (width / type2bits[dtype]) * depth
 
-        bram_data = struct.unpack('>'+str(ndata)+dtype, self.fpga.read(bram, depth*width/8, 0))
-        return np.array(bram_data)
+        bram_data = np.fromstring(self.fpga.read(bram, depth*width/8, 0), dtype='>'+sign+str(width/8))
+        return bram_data
 
     def get_bram_list_data(self, bram_info):
         """
@@ -236,7 +235,7 @@ class CalanFpga():
             The bram_info dictionary format is:
             {'addr_width'  : width of brams addresses in bits.
              'data_width'  : width of brams data (word) in bits.
-             'data_type'   : data types in struct format ('b', 'B', 'h', etc.)
+             'sign_type'   : 'u' unsigned, 'i': signed
              'bram_list'   : list of bram names in the model
             }
         :return: list of numpy arrays with the data of every bram in the same order.
@@ -244,7 +243,7 @@ class CalanFpga():
         bram_data_arr = []
         for bram in bram_info['bram_list']:
             # make a new bram info only with current bram
-            current_bram_info = bram_info
+            current_bram_info = bram_info.copy()
             current_bram_info['bram_name'] = bram
             bram_data = self.get_bram_data(current_bram_info)
             bram_data_arr.append(bram_data)
@@ -259,7 +258,7 @@ class CalanFpga():
             The bram_info dictionary format is:
             {'addr_width'  : width of brams addresses in bits.
              'data_width'  : width of brams data (word) in bits.
-             'data_type'   : data types in struct format ('b', 'B', 'h', etc.)
+             'sign_type'   : 'u' unsigned, 'i': signed
              'bram_list2d' : list of lists of bram names in the model
             }
         :return: list of lists of numpy arrays with the data of every bram in the 
@@ -268,7 +267,7 @@ class CalanFpga():
         bram_data_arr2d = []
         for bram_list in bram_info['bram_list2d']:
             # make a new bram info only with current bram_list
-            current_bram_info = bram_info
+            current_bram_info = bram_info.copy()
             current_bram_info['bram_list'] = bram_list
             bram_data_arr = self.get_bram_list_data(current_bram_info)
             bram_data_arr2d.append(bram_data_arr)
@@ -301,7 +300,7 @@ class CalanFpga():
         interleaved_data_arr = []
         for bram_list in bram_info['bram_list2d']:
             # make a new bram info only with current bram_list
-            current_bram_info = bram_info
+            current_bram_info = bram_info.copy()
             current_bram_info['bram_list'] = bram_list
             interleaved_data = self.get_bram_interleaved_data(current_bram_info)
             interleaved_data_arr.append(interleaved_data)
@@ -359,13 +358,16 @@ class CalanFpga():
             same as for get_bram_data().
         :param data: array to write on the bram.
         """
-        depth = 2**bram_info['addr_width']
-        dtype = bram_info['data_type'] 
         bram  = bram_info['bram_name']
+        bram_dtype = np.dtype('>'+bram_info['sign_type']+str(bram_info['data_width']/8))
+
+        if bram_dtype != data.dtype:
+            print "WARNING! data types between write bram and data don't match."
+            print "bram dtype: " + str(bram_dtype)
+            print "data dtype: " + str(bram_dtype)
+            print "Attempting to write in bram anyway."
         
-        ndata = len(data)
-        raw_data = struct.pack('>'+str(ndata)+dtype, *data)
-        self.fpga.write(bram, raw_data)
+        self.fpga.write(bram, data.tobytes())
 
     def write_bram_list_data(self, bram_info, data_list):
         """
@@ -377,7 +379,7 @@ class CalanFpga():
         """
         for bram, data in zip(bram_info['bram_list'], data_list):
             # make a new bram info only with current bram
-            current_bram_info = bram_info
+            current_bram_info = bram_info.copy()
             current_bram_info['bram_name'] = bram
             self.write_bram_data(current_bram_info, data)
 
@@ -392,11 +394,6 @@ class CalanFpga():
         """
         for bram_list, data_list in zip(bram_info['bram_list2d'], data_list2d):
             # make a new bram info only with current bram_list
-            current_bram_info = bram_info
+            current_bram_info = bram_info.copy()
             current_bram_info['bram_list'] = bram_list
             self.write_bram_list_data(current_bram_info)
-
-type2bits = {'b' :  8, 'B' :  8,
-             'h' : 16, 'H' : 16,
-             'i' : 32, 'I' : 32,
-             'q' : 64, 'Q' : 64} 

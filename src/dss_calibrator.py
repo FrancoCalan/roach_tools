@@ -16,22 +16,29 @@ class DssCalibrator(Experiment):
         Experiment.__init__(self, calanfpga)
         self.nchannels = self.get_nchannels(self.settings.spec_info)
         self.freqs = np.linspace(0, self.settings.bw, self.nchannels, endpoint=False)
+        
+        # const dtype info
+        self.const_nbits = self.settings.const_brams_info['data_width']/2 # bitwidth of real part (=imag part)
+        self.const_bin_pt = self.settings.const_bin_pt
 
         # sources (RF and LOs)
-        self.rf_source = Generator(self.settings.sync_ip, self.settings.sync_port)
-        self.lo_sources = [Generator(s['ip'], s['port']) for s in self.settings.lo_sources]
+        self.rf_source = Generator(self.settings.rf_source)
+        self.lo_sources = [Generator(lo_source) for lo_source in self.settings.lo_sources]
         
     def run_dss_test(self):
         """
         Perform a full DSS test, with constants and SRR computation. 
         """
         # set power and turn on sources
-        self.rf_source
+        self.rf_source.set_power_dbm()
+        self.rf_source.turn_output_on()
+        for lo_source in self.lo_sources():
+            self.lo_source.set_power_dbm()
+            self.lo_source.turn_output_on()
 
         lo_combinations = self.get_lo_combination()
-
         for lo_comb in lo_combinations:
-            print ', '.join(['LO'+str(i+1)+': '+str(l)+'MHz' for i,lo in enumerate(lo_comb)])
+            print ', '.join(['LO'+str(i+1)+': '+str(lo)+'MHz' for i,lo in enumerate(lo_comb)])
 
             for i, lo in enumerate(lo_comb):
                 self.lo_sources[i].set_freq_mhz(lo)
@@ -44,15 +51,18 @@ class DssCalibrator(Experiment):
                     M_DSB = np.ones(self.nchannels)
                 
                 # compute calibration constants (sideband ratios)
-                if not self.settings.ideal_consts:
+                if not self.settings.ideal_consts['load']:
                     sb_ratios_usb = self.compute_sb_ratios(center_freq=sum(lo_comb), tone_in_usb=True)
                     sb_ratios_lsb = self.compute_sb_ratios(center_freq=sum(lo_comb), tone_in_usb=False)
                 else:
-                    sb_ratios_usb = np.zeros(self.nchannels, dtype=np.complex128)
-                    sb_ratios_lsb = np.zeros(self.nchannels, dtype=np.complex128)
+                    const = self.settings.ideal_consts['val']
+                    sb_ratios_usb = const * np.zeros(self.nchannels, dtype=np.complex128)
+                    sb_ratios_lsb = const * np.zeros(self.nchannels, dtype=np.complex128)
 
                 # load constants
-                self.load_constants([sb_ratios_usb, sb_ratios_lsb])
+                [sb_ratio_usb, sb_ratio_lsb] = self.float2fixed_comp(self.consts_nbits, 
+                    self.consts_bin_pt, [sb_ratio_usb, sb_ratio_lsb])
+                self.write_bram_list2d_data(self.settings.const_brams_info, [sb_ratios_usb, sb_ratios_lsb])
 
                 # compute SRR
                 self.compute_ssr(M_DSB)
@@ -94,10 +104,6 @@ class DssCalibrator(Experiment):
         self.calplotter = DssCalibrationPlotter(self.fpga)
         self.calplotter.create_window()
         
-        # set generator power
-        #self.rf_source.set_power_dbm(self.settings.sync_power)
-        #self.rf_source.turn_output_on()
-
         for chnl in channels:
             freq = self.freqs[chnl]
             # set generator frequency
@@ -144,14 +150,39 @@ class DssCalibrator(Experiment):
             
         return sb_ratios
 
-    def run_srr_computation(self):
+    def float2fixed_comp(self, nbits, bin_pt, data):
+        """
+        Convert a numpy array with complex values into CASPER complex 
+        format ([realpart:imagpart]). The real and imaginary part have
+        the same bitwidth given by nbits. bin_pt indicates the binary
+        point position for both the real and imaginary part. The 
+        resulting array should have an integer numpy datatype, of 
+        bitwidth 2*nbits, and it should be in big endian format: >Xi.
+        :param nbits: bitwidth of real part (=imag part).
+        :param bin_pt: binary point of real part (= imag part).
+        :param data: data array to convert.
+        :return: converted data array.
+        """
+        data_real = np.real(data)
+        data_imag = np.imag(data)
+
+        self.check_overflow(nbits, bit_pt,  data_real)
+        self.check_overflow(nbits, bit_pt,  data_imag)
+        
+        data_real = (2**bin_pt * data_real).astype('>i'+str(nbits/8))
+        data_imag = (2**bin_pt * data_imag).astype('>i'+str(nbits/8))
+
+        # combine real and imag data
+        data_real = 2**nbits * (data_real.astype('>i'+str(2*bits/8)))
+        data_comp = data_real + data_imag
+
+        return data_comp
+
+    def run_srr_computation(self, M_DSB):
         """
         Compute SRR from the calibrated receiver using ideal or computed
         calibration constants.
         """
-        if self.settings.ideal:
-            self.load_ideal_constants()
-
         self.srrplotter = DssSrrPlotter(self.fpga)
         self.srrplotter.create_window(create_gui=False)
 
@@ -164,22 +195,32 @@ class DssCalibrator(Experiment):
                 spec_data = self.linear_to_dBFS(spec_data)
                 axis.plot(spec_data)
 
-    def load_ideal_constants(self):
+    def check_overflow(self, nbits, bin_pt, data):
         """
-        Load ideal constants into de DSS receiver.
+        Given a signed fixed point representation of bitwidth nbits and 
+        binary point bin_pt, check if the data array contians values that
+        will produce overflow if it would be cast. If overflow is detected,
+        a warning signal is printed.
+        :param nbits: bitwidth of the signed fixed point representation.
+        :param bin_pt: binary point of the signed fixed point representation.
+        :param data: data array to check.
         """
-        nbrams = len(self.settings.const_brams_info['bram_list2d'][0])
-        depth = 2**self.settings.const_brams_info['addr_width']
-        
-        bram_info0 = self.settings.const_brams_info.copy()
-        bram_info0['bram_list'] = self.settings.const_brams_info['bram_list2d'][0]
-        bram_info1 = self.settings.const_brams_info.copy()
-        bram_info1['bram_list'] = self.settings.const_brams_info['bram_list2d'][1]
+        max_val = (2.0**(nbits-1)-1) / (2**bin_pt)
+        min_val = (-2.0**(nbits-1))  / (2**bin_pt)
 
-        self.fpga.write_bram_list_data(bram_info0, np.zeros((nbrams, depth)))
-        self.fpga.write_bram_list_data(bram_info1, np.zeros((nbrams, depth)))
-        #self.fpga.write_bram_list_data(bram_info0, (2**27 + 2**27 * 2**32) * np.ones((nbrams, depth)))
-        #self.fpga.write_bram_list_data(bram_info1, (2**27 + 2**27 * 2**32) * np.ones((nbrams, depth)))
+        max_data = np.max(data)
+        min_data = np.min(data)
+
+        if max_data > max_val:
+            print "WARNING! Maximum value surpassed in overflow check."
+            print "Max allowed value: " + str(max_val)
+            print "Max data value: " + str(max_data)
+
+        if min_data < min_val:
+            print "WARNING! Minimum value surpassed in overflow check."
+            print "Min allowed value: " + str(min_val)
+            print "Min data value: " + str(min_data)
+
 
 class DssCalibrationPlotter(Plotter):
     """
@@ -216,4 +257,3 @@ class DssSrrPlotter(Plotter):
         for i, ax in enumerate(mpl_axes):
             self.axes.append(SpectrumAxis(ax, self.nchannels,
                 self.settings.bw, self.settings.plot_titles[i]))
- 

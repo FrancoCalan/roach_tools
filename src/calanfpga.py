@@ -2,7 +2,7 @@ import sys, os, importlib, time, struct
 import numpy as np
 from itertools import chain
 import corr, adc5g
-from dummy_fpga import DummyFpga
+from dummies.dummy_fpga import DummyFpga
 
 class CalanFpga():
     """

@@ -1,8 +1,8 @@
 import numpy as np
 from animator import Animator
 from snapshot_animator import SnapshotAnimator
-from single_line_axis import SingleLineAxis
-from bar_axis import BarAxis
+from axes.single_line_axis import SingleLineAxis
+from axes.bar_axis import BarAxis
 
 class AdcHistogram(SnapshotAnimator):
     """

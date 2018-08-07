@@ -2,9 +2,9 @@ import sys, time
 import numpy as np
 from experiment import Experiment
 from snapshot_animator import SnapshotAnimator
-from generator import Generator
-from dummy_generator import DummyGenerator
-from dummy_generator import gen_time_arr
+from equipment.generator import Generator
+from dummies.dummy_generator import DummyGenerator
+from dummies.dummy_generator import gen_time_arr
 
 class AdcSynchronator(Experiment):
     """

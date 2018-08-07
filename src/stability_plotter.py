@@ -2,7 +2,7 @@ import sys, os
 sys.path.append(os.getcwd())
 import numpy as np
 from plotter import Plotter
-from single_line_axis import SingleLineAxis
+from axes.single_line_axis import SingleLineAxis
 
 class StabilityPlotter(Plotter):
     """

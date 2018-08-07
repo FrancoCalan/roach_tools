@@ -40,11 +40,18 @@ class Plotter(Experiment):
         """
         Create a Tkinter window with all of the components (plots, toolbar, widgets).
         """
+        self.fig.set_tight_layout(True)
+
         if create_gui:
             # tkinter window
             self.root = Tk.Tk()
+
+            # exit program when closing window
+            def on_closing():
+                exit()
+            self.root.protocol('WM_DELETE_WINDOW', on_closing)
             
-            # plot cnavas
+            # plot canvas
             self.canvas = FigureCanvasTkAgg(self.fig, master=self.root)
             self.canvas.get_tk_widget().pack(side=Tk.TOP, fill=Tk.BOTH, expand=1)
 
@@ -80,7 +87,6 @@ class Plotter(Experiment):
             self.print_button.pack(side=Tk.LEFT)
 
         else:
-            self.fig.set_tight_layout(True)
             self.fig.show()
 
     def plot_axes(self):
@@ -139,4 +145,3 @@ class Plotter(Experiment):
         n_channels = n_brams * 2**self.settings.spec_info['addr_width']
         x_time = np.arange(0, n_specs) * (1.0/self.settings.bw) * n_channels # [us]
         return x_time
-

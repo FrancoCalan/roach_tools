@@ -12,7 +12,12 @@ class Plotter(Experiment):
     """
     def __init__(self, calanfpga):
         Experiment.__init__(self, calanfpga)
-        self.fig = plt.figure()
+        # Workaround to Tk.mainloop not clsing properly for plt.figure()
+        if not hasattr(self, 'create_gui') or self.create_gui==True:
+            self.create_gui = True
+            self.fig = plt.Figure()
+        else:
+            self.fig = plt.figure()
         self.plot_map = {1:'11', 2:'12', 3:'22', 4:'22'}
         self.config_file = os.path.splitext(sys.argv[1])[0]
         self.axes = []
@@ -36,21 +41,16 @@ class Plotter(Experiment):
         self.plot_axes() 
         Tk.mainloop()
 
-    def create_window(self, create_gui=True):
+    def create_window(self):
         """
         Create a Tkinter window with all of the components (plots, toolbar, widgets).
         """
         self.fig.set_tight_layout(True)
 
-        if create_gui:
+        if self.create_gui:
             # tkinter window
             self.root = Tk.Tk()
 
-            # exit program when closing window
-            def on_closing():
-                exit()
-            self.root.protocol('WM_DELETE_WINDOW', on_closing)
-            
             # plot canvas
             self.canvas = FigureCanvasTkAgg(self.fig, master=self.root)
             self.canvas.get_tk_widget().pack(side=Tk.TOP, fill=Tk.BOTH, expand=1)
@@ -130,11 +130,11 @@ class Plotter(Experiment):
         self.fig.savefig(fig_filename + '.pdf')
         print "Plot saved."
 
-    def get_freq_from_channel(self, channel):
+    def get_freq_from_channel(self, channel, bram_info):
         """
         Compute the frequency of channel using the bandwidth information.
         """
-        return self.settings.bw * channel / self.get_nchannels()
+        return self.settings.bw * channel / self.get_nchannels(bram_info)
 
     def get_spec_time_arr(self, n_specs):
         """

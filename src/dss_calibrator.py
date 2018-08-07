@@ -3,10 +3,10 @@ import numpy as np
 import matplotlib.pyplot as plt
 from experiment import Experiment
 from plotter import Plotter
-from spectrum_axis import SpectrumAxis
-from mag_ratio_axis import MagRatioAxis
-from angle_diff_axis import AngleDiffAxis
-from generator import Generator
+from axes.spectrum_axis import SpectrumAxis
+from axes.mag_ratio_axis import MagRatioAxis
+from axes.angle_diff_axis import AngleDiffAxis
+from equipment.generator import Generator
 
 class DssCalibrator(Experiment):
     """
@@ -92,7 +92,7 @@ class DssCalibrator(Experiment):
         sb_ratios = []
 
         self.calplotter = DssCalibrationPlotter(self.fpga)
-        self.calplotter.create_window(create_gui=False)
+        self.calplotter.create_window()
         
         # set generator power
         #self.rf_source.set_power_dbm(self.settings.sync_power)
@@ -186,6 +186,7 @@ class DssCalibrationPlotter(Plotter):
     Inner class for calibration plots.
     """
     def __init__(self, calanfpga):
+        self.create_gui = False
         Plotter.__init__(self, calanfpga)
         self.nplots = 4
         mpl_axes = self.create_axes()
@@ -206,6 +207,7 @@ class DssSrrPlotter(Plotter):
     Inner class for post-calibration plots.
     """
     def __init__(self, calanfpga):
+        self.create_gui = False
         Plotter.__init__(self, calanfpga)
         self.nplots = 2
         mpl_axes = self.create_axes()

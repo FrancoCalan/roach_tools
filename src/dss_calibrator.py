@@ -6,6 +6,7 @@ from plotter import Plotter
 from axes.spectrum_axis import SpectrumAxis
 from axes.mag_ratio_axis import MagRatioAxis
 from axes.angle_diff_axis import AngleDiffAxis
+from axes.srr_axis import SrrAxis
 from equipment.generator import Generator
 
 class DssCalibrator(Experiment):
@@ -62,7 +63,9 @@ class DssCalibrator(Experiment):
                 # load constants
                 [sb_ratio_usb, sb_ratio_lsb] = self.float2fixed_comp(self.consts_nbits, 
                     self.consts_bin_pt, [sb_ratio_usb, sb_ratio_lsb])
+                print "Loading constants to FPGA brams..."
                 self.write_bram_list2d_data(self.settings.const_brams_info, [sb_ratios_usb, sb_ratios_lsb])
+                print "done"
 
                 # compute SRR
                 self.compute_ssr(M_DSB, center_freq=sum(lo_comb))
@@ -82,7 +85,17 @@ class DssCalibrator(Experiment):
         correctly compute the Sideband Rejection Ratio (SRR) in Sideband separating receivers.
         More information in ALMA's Memo 357 (http://legacy.nrao.edu/alma/memos/html-memos/abstracts/abs357.html)
         """
-        # TODO this function
+        # make the receiver cold
+        self.chopper.move_90cw()
+        a2_cold, b2_cold = self.fpga.get_bram_list_interleaved_data(self.settings.cal_pow_info)
+        # make the receiver hot
+        self.chopper.move_90ccw()
+        a2_hot, b2_hot = self.fpga.get_bram_list_interleaved_data(self.settings.cal_pow_info)
+
+        # TODO check correct formula for a and b
+        M_DSB = (a_hot - a_cold) / (b_hot - b_cold)
+        
+        return M_DSB
 
     def compute_sb_ratios(self, center_freq=0, tone_in_usb=True):
         """
@@ -104,14 +117,13 @@ class DssCalibrator(Experiment):
         self.calplotter = DssCalibrationPlotter(self.fpga)
         self.calplotter.create_window()
         
+        print "Computing sideband ratios, tone in " + ("USB" if tone_in_usb else "LSB") + "..."
         for chnl in channels:
             freq = self.freqs[chnl]
             # set generator frequency
             if tone_in_usb:
-                print "Computing Sideband Ratios tone in USB..."
                 self.rf_source.set_freq_mhz(center_freq + freq)
             else: # tone in lsb
-                print "Computing Sideband Ratios tone in LSB..."
                 self.rf_source.set_freq_mhz(center_freq - freq)    
             # plot while the generator is changing to frequency to give the system time to update
             plt.pause(1) 
@@ -141,12 +153,10 @@ class DssCalibrator(Experiment):
 
         # plot last frequency
         plt.pause(1) 
-        print "done"
+        print "done computing sideband ratios, tone in " + ("USB" if tone_in_usb else "LSB") + "."
 
         # compute interpolations
-        print "Computing interpolations..."
         sb_ratios = np.interp(range(self.nchannels), channels, sb_ratios)
-        print "done"
             
         return sb_ratios
 
@@ -190,40 +200,59 @@ class DssCalibrator(Experiment):
         """
         channels = range(self.nchannels)[1::self.settings.synth_chnl_step]
         partial_freqs = [] # for plotting
+        srr_usb = []
+        srr_lsb = []
 
         self.srrplotter = DssSrrPlotter(self.fpga)
         self.srrplotter.create_window()
         
+        print "Computing SRR..."
         for chnl in channels:
             freq = self.freqs[chnl]
             # set generator at USB frequency
             self.rf_source.set_freq_mhz(center_freq + freq)
-            time.sleep(1)
+            plt.pause(1) 
             # get USB and LSB power data
-            a2_tone_USB, b2_tone_USB = self.fpga.get_bram_list_interleaved_data(self.settings.spec_info)
+            a2_tone_usb, b2_tone_usb = self.fpga.get_bram_list_interleaved_data(self.settings.spec_info)
 
             # plot data specta
             for spec_data, axis in zip([a2_tone_USB, b2_tone_LSB], self.calplotter.axes[:2]):
                 spec_data = spec_data / float(self.fpga.read_reg('synth_acc_len')) # divide by accumulation
                 spec_data = self.linear_to_dBFS(spec_data)
                 axis.plot(spec_data)
-            plt.pause(1) 
 
             # set generator at LSB frequency
             self.rf_source.set_freq_mhz(center_freq - freq)
-            time.sleep(1)
+            plt.pause(1) 
             # get USB and LSB power data
-            cal_a2_tone_LSB, cal_b2_tone_LSB = self.fpga.get_bram_list_interleaved_data(self.settings.spec_info)
+            cal_a2_tone_lsb, cal_b2_tone_lsb = self.fpga.get_bram_list_interleaved_data(self.settings.spec_info)
 
             # plot data specta
-            for spec_data, axis in zip([a2_tone_USB, b2_tone_LSB], self.calplotter.axes[:2]):
+            for spec_data, axis in zip([a2_tone_USB, b2_tone_LSB], self.srrplotter.axes[:2]):
                 spec_data = spec_data / float(self.fpga.read_reg('synth_acc_len')) # divide by accumulation
                 spec_data = self.linear_to_dBFS(spec_data)
                 axis.plot(spec_data)
             plt.pause(1) 
 
             # Compute SRRs
+            ratio_usb = a2_tone_usb[chnl] / b2_tone_usb[chnl]
+            ratio_lsb = b2_tone_lsb[chnl] / a2_tone_lsb[chnl]
             
+            # TODO check formulas
+            new_srr_usb = ratio_usb * (ratio_lsb*M_DSB[chnl] - 1) / (ratio_usb - M_DSB[chnl])
+            srr_usb.append(10*np.log10(new_srr_usb))
+            new_srr_lsb = ratio_lsb * (ratio_usb - M_DSB[chnl]) / (ratio_lsb*M_DSB[chnl] - 1)
+            srr_lsb.append(10*np.log10(new_srr_lsb))
+
+            partial_freqs.append(freq)
+            # plot magnitude ratio
+            self.srrplotter.axes[2].plot(partial_freqs, srr_usb)
+            # plot angle difference
+            self.srrplotter.axes[3].plot(partial_freqs, srr_lsb)
+
+        # plot last frequency
+        plt.pause(1) 
+        print "done computing SRR."
 
     def check_overflow(self, nbits, bin_pt, data):
         """
@@ -250,7 +279,6 @@ class DssCalibrator(Experiment):
             print "WARNING! Minimum value surpassed in overflow check."
             print "Min allowed value: " + str(min_val)
             print "Min data value: " + str(min_data)
-
 
 class DssCalibrationPlotter(Plotter):
     """
@@ -280,10 +308,16 @@ class DssSrrPlotter(Plotter):
     def __init__(self, calanfpga):
         self.create_gui = False
         Plotter.__init__(self, calanfpga)
-        self.nplots = 2
+        self.nplots = 4
         mpl_axes = self.create_axes()
-    
         self.nchannels = self.get_nchannels(self.settings.spec_info)
-        for i, ax in enumerate(mpl_axes):
-            self.axes.append(SpectrumAxis(ax, self.nchannels,
-                self.settings.bw, self.settings.plot_titles[i]))
+
+        # add custom axes
+        self.axes.append(SpectrumAxis(mpl_axes[0], self.nchannels,
+                self.settings.bw, 'USB spec'))
+        self.axes.append(SpectrumAxis(mpl_axes[1], self.nchannels,
+                self.settings.bw, 'LSB spec'))
+        self.axes.append(SrrAxis(mpl_axes[2], self.nchannels,
+                self.settings.bw, 'SRR USB'))
+        self.axes.append(SrrAxis(mpl_axes[3], self.nchannels,
+                self.settings.bw, 'SRR LSB'))

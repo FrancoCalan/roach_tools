@@ -3,7 +3,7 @@ from single_line_axis import SingleLineAxis
 
 class MagRatioAxis(SingleLineAxis):
     """
-    Class representing an axis from a magnitude plot.
+    Class representing an axis from a magnitude ratio plot.
     """
     def __init__(self, ax, nchannels, bw, title=""):
         xdata = np.linspace(0, bw, nchannels, endpoint=False)

@@ -12,7 +12,12 @@ class Plotter(Experiment):
     """
     def __init__(self, calanfpga):
         Experiment.__init__(self, calanfpga)
-        self.fig = plt.figure()
+        # Workaround to Tk.mainloop not clsing properly for plt.figure()
+        if not hasattr(self, 'create_gui') or self.create_gui==True:
+            self.create_gui = True
+            self.fig = plt.Figure()
+        else:
+            self.fig = plt.figure()
         self.plot_map = {1:'11', 2:'12', 3:'22', 4:'22'}
         self.config_file = os.path.splitext(sys.argv[1])[0]
         self.axes = []
@@ -36,15 +41,17 @@ class Plotter(Experiment):
         self.plot_axes() 
         Tk.mainloop()
 
-    def create_window(self, create_gui=True):
+    def create_window(self):
         """
         Create a Tkinter window with all of the components (plots, toolbar, widgets).
         """
-        if create_gui:
+        self.fig.set_tight_layout(True)
+
+        if self.create_gui:
             # tkinter window
             self.root = Tk.Tk()
-            
-            # plot cnavas
+
+            # plot canvas
             self.canvas = FigureCanvasTkAgg(self.fig, master=self.root)
             self.canvas.get_tk_widget().pack(side=Tk.TOP, fill=Tk.BOTH, expand=1)
 
@@ -80,7 +87,6 @@ class Plotter(Experiment):
             self.print_button.pack(side=Tk.LEFT)
 
         else:
-            self.fig.set_tight_layout(True)
             self.fig.show()
 
     def plot_axes(self):
@@ -124,11 +130,11 @@ class Plotter(Experiment):
         self.fig.savefig(fig_filename + '.pdf')
         print "Plot saved."
 
-    def get_freq_from_channel(self, channel):
+    def get_freq_from_channel(self, channel, bram_info):
         """
         Compute the frequency of channel using the bandwidth information.
         """
-        return self.settings.bw * channel / self.get_nchannels()
+        return self.settings.bw * channel / self.get_nchannels(bram_info)
 
     def get_spec_time_arr(self, n_specs):
         """
@@ -139,4 +145,3 @@ class Plotter(Experiment):
         n_channels = n_brams * 2**self.settings.spec_info['addr_width']
         x_time = np.arange(0, n_specs) * (1.0/self.settings.bw) * n_channels # [us]
         return x_time
-

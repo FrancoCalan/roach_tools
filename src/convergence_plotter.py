@@ -1,7 +1,7 @@
 import sys, os
 sys.path.append(os.getcwd())
 from plotter import Plotter
-from multi_line_axis import MultiLineAxis
+from axes.multi_line_axis import MultiLineAxis
 
 class ConvergencePlotter(Plotter):
     """

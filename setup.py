@@ -1,5 +1,5 @@
 import glob
-from setuptools import setup
+from setuptools import setup, find_packages
 
 setup(name = 'roach_tools',
       version = '0.4',
@@ -8,8 +8,14 @@ setup(name = 'roach_tools',
       author = 'Franco Curotto',
       author_email = 'francocurotto@gmail.com',
       license = 'GPL v3',
-      packages = ['roach_tools'],
-      package_dir = {'roach_tools' : 'src'},
+      packages = ['roach_tools', 
+                  'roach_tools.axes', 
+                  'roach_tools.dummies', 
+                  'roach_tools.equipment'],
+      package_dir = {'roach_tools' : 'src',
+                     'roach_tools.axes' : 'src/axes',
+                     'roach_tools.dummies' : 'src/dummies',
+                     'roach_tools.equipment' : 'src/equipment'},
       scripts = glob.glob('bin/*.py'),
       install_requires = [
             'construct', 

@@ -4,8 +4,8 @@ class MultiLineAxis(CalanAxis):
     """
     Class representing an axis from a plot with multiple lines plot.
     """
-    def __init__(self, ax, xdata, legends):
-        CalanAxis.__init__(self, ax, xdata)
+    def __init__(self, ax, xdata, legends, title=""):
+        CalanAxis.__init__(self, ax, xdata, title)
         self.lines = []
         self.legends = legends
         for legend in self.legends:

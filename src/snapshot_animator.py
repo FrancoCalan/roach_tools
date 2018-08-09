@@ -1,5 +1,5 @@
 from animator import Animator
-from snapshot_axis import SnapshotAxis
+from axes.snapshot_axis import SnapshotAxis
 
 class SnapshotAnimator(Animator):
     """

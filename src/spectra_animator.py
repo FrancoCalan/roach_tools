@@ -3,7 +3,7 @@ import numexpr
 import numpy as np
 import Tkinter as Tk
 from animator import Animator
-from spectrum_axis import SpectrumAxis
+from axes.spectrum_axis import SpectrumAxis
 
 class SpectraAnimator(Animator):
     """

@@ -214,7 +214,7 @@ class CalanFpga():
             The bram_info dictionary format is:
             {'addr_width'  : width of bram address in bits.
              'data_width'  : width of bram data (word) in bits.
-             'sign_type'   : 'u' unsigned, 'i': signed
+             'sign_type'   : 'u': unsigned, 'i': signed
              'bram_name'   : bram name in the model
             }
         :return: numpy array with the bram data.
@@ -235,7 +235,7 @@ class CalanFpga():
             The bram_info dictionary format is:
             {'addr_width'  : width of brams addresses in bits.
              'data_width'  : width of brams data (word) in bits.
-             'sign_type'   : 'u' unsigned, 'i': signed
+             'sign_type'   : 'u': unsigned, 'i': signed
              'bram_list'   : list of bram names in the model
             }
         :return: list of numpy arrays with the data of every bram in the same order.
@@ -258,7 +258,7 @@ class CalanFpga():
             The bram_info dictionary format is:
             {'addr_width'  : width of brams addresses in bits.
              'data_width'  : width of brams data (word) in bits.
-             'sign_type'   : 'u' unsigned, 'i': signed
+             'sign_type'   : 'u': unsigned, 'i': signed
              'bram_list2d' : list of lists of bram names in the model
             }
         :return: list of lists of numpy arrays with the data of every bram in the 

@@ -283,8 +283,9 @@ class CalanFpga():
         :return: numpy array with the data of the brams interlieved using the order of the
             bram_list.
         """
+        width = bram_info['data_width']
         bram_data_arr = self.get_bram_list_data(bram_info)
-        interleaved_data = np.fromiter(chain(*zip(*bram_data_arr)), dtype=bram_info['data_type'])
+        interleaved_data = np.fromiter(chain(*zip(*bram_data_arr)), dtype='>'+bram_info['sign_type']+str(width/8))
         return interleaved_data
 
     def get_bram_list_interleaved_data(self, bram_info):

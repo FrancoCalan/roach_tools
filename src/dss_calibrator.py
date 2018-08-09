@@ -65,7 +65,7 @@ class DssCalibrator(Experiment):
                 self.write_bram_list2d_data(self.settings.const_brams_info, [sb_ratios_usb, sb_ratios_lsb])
 
                 # compute SRR
-                self.compute_ssr(M_DSB)
+                self.compute_ssr(M_DSB, center_freq=sum(lo_comb))
     
     def get_lo_combination(self):
         """
@@ -87,9 +87,9 @@ class DssCalibrator(Experiment):
     def compute_sb_ratios(self, center_freq=0, tone_in_usb=True):
         """
         Sweep a tone through the receiver bandwidth and computes the
-        sideband ratio for a number of FFT channel. The total number
-        depends in the config file parameter cal_channel_step. The 
-        channels not measured are interpolated.
+        sideband ratio for a number of FFT channel. The total number of 
+        channels used for the computations depends in the config file parameter 
+        cal_chnl_step. The channels not measured are interpolated.
         :param center_freq: analog center frequency of the downconverted 
             signal. Used to properly set the RF input.
         :param tone_in_usb: True: tone is swept over the USB, and the
@@ -108,11 +108,11 @@ class DssCalibrator(Experiment):
             freq = self.freqs[chnl]
             # set generator frequency
             if tone_in_usb:
-                self.rf_source.set_freq_mhz(center_freq + freq)
                 print "Computing Sideband Ratios tone in USB..."
+                self.rf_source.set_freq_mhz(center_freq + freq)
             else: # tone in lsb
-                self.rf_source.set_freq_mhz(center_freq - freq)    
                 print "Computing Sideband Ratios tone in LSB..."
+                self.rf_source.set_freq_mhz(center_freq - freq)    
             # plot while the generator is changing to frequency to give the system time to update
             plt.pause(1) 
 
@@ -178,22 +178,52 @@ class DssCalibrator(Experiment):
 
         return data_comp
 
-    def run_srr_computation(self, M_DSB):
+    def run_srr_computation(self, M_DSB, center_freq):
         """
-        Compute SRR from the calibrated receiver using ideal or computed
-        calibration constants.
+        Compute SRR from the DSS receiver using the Kerr method
+        (see ALMA Memo 357 (http://legacy.nrao.edu/alma/memos/html-memos/abstracts/abs357.html)).
+        The channel total number of channels used for the SRR computations
+        can be controlled by the config file parameter synth_channel_step.
+        :param M_DSB: constant computed in the hotcold test used for the Kerr method.
+        :param center_freq: analog center frequency of the downconverted 
+            signal. Used to properly set the RF input.
         """
-        self.srrplotter = DssSrrPlotter(self.fpga)
-        self.srrplotter.create_window(create_gui=False)
+        channels = range(self.nchannels)[1::self.settings.synth_chnl_step]
+        partial_freqs = [] # for plotting
 
-        while True:
-            plt.pause(1) # plot while the generator is changing to frequency to give the system time to update
-            spec_data_arr = self.fpga.get_bram_list_interleaved_data(self.settings.spec_info)
-            # plot data
-            for spec_data, axis in zip(spec_data_arr, self.srrplotter.axes):
-                spec_data = spec_data / float(self.fpga.read_reg('syn_acc_len')) # divide by accumulation
+        self.srrplotter = DssSrrPlotter(self.fpga)
+        self.srrplotter.create_window()
+        
+        for chnl in channels:
+            freq = self.freqs[chnl]
+            # set generator at USB frequency
+            self.rf_source.set_freq_mhz(center_freq + freq)
+            time.sleep(1)
+            # get USB and LSB power data
+            a2_tone_USB, b2_tone_USB = self.fpga.get_bram_list_interleaved_data(self.settings.spec_info)
+
+            # plot data specta
+            for spec_data, axis in zip([a2_tone_USB, b2_tone_LSB], self.calplotter.axes[:2]):
+                spec_data = spec_data / float(self.fpga.read_reg('synth_acc_len')) # divide by accumulation
                 spec_data = self.linear_to_dBFS(spec_data)
                 axis.plot(spec_data)
+            plt.pause(1) 
+
+            # set generator at LSB frequency
+            self.rf_source.set_freq_mhz(center_freq - freq)
+            time.sleep(1)
+            # get USB and LSB power data
+            cal_a2_tone_LSB, cal_b2_tone_LSB = self.fpga.get_bram_list_interleaved_data(self.settings.spec_info)
+
+            # plot data specta
+            for spec_data, axis in zip([a2_tone_USB, b2_tone_LSB], self.calplotter.axes[:2]):
+                spec_data = spec_data / float(self.fpga.read_reg('synth_acc_len')) # divide by accumulation
+                spec_data = self.linear_to_dBFS(spec_data)
+                axis.plot(spec_data)
+            plt.pause(1) 
+
+            # Compute SRRs
+            
 
     def check_overflow(self, nbits, bin_pt, data):
         """

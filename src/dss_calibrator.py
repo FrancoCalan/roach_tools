@@ -15,7 +15,7 @@ class DssCalibrator(Experiment):
     """
     def __init__(self, calanfpga):
         Experiment.__init__(self, calanfpga)
-        self.nchannels = self.get_nchannels(self.settings.spec_info)
+        self.nchannels = self.get_nchannels(self.settings.synth_info)
         self.freqs = np.linspace(0, self.settings.bw, self.nchannels, endpoint=False)
         
         # const dtype info
@@ -23,8 +23,8 @@ class DssCalibrator(Experiment):
         self.const_bin_pt = self.settings.const_bin_pt
 
         # sources (RF and LOs)
-        self.rf_source = Generator(self.settings.rf_source)
-        self.lo_sources = [Generator(lo_source) for lo_source in self.settings.lo_sources]
+        self.rf_source = self.create_instrument(self.settings.rf_source)
+        self.lo_sources = [self.create_instrument(lo_source) for lo_source in self.settings.lo_sources]
         
     def run_dss_test(self):
         """
@@ -47,28 +47,36 @@ class DssCalibrator(Experiment):
                 
                 # Hot-Cold Measurement
                 if.self.settings.kerr_correction:
+                    print "Make hotcold test..."
                     M_DSB = self.make_hotcold_measurement()
+                    print "done"
                 else:
                     M_DSB = np.ones(self.nchannels)
                 
                 # compute calibration constants (sideband ratios)
                 if not self.settings.ideal_consts['load']:
+                    print "Computing sideband ratios, tone in USB..."
                     sb_ratios_usb = self.compute_sb_ratios(center_freq=sum(lo_comb), tone_in_usb=True)
+                    print "done"
+                    print "Computing sideband ratios, tone in LSB..."
                     sb_ratios_lsb = self.compute_sb_ratios(center_freq=sum(lo_comb), tone_in_usb=False)
+                    print "done"
                 else:
                     const = self.settings.ideal_consts['val']
                     sb_ratios_usb = const * np.zeros(self.nchannels, dtype=np.complex128)
                     sb_ratios_lsb = const * np.zeros(self.nchannels, dtype=np.complex128)
 
                 # load constants
+                print "Loading constants..."
                 [sb_ratio_usb, sb_ratio_lsb] = self.float2fixed_comp(self.consts_nbits, 
                     self.consts_bin_pt, [sb_ratio_usb, sb_ratio_lsb])
-                print "Loading constants to FPGA brams..."
                 self.write_bram_list2d_data(self.settings.const_brams_info, [sb_ratios_usb, sb_ratios_lsb])
                 print "done"
 
                 # compute SRR
+                print "Computing SRR"
                 self.compute_ssr(M_DSB, center_freq=sum(lo_comb))
+                print "done"
     
     def get_lo_combination(self):
         """
@@ -117,7 +125,6 @@ class DssCalibrator(Experiment):
         self.calplotter = DssCalibrationPlotter(self.fpga)
         self.calplotter.create_window()
         
-        print "Computing sideband ratios, tone in " + ("USB" if tone_in_usb else "LSB") + "..."
         for chnl in channels:
             freq = self.freqs[chnl]
             # set generator frequency
@@ -142,7 +149,7 @@ class DssCalibrator(Experiment):
             # plot data specta
             for spec_data, axis in zip([cal_a2, cal_b2], self.calplotter.axes[:2]):
                 spec_data = spec_data / float(self.fpga.read_reg('cal_acc_len')) # divide by accumulation
-                spec_data = self.linear_to_dBFS(spec_data)
+                spec_data = self.linear_to_dBFS(spec_data, self.settings.dBFS_const)
                 axis.plot(spec_data)
             
             partial_freqs.append(freq)
@@ -153,7 +160,6 @@ class DssCalibrator(Experiment):
 
         # plot last frequency
         plt.pause(1) 
-        print "done computing sideband ratios, tone in " + ("USB" if tone_in_usb else "LSB") + "."
 
         # compute interpolations
         sb_ratios = np.interp(range(self.nchannels), channels, sb_ratios)
@@ -206,14 +212,13 @@ class DssCalibrator(Experiment):
         self.srrplotter = DssSrrPlotter(self.fpga)
         self.srrplotter.create_window()
         
-        print "Computing SRR..."
         for chnl in channels:
             freq = self.freqs[chnl]
             # set generator at USB frequency
             self.rf_source.set_freq_mhz(center_freq + freq)
             plt.pause(1) 
             # get USB and LSB power data
-            a2_tone_usb, b2_tone_usb = self.fpga.get_bram_list_interleaved_data(self.settings.spec_info)
+            a2_tone_usb, b2_tone_usb = self.fpga.get_bram_list_interleaved_data(self.settings.synth_info)
 
             # plot data specta
             for spec_data, axis in zip([a2_tone_USB, b2_tone_LSB], self.calplotter.axes[:2]):
@@ -225,12 +230,12 @@ class DssCalibrator(Experiment):
             self.rf_source.set_freq_mhz(center_freq - freq)
             plt.pause(1) 
             # get USB and LSB power data
-            cal_a2_tone_lsb, cal_b2_tone_lsb = self.fpga.get_bram_list_interleaved_data(self.settings.spec_info)
+            cal_a2_tone_lsb, cal_b2_tone_lsb = self.fpga.get_bram_list_interleaved_data(self.settings.synth_info)
 
             # plot data specta
             for spec_data, axis in zip([a2_tone_USB, b2_tone_LSB], self.srrplotter.axes[:2]):
                 spec_data = spec_data / float(self.fpga.read_reg('synth_acc_len')) # divide by accumulation
-                spec_data = self.linear_to_dBFS(spec_data)
+                spec_data = self.linear_to_dBFS(spec_data, self.settings.dBFS_const)
                 axis.plot(spec_data)
             plt.pause(1) 
 
@@ -252,7 +257,6 @@ class DssCalibrator(Experiment):
 
         # plot last frequency
         plt.pause(1) 
-        print "done computing SRR."
 
     def check_overflow(self, nbits, bin_pt, data):
         """
@@ -310,7 +314,7 @@ class DssSrrPlotter(Plotter):
         Plotter.__init__(self, calanfpga)
         self.nplots = 4
         mpl_axes = self.create_axes()
-        self.nchannels = self.get_nchannels(self.settings.spec_info)
+        self.nchannels = self.get_nchannels(self.settings.synth_info)
 
         # add custom axes
         self.axes.append(SpectrumAxis(mpl_axes[0], self.nchannels,

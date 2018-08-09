@@ -2,7 +2,7 @@ import sys, time
 import numpy as np
 from experiment import Experiment
 from snapshot_animator import SnapshotAnimator
-from equipment.generator import Generator
+from instruments.generator import create_generator
 from dummies.dummy_generator import DummyGenerator
 from dummies.dummy_generator import gen_time_arr
 
@@ -17,8 +17,9 @@ class AdcSynchronator(Experiment):
         if self.settings.simulated:
             self.source = DummyGenerator(self.Ts)
         else:
-            self.source = Generator(self.settings.source_ip, self.settings.source_port)
+            self.source = self.create_instrument(self.settings.sync_source)
 
+        self.sync_freq = self.settings.sync_source['def_freq']
         self.synced_counter = 0
         self.required_synced_count = 5 # number of simultaneous iterations with ADCs in sync
                                        # required to consider the ADC synchronized
@@ -30,11 +31,11 @@ class AdcSynchronator(Experiment):
         single frequency DFT.
         """
         # start plot
-        self.snapshot_animator.create_window(create_gui=False)
+        self.snapshot_animator.create_window()
 
-        # turn source on and set freq and amp
-        self.source.set_freq_mhz(self.settings.sync_freq) 
-        self.source.set_power_dbm(self.settings.sync_power)
+        # turn source on and set default freq and power
+        self.source.set_freq_mhz() 
+        self.source.set_power_dbm()
         self.source.turn_output_on()
 
         while True:
@@ -43,8 +44,8 @@ class AdcSynchronator(Experiment):
             self.snapshot_animator.axes[1].plot(snap_adc1[:self.settings.snap_samples])
             self.snapshot_animator.canvas.draw()
             time.sleep(1)
-            snap0_phasor = self.estimate_phasor(self.settings.sync_freq, snap_adc0)
-            snap1_phasor = self.estimate_phasor(self.settings.sync_freq, snap_adc1)
+            snap0_phasor = self.estimate_phasor(self.sync_freq, snap_adc0)
+            snap1_phasor = self.estimate_phasor(self.sync_freq, snap_adc1)
             phasor_div = self.compute_phasor_div(snap0_phasor, snap1_phasor)
             sync_delay = self.compute_delay_diff(phasor_div)
             print "Sync delay: " + str(sync_delay)
@@ -85,7 +86,7 @@ class AdcSynchronator(Experiment):
         adc1.
         """
         Fs = 2*self.settings.bw
-        samples_per_period = Fs / self.settings.sync_freq # = Tsync / Ts
+        samples_per_period = Fs / self.sync_freq # = Tsync / Ts
         phase_diff = np.angle(phasor_div)
         return int(samples_per_period * phase_diff / (2*np.pi))
 

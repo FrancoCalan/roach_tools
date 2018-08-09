@@ -32,7 +32,7 @@ class SpectraAnimator(Animator):
         spec_plot_arr = []
         for i, spec_data in enumerate(spec_data_arr):
             spec_data = spec_data / float(self.fpga.read_reg('acc_len')) # divide by accumulation
-            spec_data = self.linear_to_dBFS(spec_data)
+            spec_data = self.linear_to_dBFS(spec_data, self.settings.dBFS_const)
             if self.maxhold_on:
                 self.maxhold_data[i] = np.maximum(self.maxhold_data[i], spec_data)
                 spec_data = self.maxhold_data[i]

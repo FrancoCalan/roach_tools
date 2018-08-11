@@ -57,7 +57,7 @@ class DssCalibrator(Experiment):
                     M_DSB = self.make_hotcold_measurement()
                     print "done"
                 else:
-                    M_DSB = np.ones(self.nchannels)
+                    M_DSB = None
                 
                 # compute calibration constants (sideband ratios)
                 if not self.settings.ideal_consts['load']:
@@ -290,10 +290,15 @@ class DssCalibrator(Experiment):
             ratio_usb = a2_tone_usb[chnl] / b2_tone_usb[chnl]
             ratio_lsb = b2_tone_lsb[chnl] / a2_tone_lsb[chnl]
             
-            # Compute SRR as per Kerr calibration
-            new_srr_usb = ratio_usb * (ratio_lsb*M_DSB[chnl] - 1) / (ratio_usb - M_DSB[chnl])
+            # Compute SRR as per Kerr calibration if set in config file
+            if self.settings.kerr_correction:
+                new_srr_usb = ratio_usb * (ratio_lsb*M_DSB[chnl] - 1) / (ratio_usb - M_DSB[chnl])
+                new_srr_lsb = ratio_lsb * (ratio_usb - M_DSB[chnl]) / (ratio_lsb*M_DSB[chnl] - 1)
+            else: # compute SRR as sideband ratio
+                new_srr_usb = ratio_usb
+                new_srr_lsb = ratio_lsb
+
             srr_usb.append(10*np.log10(new_srr_usb))
-            new_srr_lsb = ratio_lsb * (ratio_usb - M_DSB[chnl]) / (ratio_lsb*M_DSB[chnl] - 1)
             srr_lsb.append(10*np.log10(new_srr_lsb))
 
             partial_freqs.append(freq)

@@ -4,6 +4,7 @@ import argparse
 from valon_synth import *
 # SYNTH_A = 0, SYNTH_B = 8
 synth = {"A" : SYNTH_A, "B" : SYNTH_B}
+levels_dbm = {-4 : 0, -1 : 3, 2 : 6, 5 : 8}
 
 parser = argparse.ArgumentParser(description='Get and set synthesizer clock.')
 parser.add_argument("-u", "--usb", dest="usb",
@@ -13,7 +14,7 @@ parser.add_argument("-s", "--synth", type=str, dest="synth",
 parser.add_argument("-f", "--freq", type=int, dest="freq",
                    default=None, help="Set frequency.")
 parser.add_argument("-l", "--lev", type=int, dest="level", choices=[-4, -1, 2, 5],
-                   default=None, help="Set power level. Valid levels: -4: 0dBm, -1: 3dBm, 2: 6dBm , 5: 8dBm")
+                   default=None, help="Set power level. Valid levels: " + str(levels_dbm))
 parser.add_argument("-i", "--int_ref", dest="int_ref", action="store_true",
                    help="set internal reference")
 parser.add_argument("-e", "--ext_ref", dest="ext_ref", action="store_true",
@@ -43,7 +44,7 @@ if args.freq is not None:
 if args.level is not None:
     s.set_rf_level(synth[args.synth], args.level)
     synth_levl = s.get_rf_level(synth_num)
-    print "Updated power level SYNTH_" + str(args.synth) + ": " + str(synth_levl)
+    print "Updated power level SYNTH_" + str(args.synth) + ": " + str(synth_levl) + " (" + levels_dbm[synth_levl] + "dBm)"
 
 if args.int_ref:
     s.set_ref_select(False)

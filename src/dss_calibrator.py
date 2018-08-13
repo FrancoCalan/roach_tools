@@ -3,12 +3,12 @@ import numpy as np
 import matplotlib.pyplot as plt
 from experiment import Experiment
 from plotter import Plotter
-from experiment import linear_to_dBFS
+from experiment import linear_to_dBFS, get_nchannels
 from axes.spectrum_axis import SpectrumAxis
 from axes.mag_ratio_axis import MagRatioAxis
 from axes.angle_diff_axis import AngleDiffAxis
 from axes.srr_axis import SrrAxis
-from equipment.generator import Generator
+from instruments.generator import Generator
 
 class DssCalibrator(Experiment):
     """
@@ -16,19 +16,19 @@ class DssCalibrator(Experiment):
     """
     def __init__(self, calanfpga):
         Experiment.__init__(self, calanfpga)
-        self.nchannels = self.get_nchannels(self.settings.synth_info)
+        self.nchannels = get_nchannels(self.settings.synth_info)
         self.freqs = np.linspace(0, self.settings.bw, self.nchannels, endpoint=False)
         
         # const dtype info
-        self.const_nbits = self.settings.const_brams_info['data_width']/2 # bitwidth of real part (=imag part)
-        self.const_bin_pt = self.settings.const_bin_pt
+        self.consts_nbits = self.settings.const_brams_info['data_width']/2 # bitwidth of real part (=imag part)
+        self.consts_bin_pt = self.settings.const_bin_pt
 
         # sources (RF and LOs)
         self.rf_source = self.create_instrument(self.settings.rf_source)
         self.lo_sources = [self.create_instrument(lo_source) for lo_source in self.settings.lo_sources]
         
         # data save attributes
-        self.datafile = self.settings.datafile + '_' + datetime.now().strftime('%Y-%m-%d %H:%M:%S') + '_'
+        self.datafile = self.settings.datafile + '_' + datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S') + '_'
         self.dss_data = {'freq_if' : self.freqs}
         
     def run_dss_test(self):
@@ -38,9 +38,9 @@ class DssCalibrator(Experiment):
         # set power and turn on sources
         self.rf_source.set_power_dbm()
         self.rf_source.turn_output_on()
-        for lo_source in self.lo_sources():
-            self.lo_source.set_power_dbm()
-            self.lo_source.turn_output_on()
+        for lo_source in self.lo_sources:
+            lo_source.set_power_dbm()
+            lo_source.turn_output_on()
 
         lo_combinations = self.get_lo_combinations()
         for lo_comb in lo_combinations:
@@ -52,7 +52,7 @@ class DssCalibrator(Experiment):
                 time.sleep(1)
                 
                 # Hot-Cold Measurement
-                if.self.settings.kerr_correction:
+                if self.settings.kerr_correction:
                     print "Make hotcold test..."
                     M_DSB = self.make_hotcold_measurement()
                     print "done"
@@ -76,24 +76,29 @@ class DssCalibrator(Experiment):
 
                 # load constants
                 print "Loading constants..."
-                [sb_ratio_usb, sb_ratio_lsb] = self.float2fixed_comp(self.consts_nbits, 
-                    self.consts_bin_pt, [sb_ratio_usb, sb_ratio_lsb])
-                self.write_bram_list2d_data(self.settings.const_brams_info, [sb_ratios_usb, sb_ratios_lsb])
+                [sb_ratios_usb, sb_ratios_lsb] = self.float2fixed_comp(self.consts_nbits, 
+                    self.consts_bin_pt, [sb_ratios_usb, sb_ratios_lsb])
+                self.fpga.write_bram_list2d_data(self.settings.const_brams_info, [sb_ratios_usb, sb_ratios_lsb])
                 print "done"
 
                 # compute SRR
                 print "Computing SRR..."
                 center_freq_usb = lo_comb[0] + sum(lo_comb[1:])
                 center_freq_lsb = lo_comb[0] - sum(lo_comb[1:])
-                self.compute_ssr(M_DSB, center_freq_usb, center_freq_lsb)
+                self.compute_srr(M_DSB, center_freq_usb, center_freq_lsb)
                 print "done"
 
                 # save data to file
                 datafile = self.datafile + lo_label
                 with open(datafile+'.json', 'w') as jsonfile:
-                    json.dump(, jsonfile,  indent=4)
+                    json.dump(self.dss_data, jsonfile,  indent=4)
                 print "Data saved"
-    
+
+        # turn off sources
+        self.rf_source.turn_output_off()
+        for lo_source in self.lo_sources:
+            self.lo_source.turn_output_off()
+
     def get_lo_combinations(self):
         """
         Creates a list of tuples with all the possible LO combinations from
@@ -218,19 +223,19 @@ class DssCalibrator(Experiment):
         data_real = np.real(data)
         data_imag = np.imag(data)
 
-        self.check_overflow(nbits, bit_pt,  data_real)
-        self.check_overflow(nbits, bit_pt,  data_imag)
+        self.check_overflow(nbits, bin_pt,  data_real)
+        self.check_overflow(nbits, bin_pt,  data_imag)
         
         data_real = (2**bin_pt * data_real).astype('>i'+str(nbits/8))
         data_imag = (2**bin_pt * data_imag).astype('>i'+str(nbits/8))
 
         # combine real and imag data
-        data_real = 2**nbits * (data_real.astype('>i'+str(2*bits/8)))
+        data_real = 2**nbits * (data_real.astype('>i'+str(2*nbits/8)))
         data_comp = data_real + data_imag
 
         return data_comp
 
-    def run_srr_computation(self, M_DSB, center_freq_usb, center_freq_lsb):
+    def compute_srr(self, M_DSB, center_freq_usb, center_freq_lsb):
         """
         Compute SRR from the DSS receiver using the Kerr method
         (see ALMA Memo 357 (http://legacy.nrao.edu/alma/memos/html-memos/abstracts/abs357.html)).
@@ -259,13 +264,13 @@ class DssCalibrator(Experiment):
             a2_tone_usb, b2_tone_usb = self.fpga.get_bram_list_interleaved_data(self.settings.synth_info)
 
             # save spec data
-            synth_data['a2_ch'+str(ch)+'_tone_usb'] = a2_tone_usb
-            synth_data['b2_ch'+str(ch)+'_tone_usb'] = b2_tone_usb
+            synth_data['a2_ch'+str(chnl)+'_tone_usb'] = a2_tone_usb
+            synth_data['b2_ch'+str(chnl)+'_tone_usb'] = b2_tone_usb
 
             # plot spec data
-            for spec_data, axis in zip([a2_tone_USB, b2_tone_LSB], self.calplotter.axes[:2]):
-                spec_data = spec_data / float(self.fpga.read_reg('synth_acc_len')) # divide by accumulation
-                spec_data = linear_to_dBFS(spec_data)
+            for spec_data, axis in zip([a2_tone_usb, b2_tone_usb], self.srrplotter.axes[:2]):
+                spec_data = spec_data / float(self.fpga.read_reg('syn_acc_len')) # divide by accumulation
+                spec_data = linear_to_dBFS(spec_data, self.settings.dBFS_const)
                 axis.plot(spec_data)
 
             # set generator at LSB frequency
@@ -276,12 +281,12 @@ class DssCalibrator(Experiment):
             a2_tone_lsb, b2_tone_lsb = self.fpga.get_bram_list_interleaved_data(self.settings.synth_info)
 
             # save spec data
-            synth_data['a2_ch'+str(ch)+'_tone_lsb'] = a2_tone_lsb
-            synth_data['b2_ch'+str(ch)+'_tone_lsb'] = b2_tone_lsb
+            synth_data['a2_ch'+str(chnl)+'_tone_lsb'] = a2_tone_lsb
+            synth_data['b2_ch'+str(chnl)+'_tone_lsb'] = b2_tone_lsb
 
             # plot spec data
-            for spec_data, axis in zip([a2_tone_usb, b2_tone_lsb], self.srrplotter.axes[:2]):
-                spec_data = spec_data / float(self.fpga.read_reg('synth_acc_len')) # divide by accumulation
+            for spec_data, axis in zip([a2_tone_usb, b2_tone_usb], self.srrplotter.axes[:2]):
+                spec_data = spec_data / float(self.fpga.read_reg('syn_acc_len')) # divide by accumulation
                 spec_data = linear_to_dBFS(spec_data, self.settings.dBFS_const)
                 axis.plot(spec_data)
             plt.pause(1) 
@@ -350,7 +355,7 @@ class DssCalibrationPlotter(Plotter):
         Plotter.__init__(self, calanfpga)
         self.nplots = 4
         mpl_axes = self.create_axes()
-        self.nchannels = self.get_nchannels(self.settings.cal_pow_info)
+        self.nchannels = get_nchannels(self.settings.cal_pow_info)
         
         # add custom axes
         self.axes.append(SpectrumAxis(mpl_axes[0], self.nchannels,
@@ -371,7 +376,7 @@ class DssSrrPlotter(Plotter):
         Plotter.__init__(self, calanfpga)
         self.nplots = 4
         mpl_axes = self.create_axes()
-        self.nchannels = self.get_nchannels(self.settings.synth_info)
+        self.nchannels = get_nchannels(self.settings.synth_info)
 
         # add custom axes
         self.axes.append(SpectrumAxis(mpl_axes[0], self.nchannels,

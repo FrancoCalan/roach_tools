@@ -32,7 +32,7 @@ except:
 synth_freq = s.get_frequency(synth_num)
 synth_levl = s.get_rf_level(synth_num)
 print "Frequency SYNTH_" + str(args.synth) + ": " + str(synth_freq) + "[MHz]"
-print "RF level SYNTH_"  + str(args.synth) + ": " + str(synth_levl)
+print "RF level SYNTH_"  + str(args.synth) + ": " + str(synth_levl) + " (" + str(levels_dbm[synth_levl]) + "dBm)"
 # False = internal, True = external
 print "Reference : " + ("external" if s.get_ref_select() else "internal")
 
@@ -44,7 +44,7 @@ if args.freq is not None:
 if args.level is not None:
     s.set_rf_level(synth[args.synth], args.level)
     synth_levl = s.get_rf_level(synth_num)
-    print "Updated power level SYNTH_" + str(args.synth) + ": " + str(synth_levl) + " (" + levels_dbm[synth_levl] + "dBm)"
+    print "Updated power level SYNTH_" + str(args.synth) + ": " + str(synth_levl) + " (" + str(levels_dbm[synth_levl]) + "dBm)"
 
 if args.int_ref:
     s.set_ref_select(False)

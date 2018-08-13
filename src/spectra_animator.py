@@ -3,7 +3,7 @@ import numexpr
 import numpy as np
 import Tkinter as Tk
 from animator import Animator
-from experiment import linear_to_dBFS
+from experiment import linear_to_dBFS, get_nchannels
 from axes.spectrum_axis import SpectrumAxis
 
 class SpectraAnimator(Animator):
@@ -15,7 +15,7 @@ class SpectraAnimator(Animator):
         self.nplots = len(self.settings.plot_titles)
         mpl_axes = self.create_axes()
         
-        self.nchannels = self.get_nchannels(self.settings.spec_info)
+        self.nchannels = get_nchannels(self.settings.spec_info)
         for i, ax in enumerate(mpl_axes):
             self.axes.append(SpectrumAxis(ax, self.nchannels,
                 self.settings.bw, self.settings.plot_titles[i]))

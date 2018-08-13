@@ -397,4 +397,4 @@ class CalanFpga():
             # make a new bram info only with current bram_list
             current_bram_info = bram_info.copy()
             current_bram_info['bram_list'] = bram_list
-            self.write_bram_list_data(current_bram_info)
+            self.write_bram_list_data(current_bram_info, data_list)

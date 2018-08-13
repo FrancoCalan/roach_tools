@@ -23,7 +23,7 @@ class Experiment():
         """
         return create_generator(self.rm, instr_info)
 
-def linear_to_dBFS data, dBFS_const):
+def linear_to_dBFS(data, dBFS_const):
     """
     Turn data in linear scale to dBFS scale.
     :param data: data to convert to dBFS.

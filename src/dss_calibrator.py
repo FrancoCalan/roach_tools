@@ -43,9 +43,11 @@ class DssCalibrator(Experiment):
             lo_source.turn_output_on()
 
         lo_combinations = self.get_lo_combinations()
+        initial_time = time.time()
         for lo_comb in lo_combinations:
+            cycle_time = time.time()
             lo_label = '_'.join(['lo'+str(i+1)+'_'+str(lo/1e3)+'ghz' for i,lo in enumerate(lo_comb)]) 
-            print lo_label
+            print lo_label.upper().replace("_", " ")
 
             for i, lo in enumerate(lo_comb):
                 self.lo_sources[i].set_freq_mhz(lo)
@@ -53,51 +55,54 @@ class DssCalibrator(Experiment):
                 
                 # Hot-Cold Measurement
                 if self.settings.kerr_correction:
-                    print "Make hotcold test..."
+                    print "\tMake hotcold test..."; step_time = time.time()
                     M_DSB = self.make_hotcold_measurement()
-                    print "done"
+                    print "\tdone (" + str(time.time() - step_time) + "[s])"
                 else:
                     M_DSB = None
                 
                 # compute calibration constants (sideband ratios)
                 if not self.settings.ideal_consts['load']:
-                    print "Computing sideband ratios, tone in USB..."
+                    print "\tComputing sideband ratios, tone in USB..."; step_time = time.time()
                     center_freq = lo_comb[0] + sum(lo_comb[1:])
                     sb_ratios_usb = self.compute_sb_ratios(center_freq, tone_in_usb=True)
-                    print "done"
-                    print "Computing sideband ratios, tone in LSB..."
+                    print "\tdone (" + str(time.time() - step_time) + "[s])" 
+                    print "\tComputing sideband ratios, tone in LSB..."; step_time = time_time()
                     center_freq = lo_comb[0] - sum(lo_comb[1:])
                     sb_ratios_lsb = self.compute_sb_ratios(center_freq, tone_in_usb=False)
-                    print "done"
+                    print "\tdone (" + str(time.time() - step_time) + "[s])"
                 else:
                     const = self.settings.ideal_consts['val']
-                    sb_ratios_usb = const * np.zeros(self.nchannels, dtype=np.complex128)
-                    sb_ratios_lsb = const * np.zeros(self.nchannels, dtype=np.complex128)
+                    sb_ratios_usb = const * np.ones(self.nchannels, dtype=np.complex128)
+                    sb_ratios_lsb = const * np.ones(self.nchannels, dtype=np.complex128)
 
                 # load constants
-                print "Loading constants..."
+                print "\tLoading constants..."; step_time = time.time()
                 [sb_ratios_usb, sb_ratios_lsb] = self.float2fixed_comp(self.consts_nbits, 
                     self.consts_bin_pt, [sb_ratios_usb, sb_ratios_lsb])
                 self.fpga.write_bram_list2d_data(self.settings.const_brams_info, [sb_ratios_usb, sb_ratios_lsb])
-                print "done"
+                print "\tdone (" + str(time.time() - step_time) + "[s])"
 
                 # compute SRR
-                print "Computing SRR..."
+                print "\tComputing SRR..."; step_time = time.time()
                 center_freq_usb = lo_comb[0] + sum(lo_comb[1:])
                 center_freq_lsb = lo_comb[0] - sum(lo_comb[1:])
                 self.compute_srr(M_DSB, center_freq_usb, center_freq_lsb)
-                print "done"
+                print "\tdone (" + str(time.time() - step_time) + "[s])"
 
                 # save data to file
                 datafile = self.datafile + lo_label
                 with open(datafile+'.json', 'w') as jsonfile:
                     json.dump(self.dss_data, jsonfile,  indent=4)
-                print "Data saved"
+                print "\tData saved"
+                print "\tCycle time: " str(time.time() - cycle.time()) "[s]"
 
         # turn off sources
         self.rf_source.turn_output_off()
         for lo_source in self.lo_sources:
             self.lo_source.turn_output_off()
+
+        print "Total time: " + str(time.time() - initial_time()) "[s]"
 
     def get_lo_combinations(self):
         """

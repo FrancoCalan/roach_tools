@@ -101,7 +101,7 @@ class CalanFpga():
         print '\tSetting %s to %i... ' %(reg, val)
         self.fpga.write_int(reg, val)
         time.sleep(0.1)
-        print 'done'
+        print '\tdone'
 
     def reset_reg(self, reg):
         """
@@ -113,7 +113,7 @@ class CalanFpga():
         time.sleep(0.1)
         self.fpga.write_int(reg, 0)
         time.sleep(0.1)
-        print 'done'
+        print '\tdone'
 
     def listbof(self):
         """

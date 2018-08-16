@@ -35,15 +35,15 @@ class ConvergencePlotter(Plotter):
         # single channel
         [chnl_data_real, chnl_data_imag] = self.fpga.get_bram_list_data(self.settings.conv_info_chnl)
         chnl_data = chnl_data_real**2 + chnl_data_imag**2 # compute power
-        chnl_data = linear_to_dBFS(chnl_data)
+        chnl_data = linear_to_dBFS(chnl_data, self.settings.spec_info)
         
         # max channel
         max_data = self.fpga.get_bram_data(self.settings.conv_info_max)
-        max_data = linear_to_dBFS(max_data)
+        max_data = linear_to_dBFS(max_data, self.settings.spec_info)
 
         # mean channel
         mean_data = self.fpga.get_bram_data(self.settings.conv_info_mean)
-        mean_data = linear_to_dBFS(mean_data)
+        mean_data = linear_to_dBFS(mean_data, self.settings.spec_info)
 
         return [[chnl_data, max_data, mean_data]]
 

@@ -186,7 +186,7 @@ class DssCalibrator(Experiment):
             # plot spec data
             for spec_data, axis in zip([cal_a2, cal_b2], self.calplotter.axes[:2]):
                 spec_data = spec_data / float(self.fpga.read_reg('cal_acc_len')) # divide by accumulation
-                spec_data = linear_to_dBFS(spec_data, self.settings.dBFS_const)
+                spec_data = linear_to_dBFS(spec_data, self.settings.cal_pow_info)
                 axis.plot(spec_data)
             
             partial_freqs.append(freq)
@@ -275,7 +275,7 @@ class DssCalibrator(Experiment):
             # plot spec data
             for spec_data, axis in zip([a2_tone_usb, b2_tone_usb], self.srrplotter.axes[:2]):
                 spec_data = spec_data / float(self.fpga.read_reg('syn_acc_len')) # divide by accumulation
-                spec_data = linear_to_dBFS(spec_data, self.settings.dBFS_const)
+                spec_data = linear_to_dBFS(spec_data, self.settings.synth_info)
                 axis.plot(spec_data)
 
             # set generator at LSB frequency

@@ -20,7 +20,6 @@ cal_adcs     = False
 
 # Spectrometer Settings
 plot_titles = ['Primary Signal', 'Reference Signal', 'Filter Output']
-dBFS_const  = 81
 spec_info   = {'addr_width'   : 9,
                'data_width'   : 64,
                'sign_type'    : 'u',

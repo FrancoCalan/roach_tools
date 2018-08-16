@@ -23,15 +23,19 @@ class Experiment():
         """
         return create_generator(self.rm, instr_info)
 
-def linear_to_dBFS(data, dBFS_const):
+def linear_to_dBFS(data, bram_info, nbits=8):
     """
     Turn data in linear scale to dBFS scale.
     :param data: data to convert to dBFS.
-    :param dBFS_const: constant to adjust dB values
-        to dBFS via substractio.
+    Formula used: dBFS = 6.02*Nbits + 1.76 + 10*log10(FFTSize/2)
+    :param bram_info: bram info data from the spectrometer
+        to get the number of channels.
+    :param nbits: number of bits of the original digitized signal.
     :return: data in dBFS.
     """
-    return 10*np.log10(data+1) - dBFS_const
+    nchannels = get_nchannels(bram_info)
+    dBFS = 6.02*nbits + 1.76 + 10*np.log10(nchannels)
+    return 10*np.log10(data+1) - dBFS
 
 def get_nchannels(bram_info):
     """

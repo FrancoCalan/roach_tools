@@ -224,7 +224,7 @@ class CalanFpga():
         sign  = bram_info['sign_type'] 
         bram  = bram_info['bram_name']
 
-        bram_data = np.fromstring(self.fpga.read(bram, depth*width/8, 0), dtype='>'+sign+str(width/8))
+        bram_data = np.frombuffer(self.fpga.read(bram, depth*width/8, 0), dtype='>'+sign+str(width/8))
         return bram_data
 
     def get_bram_list_data(self, bram_info):
@@ -365,9 +365,10 @@ class CalanFpga():
         if bram_dtype != data.dtype:
             print "WARNING! data types between write bram and data don't match."
             print "bram dtype: " + str(bram_dtype)
-            print "data dtype: " + str(bram_dtype)
+            print "data dtype: " + str(data.dtype)
             print "Attempting to write in bram anyway."
         
+        print data
         self.fpga.write(bram, data.tobytes())
 
     def write_bram_list_data(self, bram_info, data_list):
@@ -398,3 +399,39 @@ class CalanFpga():
             current_bram_info = bram_info.copy()
             current_bram_info['bram_list'] = bram_list
             self.write_bram_list_data(current_bram_info, data_list)
+
+    def write_bram_interleaved_data(self, bram_info, data):
+        """
+        Interleave data to fit a list of brams, so that the first data goes to the first
+        address of the first bram, the second data goes to the first address of the second
+        bram, etc. Useful to load calibration constants to a spectrometer that uses 
+        multi-channel FFT.
+        :param bram_info: dictionary with the info of the brams. The format is the same
+            as for write_bram_list_data().
+        :param data: numpy array with the data to load into the brams.
+        """
+        nbrams = len(bram_info['bram_list'])
+        brams_size = 2**bram_info['addr_width']
+        # reshape the data into a matrix so that a row has the individual bram data
+        reshaped_data = np.transpose(np.reshape(data, (brams_size, nbrams)))
+        for bram, datarow in zip(bram_info['bram_list'], reshaped_data):
+            # make a new bram info only with current bram
+            current_bram_info = bram_info.copy()
+            current_bram_info['bram_name'] = bram
+            self.write_bram_data(current_bram_info, datarow)
+
+
+    def write_bram_list_interleaved_data(self, bram_info, data_list):
+        """
+        Write data into a list of list of brams by using write_bram_interleaved_data().
+        This means that the data gets interleaved in the inner bram lists.
+        :param bram_info: dictionary with the info of the brams. The format is the same
+            as for write_bram_list2d_data().
+        :param data_list: list of numpy arrays with the data to load into the brams of the 
+            inner lists.
+        """
+        for bram_list, data in zip(bram_info['bram_list2d'], data_list):
+            # make a new bram info only with current bram_list
+            current_bram_info = bram_info.copy()
+            current_bram_info['bram_list'] = bram_list
+            self.write_bram_interleaved_data(current_bram_info, data)

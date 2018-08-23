@@ -80,7 +80,8 @@ class DssCalibrator(Experiment):
                 print "\tLoading constants..."; step_time = time.time()
                 [sb_ratios_usb, sb_ratios_lsb] = self.float2fixed_comp(self.consts_nbits, 
                     self.consts_bin_pt, [sb_ratios_usb, sb_ratios_lsb])
-                self.fpga.write_bram_list2d_data(self.settings.const_brams_info, [sb_ratios_usb, sb_ratios_lsb])
+                self.fpga.write_bram_list_interleaved_data(self.settings.const_brams_info, 
+                    [sb_ratios_usb, sb_ratios_lsb])
                 print "\tdone (" + str(time.time() - step_time) + "[s])"
 
                 # compute SRR
@@ -95,14 +96,14 @@ class DssCalibrator(Experiment):
                 with open(datafile+'.json', 'w') as jsonfile:
                     json.dump(self.dss_data, jsonfile,  indent=4)
                 print "\tData saved"
-                print "\tCycle time: " str(time.time() - cycle.time()) "[s]"
+                print "\tCycle time: " + str(time.time() - cycle.time()) + "[s]"
 
         # turn off sources
         self.rf_source.turn_output_off()
         for lo_source in self.lo_sources:
             self.lo_source.turn_output_off()
 
-        print "Total time: " + str(time.time() - initial_time()) "[s]"
+        print "Total time: " + str(time.time() - initial_time()) + "[s]"
 
     def get_lo_combinations(self):
         """
@@ -236,7 +237,7 @@ class DssCalibrator(Experiment):
 
         # combine real and imag data
         data_real = 2**nbits * (data_real.astype('>i'+str(2*nbits/8)))
-        data_comp = data_real + data_imag
+        data_comp = (data_real + data_imag).astype('>i'+str(2*nbits/8))
 
         return data_comp
 
@@ -292,7 +293,7 @@ class DssCalibrator(Experiment):
             # plot spec data
             for spec_data, axis in zip([a2_tone_usb, b2_tone_usb], self.srrplotter.axes[:2]):
                 spec_data = spec_data / float(self.fpga.read_reg('syn_acc_len')) # divide by accumulation
-                spec_data = linear_to_dBFS(spec_data, self.settings.dBFS_const)
+                spec_data = linear_to_dBFS(spec_data, self.settings.synth_info)
                 axis.plot(spec_data)
             plt.pause(1) 
 

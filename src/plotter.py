@@ -4,7 +4,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 import Tkinter as Tk
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg, NavigationToolbar2Tk
-from experiment import Experiment
+from experiment import Experiment, get_nchannels
 
 class Plotter(Experiment):
     """
@@ -134,7 +134,7 @@ class Plotter(Experiment):
         """
         Compute the frequency of channel using the bandwidth information.
         """
-        return self.settings.bw * channel / self.get_nchannels(bram_info)
+        return self.settings.bw * channel / get_nchannels(bram_info)
 
     def get_spec_time_arr(self, n_specs):
         """

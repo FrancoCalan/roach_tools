@@ -26,6 +26,7 @@ setup(name = 'roach_tools',
             'matplotlib',
             'numexpr',
             'spead',
-            'pyserial'],
+            'pyserial',
+            'pyvisa'],
       dependency_links = ['https://github.com/nrao/ValonSynth'],
       zip_safe = False)

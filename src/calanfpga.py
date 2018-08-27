@@ -368,7 +368,6 @@ class CalanFpga():
             print "data dtype: " + str(data.dtype)
             print "Attempting to write in bram anyway."
         
-        print data
         self.fpga.write(bram, data.tobytes())
 
     def write_bram_list_data(self, bram_info, data_list):

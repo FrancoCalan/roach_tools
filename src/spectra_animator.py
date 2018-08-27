@@ -13,6 +13,7 @@ class SpectraAnimator(Animator):
     def __init__(self, calanfpga):
         Animator.__init__(self, calanfpga)
         self.nplots = len(self.settings.plot_titles)
+        self.acc_len_reg = self.settings.spec_info['acc_len_reg']
         mpl_axes = self.create_axes()
         
         self.nchannels = get_nchannels(self.settings.spec_info)
@@ -32,7 +33,7 @@ class SpectraAnimator(Animator):
         spec_data_arr = self.fpga.get_bram_list_interleaved_data(self.settings.spec_info)
         spec_plot_arr = []
         for i, spec_data in enumerate(spec_data_arr):
-            spec_data = spec_data / float(self.fpga.read_reg('acc_len')) # divide by accumulation
+            spec_data = spec_data / float(self.fpga.read_reg(self.acc_len_reg)) # divide by accumulation
             spec_data = linear_to_dBFS(spec_data, self.settings.spec_info)
             if self.maxhold_on:
                 self.maxhold_data[i] = np.maximum(self.maxhold_data[i], spec_data)
@@ -56,7 +57,7 @@ class SpectraAnimator(Animator):
         self.maxhold_button.pack(side=Tk.LEFT)
 
         # acc_len entry
-        self.add_reg_entry('acc_len')
+        self.add_reg_entry(self.acc_len_reg)
 
     def data2dict(self):
         """

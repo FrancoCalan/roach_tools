@@ -14,12 +14,13 @@ class AdcSynchronator(Experiment):
         Experiment.__init__(self, calanfpga)
         self.snapshot_animator = SnapshotAnimator(self.fpga)
         self.Ts = 1.0/(2*self.settings.bw)
-        if self.settings.simulated:
-            self.source = DummyGenerator(self.Ts)
-        else:
-            self.source = self.create_instrument(self.settings.sync_source)
+        self.source = self.create_instrument(self.settings.sync_source)
+        self.lo_sources = []
+        if hasattr(self.settings, 'lo_sources'):
+            for lo_source in self.settings.lo_sources:
+                self.lo_sources.append(self.create_instrument(lo_source))
 
-        self.sync_freq = self.settings.sync_source['def_freq']
+        self.sync_freq = self.settings.sync_freq
         self.synced_counter = 0
         self.required_synced_count = 5 # number of simultaneous iterations with ADCs in sync
                                        # required to consider the ADC synchronized
@@ -37,6 +38,12 @@ class AdcSynchronator(Experiment):
         self.source.set_freq_mhz() 
         self.source.set_power_dbm()
         self.source.turn_output_on()
+
+        # turn on lo sources if exist
+        for lo_source in self.lo_sources:
+            lo_source.set_freq_mhz()
+            lo_source.set_power_dbm()
+            lo_source.turn_output_on()
 
         while True:
             [snap_adc0, snap_adc1] = self.fpga.get_snapshots_sync()
@@ -59,6 +66,8 @@ class AdcSynchronator(Experiment):
         
         print "ADCs successfully synchronized"
         self.source.turn_output_off()
+        for lo_source in self.lo_sources:
+            lo_source.turn_output_off()
 
     def estimate_phasor(self, freq, data):
         """

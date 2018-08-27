@@ -29,7 +29,7 @@ class DssCalibrator(Experiment):
         
         # data save attributes
         self.datafile = self.settings.datafile + '_' + datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S') + '_'
-        self.dss_data = {'freq_if' : self.freqs}
+        self.dss_data = {'freq_if' : self.freqs.tolist()}
         
     def run_dss_test(self):
         """
@@ -67,7 +67,7 @@ class DssCalibrator(Experiment):
                     center_freq = lo_comb[0] + sum(lo_comb[1:])
                     sb_ratios_usb = self.compute_sb_ratios(center_freq, tone_in_usb=True)
                     print "\tdone (" + str(time.time() - step_time) + "[s])" 
-                    print "\tComputing sideband ratios, tone in LSB..."; step_time = time_time()
+                    print "\tComputing sideband ratios, tone in LSB..."; step_time = time.time()
                     center_freq = lo_comb[0] - sum(lo_comb[1:])
                     sb_ratios_lsb = self.compute_sb_ratios(center_freq, tone_in_usb=False)
                     print "\tdone (" + str(time.time() - step_time) + "[s])"
@@ -78,7 +78,7 @@ class DssCalibrator(Experiment):
 
                 # load constants
                 print "\tLoading constants..."; step_time = time.time()
-                [sb_ratios_usb, sb_ratios_lsb] = self.float2fixed_comp(self.consts_nbits, 
+                [sb_ratios_usb, sb_ratios_lsb] = float2fixed_comp(self.consts_nbits, 
                     self.consts_bin_pt, [sb_ratios_usb, sb_ratios_lsb])
                 self.fpga.write_bram_list_interleaved_data(self.settings.const_brams_info, 
                     [sb_ratios_usb, sb_ratios_lsb])
@@ -131,9 +131,9 @@ class DssCalibrator(Experiment):
         M_DSB = (a_hot - a_cold) / (b_hot - b_cold)
 
         # save hotcold data
-        hotcold_data = {'a2_cold' : a2_cold, 'b2_cold' : b2_cold,
-                        'a2_hot'  : a2_hot,  'b2_hot'  : b2_hot, 
-                        'M_DSB'   : MDSB}
+        hotcold_data = {'a2_cold' : a2_cold.tolist(), 'b2_cold' : b2_cold.tolist(),
+                        'a2_hot'  : a2_hot.tolist(),  'b2_hot'  : b2_hot.tolist(), 
+                        'M_DSB'   : MDSB.tolist()}
         self.dss_data['hotcold'] = hotcold_data
         
         return M_DSB
@@ -174,8 +174,8 @@ class DssCalibrator(Experiment):
             cal_ab_re, cal_ab_im = self.fpga.get_bram_list_interleaved_data(self.settings.cal_crosspow_info)
 
             # save spec data
-            cal_data['a2_ch'+str(chnl)] = cal_a2
-            cal_data['b2_ch'+str(chnl)] = cal_b2
+            cal_data['a2_ch_'+str(chnl)] = cal_a2.tolist()
+            cal_data['b2_ch_'+str(chnl)] = cal_b2.tolist()
 
             # compute constant
             ab = cal_ab_re[chnl] + 1j*cal_ab_im[chnl]
@@ -203,43 +203,15 @@ class DssCalibrator(Experiment):
         sb_ratios = np.interp(range(self.nchannels), channels, sb_ratios)
 
         # save calibration data
-        cal_data['sbratios'] = sb_ratios
+        cal_data['sbratios'] = sb_ratios.tolist()
         if tone_in_usb:
-            cal_data['rf_freq'] = center_freq + self.settings.freqs
+            cal_data['rf_freq'] = center_freq + self.freqs
             self.dss_data['cal_tone_usb'] = cal_data
         else: # tone_in_lsb
-            cal_data['rf_freq'] = center_freq - self.settings.freqs
+            cal_data['rf_freq'] = center_freq - self.freqs
             self.dss_data['cal_tone_lsb'] = cal_data
             
         return sb_ratios
-
-    def float2fixed_comp(self, nbits, bin_pt, data):
-        """
-        Convert a numpy array with complex values into CASPER complex 
-        format ([realpart:imagpart]). The real and imaginary part have
-        the same bitwidth given by nbits. bin_pt indicates the binary
-        point position for both the real and imaginary part. The 
-        resulting array should have an integer numpy datatype, of 
-        bitwidth 2*nbits, and it should be in big endian format: >Xi.
-        :param nbits: bitwidth of real part (=imag part).
-        :param bin_pt: binary point of real part (= imag part).
-        :param data: data array to convert.
-        :return: converted data array.
-        """
-        data_real = np.real(data)
-        data_imag = np.imag(data)
-
-        self.check_overflow(nbits, bin_pt,  data_real)
-        self.check_overflow(nbits, bin_pt,  data_imag)
-        
-        data_real = (2**bin_pt * data_real).astype('>i'+str(nbits/8))
-        data_imag = (2**bin_pt * data_imag).astype('>i'+str(nbits/8))
-
-        # combine real and imag data
-        data_real = 2**nbits * (data_real.astype('>i'+str(2*nbits/8)))
-        data_comp = (data_real + data_imag).astype('>i'+str(2*nbits/8))
-
-        return data_comp
 
     def compute_srr(self, M_DSB, center_freq_usb, center_freq_lsb):
         """
@@ -270,8 +242,8 @@ class DssCalibrator(Experiment):
             a2_tone_usb, b2_tone_usb = self.fpga.get_bram_list_interleaved_data(self.settings.synth_info)
 
             # save spec data
-            synth_data['a2_ch'+str(chnl)+'_tone_usb'] = a2_tone_usb
-            synth_data['b2_ch'+str(chnl)+'_tone_usb'] = b2_tone_usb
+            synth_data['a2_ch_'+str(chnl)+'_tone_usb'] = a2_tone_usb.tolist()
+            synth_data['b2_ch_'+str(chnl)+'_tone_usb'] = b2_tone_usb.tolist()
 
             # plot spec data
             for spec_data, axis in zip([a2_tone_usb, b2_tone_usb], self.srrplotter.axes[:2]):
@@ -280,15 +252,16 @@ class DssCalibrator(Experiment):
                 axis.plot(spec_data)
 
             # set generator at LSB frequency
-            self.rf_source.set_freq_mhz(center_freq_lsb - freq)
             plt.pause(1) 
+            self.rf_source.set_freq_mhz(center_freq_lsb - freq)
+            time.sleep(1)
             
             # get USB and LSB power data
             a2_tone_lsb, b2_tone_lsb = self.fpga.get_bram_list_interleaved_data(self.settings.synth_info)
 
             # save spec data
-            synth_data['a2_ch'+str(chnl)+'_tone_lsb'] = a2_tone_lsb
-            synth_data['b2_ch'+str(chnl)+'_tone_lsb'] = b2_tone_lsb
+            synth_data['a2_ch'+str(chnl)+'_tone_lsb'] = a2_tone_lsb.tolist()
+            synth_data['b2_ch'+str(chnl)+'_tone_lsb'] = b2_tone_lsb.tolist()
 
             # plot spec data
             for spec_data, axis in zip([a2_tone_usb, b2_tone_usb], self.srrplotter.axes[:2]):
@@ -322,35 +295,9 @@ class DssCalibrator(Experiment):
         plt.pause(1)
 
         # save srr data
-        synth_data['srr_usb'] = srr_usb
-        synth_data['srr_lsb'] = srr_lsb
+        synth_data['srr_usb'] = srr_usb.tolist()
+        synth_data['srr_lsb'] = srr_lsb.tolist()
         self.dss_data['synth'] = synth_data
-
-    def check_overflow(self, nbits, bin_pt, data):
-        """
-        Given a signed fixed point representation of bitwidth nbits and 
-        binary point bin_pt, check if the data array contians values that
-        will produce overflow if it would be cast. If overflow is detected,
-        a warning signal is printed.
-        :param nbits: bitwidth of the signed fixed point representation.
-        :param bin_pt: binary point of the signed fixed point representation.
-        :param data: data array to check.
-        """
-        max_val = (2.0**(nbits-1)-1) / (2**bin_pt)
-        min_val = (-2.0**(nbits-1))  / (2**bin_pt)
-
-        max_data = np.max(data)
-        min_data = np.min(data)
-
-        if max_data > max_val:
-            print "WARNING! Maximum value surpassed in overflow check."
-            print "Max allowed value: " + str(max_val)
-            print "Max data value: " + str(max_data)
-
-        if min_data < min_val:
-            print "WARNING! Minimum value surpassed in overflow check."
-            print "Min allowed value: " + str(min_val)
-            print "Min data value: " + str(min_data)
 
 class DssCalibrationPlotter(Plotter):
     """
@@ -393,3 +340,57 @@ class DssSrrPlotter(Plotter):
                 self.settings.bw, 'SRR USB'))
         self.axes.append(SrrAxis(mpl_axes[3], self.nchannels,
                 self.settings.bw, 'SRR LSB'))
+
+def float2fixed_comp(nbits, bin_pt, data):
+    """
+    Convert a numpy array with complex values into CASPER complex 
+    format ([realpart:imagpart]). The real and imaginary part have
+    the same bitwidth given by nbits. bin_pt indicates the binary
+    point position for both the real and imaginary part. The 
+    resulting array should have an integer numpy datatype, of 
+    bitwidth 2*nbits, and it should be in big endian format: >Xi.
+    :param nbits: bitwidth of real part (=imag part).
+    :param bin_pt: binary point of real part (= imag part).
+    :param data: data array to convert.
+    :return: converted data array.
+    """
+    data_real = np.real(data)
+    data_imag = np.imag(data)
+
+    check_overflow(nbits, bin_pt,  data_real)
+    check_overflow(nbits, bin_pt,  data_imag)
+    
+    data_real = (2**bin_pt * data_real).astype('>u'+str(nbits/8))
+    data_imag = (2**bin_pt * data_imag).astype('>u'+str(nbits/8))
+
+    # combine real and imag data
+    data_real = 2**nbits * (data_real.astype('>u'+str(2*nbits/8)))
+    data_comp = (data_real + data_imag).astype('>u'+str(2*nbits/8))
+
+    return data_comp
+
+def check_overflow(nbits, bin_pt, data):
+    """
+    Given a signed fixed point representation of bitwidth nbits and 
+    binary point bin_pt, check if the data array contains values that
+    will produce overflow if it would be cast. If overflow is detected,
+    a warning signal is printed.
+    :param nbits: bitwidth of the signed fixed point representation.
+    :param bin_pt: binary point of the signed fixed point representation.
+    :param data: data array to check.
+    """
+    max_val = (2.0**(nbits-1)-1) / (2**bin_pt)
+    min_val = (-2.0**(nbits-1))  / (2**bin_pt)
+
+    max_data = np.max(data)
+    min_data = np.min(data)
+
+    if max_data > max_val:
+        print "WARNING! Maximum value exceeded in overflow check."
+        print "Max allowed value: " + str(max_val)
+        print "Max data value: " + str(max_data)
+
+    if min_data < min_val:
+        print "WARNING! Minimum value exceeded in overflow check."
+        print "Min allowed value: " + str(min_val)
+        print "Min data value: " + str(min_data)

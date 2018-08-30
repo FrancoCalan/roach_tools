@@ -15,12 +15,8 @@ class AdcSynchronator(Experiment):
         self.snapshot_animator = SnapshotAnimator(self.fpga)
         self.Ts = 1.0/(2*self.settings.bw)
         self.source = self.create_instrument(self.settings.sync_source)
-        self.lo_sources = []
-        if hasattr(self.settings, 'lo_sources'):
-            for lo_source in self.settings.lo_sources:
-                self.lo_sources.append(self.create_instrument(lo_source))
 
-        self.sync_freq = self.settings.sync_freq
+        self.sync_freq = self.settings.sync_source['def_freq']
         self.synced_counter = 0
         self.required_synced_count = 5 # number of simultaneous iterations with ADCs in sync
                                        # required to consider the ADC synchronized

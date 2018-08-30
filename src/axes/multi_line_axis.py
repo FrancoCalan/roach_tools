@@ -12,10 +12,17 @@ class MultiLineAxis(CalanAxis):
             self.lines.append(self.ax.plot([], [], lw=2, label=legend)[0])
         self.ax.legend()
 
-    def plot(self, ydata_arr):
+    def plot(self, *args):
         """
         Plot y data in axis.
+        If want to use the default xdata of axis, args[0] = ydata
+        else args[0] = xdata, args[1] = ydata.
         """
+        if len(args) == 1:
+            ydata_arr = args[0]
+        else:
+            self.xdata = args[0]
+            ydata_arr = args[1]
         for line, ydata in zip(self.lines, ydata_arr):
             line.set_data(self.xdata, ydata)
 

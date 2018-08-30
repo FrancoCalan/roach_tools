@@ -15,9 +15,12 @@ class SingleLineAxis(CalanAxis):
         else args[0] = xdata, args[1] = ydata.
         """
         if len(args) == 1:
-            self.line.set_data(self.xdata, args[0])
+            ydata = args[0]
         else:
-            self.line.set_data(args[0], args[1])
+            self.xdata = [0]
+            ydata = args[1]
+
+        self.line.set_data(self.xdata, ydata)
 
     def gen_ydata_dict(self):
         """

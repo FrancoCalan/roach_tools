@@ -155,7 +155,7 @@ class DummyFpga():
                 signal = self.get_generator_signal(2*spec_len)
                 spec += np.abs(np.fft.rfft(signal)[:spec_len])
             spec = spec / acc_len
-            return struct.pack('>'+str(spec_len)+self.settings.spec_info['data_type'], *spec)
+            return struct.pack('>'+self.settings.spec_info['sign_type']+str(spec_len), *spec)
 
         # Returns dummy convergence signal
         elif bram in self.conv_info_chnl_brams:
@@ -169,7 +169,7 @@ class DummyFpga():
         elif bram in self.stab_brams:
             n_data = get_n_data(nbytes, self.settings.inst_chnl_info['data_width'])
             inst_chnl_data = 10 * (np.random.random(n_data)+1)
-            return struct.pack('>'+str(n_data)+self.settings.inst_chnl_info['data_type'], *inst_chnl_data)
+            return struct.pack('>'+self.settings.inst_chnl_info['sign_type']+str(n_data), *inst_chnl_data)
         
         # Raise exception if the bram is not declared in the config file
         else: 
@@ -186,7 +186,7 @@ def gen_exp_decay_signal(nbytes, bram_info):
     b = -(100.0/n_data)*np.random.random()
     exp_signal = np.exp(a*np.exp((b*np.arange(n_data)))) + np.random.random(n_data)
 
-    return struct.pack('>'+str(n_data)+bram_info['data_type'], *exp_signal)
+    return struct.pack('>'+bram_info['sign_type']+str(n_data), *exp_signal)
 
 def get_n_data(nbytes, data_width):
     """

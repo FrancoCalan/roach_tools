@@ -35,12 +35,6 @@ class AdcSynchronator(Experiment):
         self.source.set_power_dbm()
         self.source.turn_output_on()
 
-        # turn on lo sources if exist
-        for lo_source in self.lo_sources:
-            lo_source.set_freq_mhz()
-            lo_source.set_power_dbm()
-            lo_source.turn_output_on()
-
         while True:
             [snap_adc0, snap_adc1] = self.fpga.get_snapshots_sync()
             self.snapshot_animator.axes[0].plot(snap_adc0[:self.settings.snap_samples])

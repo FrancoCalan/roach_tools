@@ -1,5 +1,6 @@
 import time, datetime, json, itertools
 import numpy as np
+import scipy.stats
 import matplotlib.pyplot as plt
 from experiment import Experiment
 from plotter import Plotter
@@ -30,6 +31,90 @@ class DssCalibrator(Experiment):
         # data save attributes
         self.datafile = self.settings.datafile + '_' + datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S') + '_'
         self.dss_data = {'freq_if' : self.freqs.tolist()}
+
+    def synchronize_adcs(self):
+        """
+        Compute the delay difference between ADC (expected to be 
+        an integer of the smaple time), and apply that delay to the
+        ADC running ahead in order to sychronize both ADCs. This is 
+        frequency based synchronization methods, that is an alternative
+        to the stand-alone time-based adc_synchornator method, with the
+        benefit that is less cumbersome when using DSS backends, and more
+        precise.
+        """
+        test_channels = range(1,11)
+
+        self.calplotter = DssCalibrationPlotter(self.fpga)
+        self.calplotter.axes[2].ax.set_xlim((0, self.freqs[test_channels[-1]]))
+        self.calplotter.axes[3].ax.set_xlim((0, self.freqs[test_channels[-1]]))
+        self.calplotter.create_window()
+        
+        # set power and turn on sources
+        self.rf_source.set_power_dbm()
+        self.rf_source.turn_output_on()
+        for lo_source in self.lo_sources:
+            lo_source.set_power_dbm()
+            lo_source.turn_output_on()
+        
+        # set LO freqs as fisrt freq combination
+        lo_comb = self.get_lo_combinations()[0]
+        for lo_source, freq in zip(lo_sources, lo_comb):
+            lo_source.set_freq_mhz(freq)
+        center_freq = sum(lo_comb])
+
+        print "Synchronizing ADCs..."
+        while True:
+            sb_ratios = []
+            partial_freqs = [] # for plotting
+            for chnl in test_channels:
+                freq = self.freqs[chnl]
+                # set generator frequency
+                self.rf_source.set_freq_mhz(center_freq + freq)
+                plt.pause(1) 
+
+                # get power-crosspower data
+                cal_a2, cal_b2 = self.fpga.get_bram_list_interleaved_data(self.settings.cal_pow_info)
+                cal_ab_re, cal_ab_im = self.fpga.get_bram_list_interleaved_data(self.settings.cal_crosspow_info)
+
+                # compute constant
+                ab = cal_ab_re[chnl] + 1j*cal_ab_im[chnl]
+                sb_ratios.append(np.conj(ab) / cal_a2[chnl]) # (ab*)* / aa* = a*b / aa* = b/a = LSB/USB
+
+                # plot spec data
+                for spec_data, axis in zip([cal_a2, cal_b2], self.calplotter.axes[:2]):
+                    spec_data = spec_data / float(self.fpga.read_reg(cal_pow_info['cal_acc_len'])) # divide by accumulation
+                    spec_data = linear_to_dBFS(spec_data, self.settings.cal_pow_info)
+                    axis.plot(spec_data)
+            
+                partial_freqs.append(freq)
+                # plot magnitude ratio
+                self.calplotter.axes[2].plot(partial_freqs, np.abs(sb_ratios))
+                # plot angle difference
+                self.calplotter.axes[3].plot(partial_freqs, np.angle(sb_ratios, deg=True))
+
+        # plot last frequency
+        plt.pause(1) 
+
+        # compute delay difference
+        angles = np.angle(sb_ratios)
+        linearreg_results = scipy.stats.linearreg(partial_freqs, angles)
+        angle_slope = linearreg_results.slope
+        delay = int(round((angle_slope * 2*self.settings.bw / (2*np.pi)) # delay = dphi/df * Fs / 2pi
+        print "Computed delay: " + str(delay)
+        print "Error standard deviation: " str(linearreg_res.stderr)
+
+        # check adc sync status, apply delay if needed
+        if delay == 0:
+            print "ADCs successfully synthronized"
+            self.calplotter.root.destroy()
+            return
+        elif delay > 0: # if delay is positive adc1 is ahead, hence delay adc1
+            self.fpga.set_reg('adc1_delay', delay)
+        else: # (delay < 0) if delay is negative adc0 is ahead, hence delay adc0
+            self.fpga.set_reg('adc0_delay', -1*delay)
+
+        # clear plot
+        self.calplotter.fig.clf()
         
     def run_dss_test(self):
         """
@@ -186,7 +271,7 @@ class DssCalibrator(Experiment):
 
             # plot spec data
             for spec_data, axis in zip([cal_a2, cal_b2], self.calplotter.axes[:2]):
-                spec_data = spec_data / float(self.fpga.read_reg('cal_acc_len')) # divide by accumulation
+                spec_data = spec_data / float(self.fpga.read_reg(cal_pow_info['cal_acc_len'])) # divide by accumulation
                 spec_data = linear_to_dBFS(spec_data, self.settings.cal_pow_info)
                 axis.plot(spec_data)
             
@@ -247,7 +332,7 @@ class DssCalibrator(Experiment):
 
             # plot spec data
             for spec_data, axis in zip([a2_tone_usb, b2_tone_usb], self.srrplotter.axes[:2]):
-                spec_data = spec_data / float(self.fpga.read_reg('syn_acc_len')) # divide by accumulation
+                spec_data = spec_data / float(self.fpga.read_reg(cal_pow_info['syn_acc_len'])) # divide by accumulation
                 spec_data = linear_to_dBFS(spec_data, self.settings.synth_info)
                 axis.plot(spec_data)
 
@@ -265,7 +350,7 @@ class DssCalibrator(Experiment):
 
             # plot spec data
             for spec_data, axis in zip([a2_tone_usb, b2_tone_usb], self.srrplotter.axes[:2]):
-                spec_data = spec_data / float(self.fpga.read_reg('syn_acc_len')) # divide by accumulation
+                spec_data = spec_data / float(self.fpga.read_reg(cal_pow_info['syn_acc_len'])) # divide by accumulation
                 spec_data = linear_to_dBFS(spec_data, self.settings.synth_info)
                 axis.plot(spec_data)
             plt.pause(1) 

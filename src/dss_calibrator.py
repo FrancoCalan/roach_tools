@@ -42,11 +42,11 @@ class DssCalibrator(Experiment):
         benefit that is less cumbersome when using DSS backends, and more
         precise.
         """
-        test_channels = range(1,11)
+        test_channels = range(1, 101, 10)
 
         self.calplotter = DssCalibrationPlotter(self.fpga)
-        self.calplotter.axes[2].ax.set_xlim((0, self.freqs[test_channels[-1]]))
-        self.calplotter.axes[3].ax.set_xlim((0, self.freqs[test_channels[-1]]))
+        self.calplotter.axes[2].ax.set_xlim((self.freqs[test_channels[0]], self.freqs[test_channels[-1]]))
+        self.calplotter.axes[3].ax.set_xlim((self.freqs[test_channels[0]], self.freqs[test_channels[-1]]))
         self.calplotter.create_window()
         
         # set power and turn on sources
@@ -58,9 +58,9 @@ class DssCalibrator(Experiment):
         
         # set LO freqs as fisrt freq combination
         lo_comb = self.get_lo_combinations()[0]
-        for lo_source, freq in zip(lo_sources, lo_comb):
+        for lo_source, freq in zip(self.lo_sources, lo_comb):
             lo_source.set_freq_mhz(freq)
-        center_freq = sum(lo_comb])
+        center_freq = sum(lo_comb)
 
         print "Synchronizing ADCs..."
         while True:
@@ -82,7 +82,7 @@ class DssCalibrator(Experiment):
 
                 # plot spec data
                 for spec_data, axis in zip([cal_a2, cal_b2], self.calplotter.axes[:2]):
-                    spec_data = spec_data / float(self.fpga.read_reg(cal_pow_info['cal_acc_len'])) # divide by accumulation
+                    spec_data = spec_data / float(self.fpga.read_reg(self.settings.cal_pow_info['acc_len_reg'])) # divide by accumulation
                     spec_data = linear_to_dBFS(spec_data, self.settings.cal_pow_info)
                     axis.plot(spec_data)
             
@@ -92,30 +92,27 @@ class DssCalibrator(Experiment):
                 # plot angle difference
                 self.calplotter.axes[3].plot(partial_freqs, np.angle(sb_ratios, deg=True))
 
-        # plot last frequency
-        plt.pause(1) 
+            # plot last frequency
+            plt.pause(1) 
 
-        # compute delay difference
-        angles = np.angle(sb_ratios)
-        linearreg_results = scipy.stats.linearreg(partial_freqs, angles)
-        angle_slope = linearreg_results.slope
-        delay = int(round((angle_slope * 2*self.settings.bw / (2*np.pi)) # delay = dphi/df * Fs / 2pi
-        print "Computed delay: " + str(delay)
-        print "Error standard deviation: " str(linearreg_res.stderr)
+            # compute delay difference
+            angles = np.angle(sb_ratios)
+            linregress_results = scipy.stats.linregress(partial_freqs, angles)
+            angle_slope = linregress_results.slope
+            delay = int(round(angle_slope * 2*self.settings.bw / (2*np.pi))) # delay = dphi/df * Fs / 2pi
+            print "Computed delay: " + str(delay)
+            print "Error standard deviation: " + str(linregress_results.stderr)
 
-        # check adc sync status, apply delay if needed
-        if delay == 0:
-            print "ADCs successfully synthronized"
-            self.calplotter.root.destroy()
-            return
-        elif delay > 0: # if delay is positive adc1 is ahead, hence delay adc1
-            self.fpga.set_reg('adc1_delay', delay)
-        else: # (delay < 0) if delay is negative adc0 is ahead, hence delay adc0
-            self.fpga.set_reg('adc0_delay', -1*delay)
+            # check adc sync status, apply delay if needed
+            if delay == 0:
+                print "ADCs successfully synthronized"
+                plt.close(self.calplotter.fig)
+                return
+            elif delay > 0: # if delay is positive adc1 is ahead, hence delay adc1
+                self.fpga.set_reg('adc1_delay', delay)
+            else: # (delay < 0) if delay is negative adc0 is ahead, hence delay adc0
+                self.fpga.set_reg('adc0_delay', -1*delay)
 
-        # clear plot
-        self.calplotter.fig.clf()
-        
     def run_dss_test(self):
         """
         Perform a full DSS test, with constants and SRR computation. 
@@ -155,16 +152,20 @@ class DssCalibrator(Experiment):
                     print "\tComputing sideband ratios, tone in LSB..."; step_time = time.time()
                     center_freq = lo_comb[0] - sum(lo_comb[1:])
                     sb_ratios_lsb = self.compute_sb_ratios(center_freq, tone_in_usb=False)
+                    sb_ratios_usb = -1.0*sb_ratios_usb
+                    sb_ratios_lsb = -1.0*sb_ratios_lsb
                     print "\tdone (" + str(time.time() - step_time) + "[s])"
                 else:
                     const = self.settings.ideal_consts['val']
                     sb_ratios_usb = const * np.ones(self.nchannels, dtype=np.complex128)
                     sb_ratios_lsb = const * np.ones(self.nchannels, dtype=np.complex128)
+                print sb_ratios_usb
 
                 # load constants
                 print "\tLoading constants..."; step_time = time.time()
                 [sb_ratios_usb, sb_ratios_lsb] = float2fixed_comp(self.consts_nbits, 
                     self.consts_bin_pt, [sb_ratios_usb, sb_ratios_lsb])
+                print sb_ratios_usb
                 self.fpga.write_bram_list_interleaved_data(self.settings.const_brams_info, 
                     [sb_ratios_usb, sb_ratios_lsb])
                 print "\tdone (" + str(time.time() - step_time) + "[s])"
@@ -177,18 +178,18 @@ class DssCalibrator(Experiment):
                 print "\tdone (" + str(time.time() - step_time) + "[s])"
 
                 # save data to file
-                datafile = self.datafile + lo_label
-                with open(datafile+'.json', 'w') as jsonfile:
-                    json.dump(self.dss_data, jsonfile,  indent=4)
-                print "\tData saved"
-                print "\tCycle time: " + str(time.time() - cycle.time()) + "[s]"
+                #datafile = self.datafile + lo_label
+                #with open(datafile+'.json', 'w') as jsonfile:
+                #    json.dump(self.dss_data, jsonfile,  indent=4)
+                #print "\tData saved"
+                #print "\tCycle time: " + str(time.time() - cycle_time) + "[s]"
 
         # turn off sources
         self.rf_source.turn_output_off()
         for lo_source in self.lo_sources:
-            self.lo_source.turn_output_off()
+            lo_source.turn_output_off()
 
-        print "Total time: " + str(time.time() - initial_time()) + "[s]"
+        print "Total time: " + str(time.time() - initial_time) + "[s]"
 
     def get_lo_combinations(self):
         """
@@ -271,7 +272,7 @@ class DssCalibrator(Experiment):
 
             # plot spec data
             for spec_data, axis in zip([cal_a2, cal_b2], self.calplotter.axes[:2]):
-                spec_data = spec_data / float(self.fpga.read_reg(cal_pow_info['cal_acc_len'])) # divide by accumulation
+                spec_data = spec_data / float(self.fpga.read_reg(self.settings.cal_pow_info['acc_len_reg'])) # divide by accumulation
                 spec_data = linear_to_dBFS(spec_data, self.settings.cal_pow_info)
                 axis.plot(spec_data)
             
@@ -290,10 +291,10 @@ class DssCalibrator(Experiment):
         # save calibration data
         cal_data['sbratios'] = sb_ratios.tolist()
         if tone_in_usb:
-            cal_data['rf_freq'] = center_freq + self.freqs
+            cal_data['rf_freq'] = (center_freq + self.freqs).tolist()
             self.dss_data['cal_tone_usb'] = cal_data
         else: # tone_in_lsb
-            cal_data['rf_freq'] = center_freq - self.freqs
+            cal_data['rf_freq'] = (center_freq - self.freqs).tolist()
             self.dss_data['cal_tone_lsb'] = cal_data
             
         return sb_ratios
@@ -332,7 +333,7 @@ class DssCalibrator(Experiment):
 
             # plot spec data
             for spec_data, axis in zip([a2_tone_usb, b2_tone_usb], self.srrplotter.axes[:2]):
-                spec_data = spec_data / float(self.fpga.read_reg(cal_pow_info['syn_acc_len'])) # divide by accumulation
+                spec_data = spec_data / float(self.fpga.read_reg(self.settings.synth_info['acc_len_reg'])) # divide by accumulation
                 spec_data = linear_to_dBFS(spec_data, self.settings.synth_info)
                 axis.plot(spec_data)
 
@@ -350,7 +351,7 @@ class DssCalibrator(Experiment):
 
             # plot spec data
             for spec_data, axis in zip([a2_tone_usb, b2_tone_usb], self.srrplotter.axes[:2]):
-                spec_data = spec_data / float(self.fpga.read_reg(cal_pow_info['syn_acc_len'])) # divide by accumulation
+                spec_data = spec_data / float(self.fpga.read_reg(self.settings.synth_info['acc_len_reg'])) # divide by accumulation
                 spec_data = linear_to_dBFS(spec_data, self.settings.synth_info)
                 axis.plot(spec_data)
             plt.pause(1) 
@@ -380,8 +381,8 @@ class DssCalibrator(Experiment):
         plt.pause(1)
 
         # save srr data
-        synth_data['srr_usb'] = srr_usb.tolist()
-        synth_data['srr_lsb'] = srr_lsb.tolist()
+        synth_data['srr_usb'] = srr_usb
+        synth_data['srr_lsb'] = srr_lsb
         self.dss_data['synth'] = synth_data
 
 class DssCalibrationPlotter(Plotter):

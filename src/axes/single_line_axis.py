@@ -17,7 +17,7 @@ class SingleLineAxis(CalanAxis):
         if len(args) == 1:
             ydata = args[0]
         else:
-            self.xdata = [0]
+            self.xdata = args[0]
             ydata = args[1]
 
         self.line.set_data(self.xdata, ydata)

@@ -148,26 +148,25 @@ class DssCalibrator(Experiment):
                     print "\tComputing sideband ratios, tone in USB..."; step_time = time.time()
                     center_freq = lo_comb[0] + sum(lo_comb[1:])
                     sb_ratios_usb = self.compute_sb_ratios(center_freq, tone_in_usb=True)
+                    consts_usb = -1.0*sb_ratios_usb
                     print "\tdone (" + str(time.time() - step_time) + "[s])" 
                     print "\tComputing sideband ratios, tone in LSB..."; step_time = time.time()
                     center_freq = lo_comb[0] - sum(lo_comb[1:])
                     sb_ratios_lsb = self.compute_sb_ratios(center_freq, tone_in_usb=False)
-                    sb_ratios_usb = -1.0*sb_ratios_usb
-                    sb_ratios_lsb = -1.0*sb_ratios_lsb
+                    consts_lsb = -1.0*sb_ratios_lsb
                     print "\tdone (" + str(time.time() - step_time) + "[s])"
                 else:
                     const = self.settings.ideal_consts['val']
-                    sb_ratios_usb = const * np.ones(self.nchannels, dtype=np.complex128)
-                    sb_ratios_lsb = const * np.ones(self.nchannels, dtype=np.complex128)
+                    consts_usb = const * np.ones(self.nchannels, dtype=np.complex128)
+                    consts_lsb = const * np.ones(self.nchannels, dtype=np.complex128)
                 print sb_ratios_usb
 
                 # load constants
                 print "\tLoading constants..."; step_time = time.time()
-                [sb_ratios_usb, sb_ratios_lsb] = float2fixed_comp(self.consts_nbits, 
-                    self.consts_bin_pt, [sb_ratios_usb, sb_ratios_lsb])
-                print sb_ratios_usb
+                [consts_usb, consts_lsb] = float2fixed_comp(self.consts_nbits, 
+                    self.consts_bin_pt, [consts_usb, consts_lsb])
                 self.fpga.write_bram_list_interleaved_data(self.settings.const_brams_info, 
-                    [sb_ratios_usb, sb_ratios_lsb])
+                    [consts_usb, consts_lsb])
                 print "\tdone (" + str(time.time() - step_time) + "[s])"
 
                 # compute SRR

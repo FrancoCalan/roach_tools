@@ -21,7 +21,7 @@ class DssCalibrator(Experiment):
         self.freqs = np.linspace(0, self.settings.bw, self.nchannels, endpoint=False)
         
         # const dtype info
-        self.consts_nbits = self.settings.const_brams_info['data_width']/2 # bitwidth of real part (=imag part)
+        self.consts_nbits = self.settings.const_brams_info['data_width']
         self.consts_bin_pt = self.settings.const_bin_pt
 
         # sources (RF and LOs)
@@ -148,12 +148,12 @@ class DssCalibrator(Experiment):
                     print "\tComputing sideband ratios, tone in USB..."; step_time = time.time()
                     center_freq = lo_comb[0] + sum(lo_comb[1:])
                     sb_ratios_usb = self.compute_sb_ratios(center_freq, tone_in_usb=True)
-                    consts_usb = -1.0*sb_ratios_usb
+                    consts_lsb = -1.0*sb_ratios_usb
                     print "\tdone (" + str(time.time() - step_time) + "[s])" 
                     print "\tComputing sideband ratios, tone in LSB..."; step_time = time.time()
                     center_freq = lo_comb[0] - sum(lo_comb[1:])
                     sb_ratios_lsb = self.compute_sb_ratios(center_freq, tone_in_usb=False)
-                    consts_lsb = -1.0*sb_ratios_lsb
+                    consts_usb = -1.0*sb_ratios_lsb
                     print "\tdone (" + str(time.time() - step_time) + "[s])"
                 else:
                     const = self.settings.ideal_consts['val']
@@ -162,10 +162,12 @@ class DssCalibrator(Experiment):
 
                 # load constants
                 print "\tLoading constants..."; step_time = time.time()
-                [consts_usb, consts_lsb] = float2fixed_comp(self.consts_nbits, 
-                    self.consts_bin_pt, [consts_usb, consts_lsb])
+                consts_usb_real = float2fixed(self.consts_nbits, self.consts_bin_pt, np.real(consts_usb))
+                consts_usb_imag = float2fixed(self.consts_nbits, self.consts_bin_pt, np.imag(consts_usb))
+                consts_lsb_real = float2fixed(self.consts_nbits, self.consts_bin_pt, np.real(consts_lsb))
+                consts_lsb_imag = float2fixed(self.consts_nbits, self.consts_bin_pt, np.imag(consts_lsb))
                 self.fpga.write_bram_list_interleaved_data(self.settings.const_brams_info, 
-                    [consts_usb, consts_lsb])
+                    [consts_usb_real, consts_usb_imag, consts_lsb_real, consts_lsb_imag])
                 print "\tdone (" + str(time.time() - step_time) + "[s])"
 
                 # compute SRR
@@ -336,9 +338,8 @@ class DssCalibrator(Experiment):
                 axis.plot(spec_data)
 
             # set generator at LSB frequency
-            plt.pause(1) 
             self.rf_source.set_freq_mhz(center_freq_lsb - freq)
-            time.sleep(1)
+            plt.pause(1) 
             
             # get USB and LSB power data
             a2_tone_lsb, b2_tone_lsb = self.fpga.get_bram_list_interleaved_data(self.settings.synth_info)
@@ -348,11 +349,11 @@ class DssCalibrator(Experiment):
             synth_data['b2_ch'+str(chnl)+'_tone_lsb'] = b2_tone_lsb.tolist()
 
             # plot spec data
-            for spec_data, axis in zip([a2_tone_usb, b2_tone_usb], self.srrplotter.axes[:2]):
+            for spec_data, axis in zip([a2_tone_lsb, b2_tone_lsb], self.srrplotter.axes[:2]):
                 spec_data = spec_data / float(self.fpga.read_reg(self.settings.synth_info['acc_len_reg'])) # divide by accumulation
                 spec_data = linear_to_dBFS(spec_data, self.settings.synth_info)
                 axis.plot(spec_data)
-            plt.pause(1) 
+            #plt.pause(1) 
 
             # Compute sideband ratios
             ratio_usb = np.divide(a2_tone_usb[chnl], b2_tone_usb[chnl], dtype=np.float64)
@@ -374,7 +375,7 @@ class DssCalibrator(Experiment):
             self.srrplotter.axes[2].plot(partial_freqs, srr_usb)
             # plot angle difference
             self.srrplotter.axes[3].plot(partial_freqs, srr_lsb)
-
+        
         # plot last frequency
         plt.pause(1)
 
@@ -424,6 +425,21 @@ class DssSrrPlotter(Plotter):
                 self.settings.bw, 'SRR USB'))
         self.axes.append(SrrAxis(mpl_axes[3], self.nchannels,
                 self.settings.bw, 'SRR LSB'))
+
+def float2fixed(nbits, bin_pt, data):
+    """
+    Convert a numpy array with float point numbers into big-endian 
+    (ROACH compatible) fixed point numbers. An overflow check is done 
+    and a warning is printed if the float number can't be represented
+    with the fixed point parameters (round is allowed).
+    :param nbits: bitwidth of the fixed point representation.
+    :param bin_pt: binary point of the fixed point representation.
+    :param data: data array to convert.
+    :return: converted data array.
+    """
+    check_overflow(nbits, bin_pt, data)
+    fixedpoint_data = (2**bin_pt * data).astype('>i'+str(nbits/8))
+    return fixedpoint_data
 
 def float2fixed_comp(nbits, bin_pt, data):
     """

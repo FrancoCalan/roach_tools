@@ -159,7 +159,6 @@ class DssCalibrator(Experiment):
                     const = self.settings.ideal_consts['val']
                     consts_usb = const * np.ones(self.nchannels, dtype=np.complex128)
                     consts_lsb = const * np.ones(self.nchannels, dtype=np.complex128)
-                print sb_ratios_usb
 
                 # load constants
                 print "\tLoading constants..."; step_time = time.time()
@@ -212,8 +211,8 @@ class DssCalibrator(Experiment):
         self.chopper.move_90ccw()
         a2_hot, b2_hot = self.fpga.get_bram_list_interleaved_data(self.settings.cal_pow_info)
 
-        # Compute Kerr's parameter
-        M_DSB = (a_hot - a_cold) / (b_hot - b_cold)
+        # Compute Kerr's parameter.
+        M_DSB = np.divide(a2_hot - a2_cold, b2_hot - b2_cold, dtype=np.float64)
 
         # save hotcold data
         hotcold_data = {'a2_cold' : a2_cold.tolist(), 'b2_cold' : b2_cold.tolist(),
@@ -267,7 +266,7 @@ class DssCalibrator(Experiment):
             if tone_in_usb:
                 sb_ratios.append(np.conj(ab) / cal_a2[chnl]) # (ab*)* / aa* = a*b / aa* = b/a = LSB/USB
             else: # tone in lsb
-                sb_ratios.append(ab / cal_b2[chnl]) # ab* / bb* = a/b = USB/LSB
+                sb_ratios.append(ab / cal_b2[chnl]) # ab* / bb* = a/b = USB/LSB.
 
             # plot spec data
             for spec_data, axis in zip([cal_a2, cal_b2], self.calplotter.axes[:2]):
@@ -356,8 +355,8 @@ class DssCalibrator(Experiment):
             plt.pause(1) 
 
             # Compute sideband ratios
-            ratio_usb = a2_tone_usb[chnl] / b2_tone_usb[chnl]
-            ratio_lsb = b2_tone_lsb[chnl] / a2_tone_lsb[chnl]
+            ratio_usb = np.divide(a2_tone_usb[chnl], b2_tone_usb[chnl], dtype=np.float64)
+            ratio_lsb = np.divide(b2_tone_lsb[chnl], a2_tone_lsb[chnl], dtype=np.float64)
             
             # Compute SRR as per Kerr calibration if set in config file
             if self.settings.kerr_correction:

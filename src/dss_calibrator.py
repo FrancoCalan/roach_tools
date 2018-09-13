@@ -1,4 +1,4 @@
-import time, datetime, json, itertools
+import time, datetime, itertools
 import numpy as np
 import scipy.stats
 import matplotlib.pyplot as plt
@@ -30,7 +30,13 @@ class DssCalibrator(Experiment):
         
         # data save attributes
         self.datafile = self.settings.datafile + '_' + datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S') + '_'
-        self.dss_data = {'freq_if' : self.freqs.tolist()}
+        self.cal_usb_a2 = []; self.cal_usb_b2 = []; self.cal_lsb_a2 = []; self.cal_lsb_b2 = []
+        self.syn_usb_a2 = []; self.syn_usb_b2 = []; self.syn_lsb_a2 = []; self.syn_lsb_b2 = []
+        self.dss_data = {'cal_acc_len'   : np.array([self.settings.syn_acc_len['val']]),
+                         'syn_acc_len'   : np.array([self.settings.syn_acc_len['val']]),
+                         'cal_chnl_step' : np.array([self.settings.cal_chnl_step]),
+                         'syn_chnl_step' : np.array([self.settings.syn_chnl_step]),
+                         'if_freqs'      : self.freqs}
 
     def synchronize_adcs(self):
         """
@@ -133,7 +139,6 @@ class DssCalibrator(Experiment):
 
             for i, lo in enumerate(lo_comb):
                 self.lo_sources[i].set_freq_mhz(lo)
-                time.sleep(1)
                 
                 # Hot-Cold Measurement
                 if self.settings.kerr_correction:
@@ -217,10 +222,7 @@ class DssCalibrator(Experiment):
         M_DSB = np.divide(a2_hot - a2_cold, b2_hot - b2_cold, dtype=np.float64)
 
         # save hotcold data
-        hotcold_data = {'a2_cold' : a2_cold.tolist(), 'b2_cold' : b2_cold.tolist(),
-                        'a2_hot'  : a2_hot.tolist(),  'b2_hot'  : b2_hot.tolist(), 
-                        'M_DSB'   : MDSB.tolist()}
-        self.dss_data['hotcold'] = hotcold_data
+        self.dss_data['M_DSB'] = MDSB
         
         return M_DSB
 
@@ -237,7 +239,7 @@ class DssCalibrator(Experiment):
             False: tone is swept over the LSB, and the ratio computed
             is USB/LSB.
         """
-        channels = range(self.nchannels)[1::self.settings.cal_chnl_step]
+        channels = range(1, self.nchannels, self.settings.cal_chnl_step)
         partial_freqs = [] # for plotting
         sb_ratios = []
         cal_data = {}
@@ -259,14 +261,12 @@ class DssCalibrator(Experiment):
             cal_a2, cal_b2 = self.fpga.get_bram_list_interleaved_data(self.settings.cal_pow_info)
             cal_ab_re, cal_ab_im = self.fpga.get_bram_list_interleaved_data(self.settings.cal_crosspow_info)
 
-            # save spec data
-            cal_data['a2_ch_'+str(chnl)] = cal_a2.tolist()
-            cal_data['b2_ch_'+str(chnl)] = cal_b2.tolist()
-
             # compute constant
             ab = cal_ab_re[chnl] + 1j*cal_ab_im[chnl]
             if tone_in_usb:
                 sb_ratios.append(np.conj(ab) / cal_a2[chnl]) # (ab*)* / aa* = a*b / aa* = b/a = LSB/USB
+                self.cal_usb_a2.append(cal_a2)
+                self.cal_usb_b2.append(cal_b2)
             else: # tone in lsb
                 sb_ratios.append(ab / cal_b2[chnl]) # ab* / bb* = a/b = USB/LSB.
 
@@ -304,12 +304,12 @@ class DssCalibrator(Experiment):
         Compute SRR from the DSS receiver using the Kerr method
         (see ALMA Memo 357 (http://legacy.nrao.edu/alma/memos/html-memos/abstracts/abs357.html)).
         The channel total number of channels used for the SRR computations
-        can be controlled by the config file parameter synth_channel_step.
+        can be controlled by the config file parameter syn_chnl_step.
         :param M_DSB: constant computed in the hotcold test used for the Kerr method.
         :param center_freq: analog center frequency of the downconverted 
             signal. Used to properly set the RF input.
         """
-        channels = range(self.nchannels)[1::self.settings.synth_chnl_step]
+        channels = range(1, self.nchannels, self.settings.syn_chnl_step)
         partial_freqs = [] # for plotting
         srr_usb = []
         srr_lsb = []

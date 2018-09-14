@@ -149,12 +149,13 @@ class DummyFpga():
         if bram in self.spec_brams:
             # Returns spectra of generator signal accumulated acc_len times.
             acc_len = self.read_uint('acc_len')
-            spec_len = get_n_data(nbytes, self.settings.spec_info['data_width'])
+            spec_len = get_ndata(nbytes, self.settings.spec_info['data_width'])
             spec = np.zeros(spec_len)
             for _ in range(acc_len):
                 signal = self.get_generator_signal(2*spec_len)
                 spec += np.abs(np.fft.rfft(signal)[:spec_len])
             spec = spec / acc_len
+            print '>'+self.settings.spec_info['sign_type']+str(spec_len)
             return struct.pack('>'+self.settings.spec_info['sign_type']+str(spec_len), *spec)
 
         # Returns dummy convergence signal
@@ -188,7 +189,7 @@ def gen_exp_decay_signal(nbytes, bram_info):
 
     return struct.pack('>'+bram_info['sign_type']+str(n_data), *exp_signal)
 
-def get_n_data(nbytes, data_width):
+def get_ndata(nbytes, data_width):
     """
     Computes the number of data values given the total number of
     bytes in the data array, and data width in bits.

@@ -1,4 +1,4 @@
-import time, datetime, itertools
+import os, time, datetime, itertools, json
 import numpy as np
 import scipy.stats
 import matplotlib.pyplot as plt
@@ -29,15 +29,21 @@ class DssCalibrator(Experiment):
         self.lo_sources = [self.create_instrument(lo_source) for lo_source in self.settings.lo_sources]
         
         # data save attributes
-        self.datafile = self.settings.datafile + '_' + datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S') + '_'
-        self.cal_usb_a2 = []; self.cal_usb_b2 = []; self.cal_lsb_a2 = []; self.cal_lsb_b2 = []
-        self.syn_usb_a2 = []; self.syn_usb_b2 = []; self.syn_lsb_a2 = []; self.syn_lsb_b2 = []
-        self.dss_data = {'cal_acc_len'   : np.array([self.settings.syn_acc_len['val']]),
-                         'syn_acc_len'   : np.array([self.settings.syn_acc_len['val']]),
-                         'cal_chnl_step' : np.array([self.settings.cal_chnl_step]),
-                         'syn_chnl_step' : np.array([self.settings.syn_chnl_step]),
-                         'if_freqs'      : self.freqs}
-
+        self.dataname = self.settings.dataname + '_' + datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S') + '_'
+        os.makedir(self.dataname)
+        self.testinfo = {'cal_acc_len'      : self.settings.set_regs.cal_acc_len['val'],
+                         'syn_acc_len'      : self.settings.set_regs.syn_acc_len['val'],
+                         'cal_adcs'         : self.settings.cal_adcs,
+                         'sync_adcs'        : self.settings.sync_adcs,
+                         'kerr_correction'  : self.settings.kerr_correction,
+                         'use_ideal_consts' : self.settings.ideal_consts['load'],
+                         'ideal_const'      : str(self.settings.ideal_consts['val']),
+                         'cal_chnl_step'    : self.settings.cal_chnl_step,
+                         'syn_chnl_step'    : self.settings.syn_chnl_step,
+                         'if_freqs'         : self.freqs.tolist()}
+        with open(self.dataname + '/testinfo.json') as jsonfile:
+            json.dump(self.testifo, jsonfile, indent=4)
+        
     def synchronize_adcs(self):
         """
         Compute the delay difference between ADC (expected to be 
@@ -50,7 +56,7 @@ class DssCalibrator(Experiment):
         """
         test_channels = range(1, 101, 10)
 
-        self.calplotter = DssCalibrationPlotter(self.fpga)
+        self.calplotter = DssCalibrationPlotter(self.fpga, 'ADC Synchronization Figure')
         self.calplotter.axes[2].ax.set_xlim((self.freqs[test_channels[0]], self.freqs[test_channels[-1]]))
         self.calplotter.axes[3].ax.set_xlim((self.freqs[test_channels[0]], self.freqs[test_channels[-1]]))
         self.calplotter.create_window()
@@ -134,8 +140,10 @@ class DssCalibrator(Experiment):
         initial_time = time.time()
         for lo_comb in lo_combinations:
             cycle_time = time.time()
-            lo_label = '_'.join(['lo'+str(i+1)+'_'+str(lo/1e3)+'ghz' for i,lo in enumerate(lo_comb)]) 
-            print lo_label.upper().replace("_", " ")
+            lo_label = '_'.join(['LO'+str(i+1)+'_'+str(lo/1e3)+'GHZ' for i,lo in enumerate(lo_comb)]) 
+            self.lo_dataname = self.dataname + "/" + self.lo_label
+            os.makedir(self.lo_dataname)
+            print lo_label.replace("_", " ")
 
             for i, lo in enumerate(lo_comb):
                 self.lo_sources[i].set_freq_mhz(lo)
@@ -152,14 +160,15 @@ class DssCalibrator(Experiment):
                 if not self.settings.ideal_consts['load']:
                     print "\tComputing sideband ratios, tone in USB..."; step_time = time.time()
                     center_freq = lo_comb[0] + sum(lo_comb[1:])
-                    sb_ratios_usb = self.compute_sb_ratios(center_freq, tone_in_usb=True)
-                    consts_lsb = -1.0*sb_ratios_usb
+                    sb_ratios_usb = self.compute_sb_ratios(center_freq, tone_in_usb=True, window_title='Calibration USB Figure')
                     print "\tdone (" + str(time.time() - step_time) + "[s])" 
                     print "\tComputing sideband ratios, tone in LSB..."; step_time = time.time()
                     center_freq = lo_comb[0] - sum(lo_comb[1:])
-                    sb_ratios_lsb = self.compute_sb_ratios(center_freq, tone_in_usb=False)
-                    consts_usb = -1.0*sb_ratios_lsb
+                    sb_ratios_lsb = self.compute_sb_ratios(center_freq, tone_in_usb=False, window_title='Calibration LSB Figure')
                     print "\tdone (" + str(time.time() - step_time) + "[s])"
+                    # constant computation
+                    consts_usb = -1.0*sb_ratios_usb
+                    consts_lsb = -1.0*sb_ratios_lsb
                 else:
                     const = self.settings.ideal_consts['val']
                     consts_usb = const * np.ones(self.nchannels, dtype=np.complex128)
@@ -182,13 +191,6 @@ class DssCalibrator(Experiment):
                 self.compute_srr(M_DSB, center_freq_usb, center_freq_lsb)
                 print "\tdone (" + str(time.time() - step_time) + "[s])"
 
-                # save data to file
-                #datafile = self.datafile + lo_label
-                #with open(datafile+'.json', 'w') as jsonfile:
-                #    json.dump(self.dss_data, jsonfile,  indent=4)
-                #print "\tData saved"
-                #print "\tCycle time: " + str(time.time() - cycle_time) + "[s]"
-
         # turn off sources
         self.rf_source.turn_output_off()
         for lo_source in self.lo_sources:
@@ -205,7 +207,7 @@ class DssCalibrator(Experiment):
         lo_freqs_arr = [lo_source['lo_freqs'] for lo_source in self.settings.lo_sources]
         return list(itertools.product(*lo_freqs_arr))
 
-    def make_hotclod_test(self):
+    def make_hotcold_test(self):
         """
         Perform a hotcold test (Kerr calibration) to the determine the M_DSB parameter to
         correctly compute the Sideband Rejection Ratio (SRR) in Sideband separating receivers.
@@ -222,11 +224,11 @@ class DssCalibrator(Experiment):
         M_DSB = np.divide(a2_hot - a2_cold, b2_hot - b2_cold, dtype=np.float64)
 
         # save hotcold data
-        self.dss_data['M_DSB'] = MDSB
+        #self.dss_data['M_DSB'] = MDSB
         
         return M_DSB
 
-    def compute_sb_ratios(self, center_freq, tone_in_usb):
+    def compute_sb_ratios(self, center_freq, tone_in_usb, window_title):
         """
         Sweep a tone through the receiver bandwidth and computes the
         sideband ratio for a number of FFT channel. The total number of 
@@ -244,7 +246,7 @@ class DssCalibrator(Experiment):
         sb_ratios = []
         cal_data = {}
 
-        self.calplotter = DssCalibrationPlotter(self.fpga)
+        self.calplotter = DssCalibrationPlotter(self.fpga, window_title)
         self.calplotter.create_window()
         
         for chnl in channels:
@@ -292,10 +294,10 @@ class DssCalibrator(Experiment):
         cal_data['sbratios'] = sb_ratios.tolist()
         if tone_in_usb:
             cal_data['rf_freq'] = (center_freq + self.freqs).tolist()
-            self.dss_data['cal_tone_usb'] = cal_data
+            #self.dss_data['cal_tone_usb'] = cal_data
         else: # tone_in_lsb
             cal_data['rf_freq'] = (center_freq - self.freqs).tolist()
-            self.dss_data['cal_tone_lsb'] = cal_data
+            #self.dss_data['cal_tone_lsb'] = cal_data
             
         return sb_ratios
 
@@ -382,15 +384,16 @@ class DssCalibrator(Experiment):
         # save srr data
         synth_data['srr_usb'] = srr_usb
         synth_data['srr_lsb'] = srr_lsb
-        self.dss_data['synth'] = synth_data
+        #self.dss_data['synth'] = synth_data
 
 class DssCalibrationPlotter(Plotter):
     """
     Inner class for calibration plots.
     """
-    def __init__(self, calanfpga):
+    def __init__(self, calanfpga, window_title):
         self.create_gui = False
         Plotter.__init__(self, calanfpga)
+        self.fig.canvas.set_window_title(window_title)
         self.nplots = 4
         mpl_axes = self.create_axes()
         self.nchannels = get_nchannels(self.settings.cal_pow_info)
@@ -412,6 +415,7 @@ class DssSrrPlotter(Plotter):
     def __init__(self, calanfpga):
         self.create_gui = False
         Plotter.__init__(self, calanfpga)
+        self.fig.canvas.set_window_title('SRR Figure')
         self.nplots = 4
         mpl_axes = self.create_axes()
         self.nchannels = get_nchannels(self.settings.synth_info)

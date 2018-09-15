@@ -6,6 +6,7 @@ matplotlib
 numexpr
 pyserial
 pyvisa
+pivisa-py
 setuptools
 git+https://github.com/ska-sa/PySPEAD.git
 git+https://github.com/ska-sa/corr.git

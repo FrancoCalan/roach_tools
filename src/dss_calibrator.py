@@ -1,4 +1,4 @@
-import os, time, datetime, itertools, json
+import os, time, datetime, itertools, json, tarfile
 import numpy as np
 import scipy.stats
 import matplotlib.pyplot as plt
@@ -166,9 +166,14 @@ class DssCalibrator(Experiment):
                     center_freq = lo_comb[0] - sum(lo_comb[1:])
                     sb_ratios_lsb = self.compute_sb_ratios(center_freq, tone_in_usb=False, window_title='Calibration LSB Figure')
                     print "\tdone (" + str(time.time() - step_time) + "[s])"
+
+                    # save sb ratios
+                    np.savez(self.lo_datname+'/sb_ratios', sb_ratios_usb=sb_ratios_usb, sb_ratios_lsb=sb_ratios_lsb)
+
                     # constant computation
                     consts_usb = -1.0*sb_ratios_usb
                     consts_lsb = -1.0*sb_ratios_lsb
+
                 else:
                     const = self.settings.ideal_consts['val']
                     consts_usb = const * np.ones(self.nchannels, dtype=np.complex128)
@@ -195,6 +200,14 @@ class DssCalibrator(Experiment):
         self.rf_source.turn_output_off()
         for lo_source in self.lo_sources:
             lo_source.turn_output_off()
+
+        # print srr (full) plot
+        self.print_srr_plot()
+
+        # compress saved data
+        tar = tarfile.open(self.dataname + ".tar.gz", "w:gz")
+        tar.add(self.dataname)
+        tar.close()
 
         print "Total time: " + str(time.time() - initial_time) + "[s]"
 
@@ -224,7 +237,7 @@ class DssCalibrator(Experiment):
         M_DSB = np.divide(a2_hot - a2_cold, b2_hot - b2_cold, dtype=np.float64)
 
         # save hotcold data
-        #self.dss_data['M_DSB'] = MDSB
+        np.savez(self.lo_dataname+'/hotcold', a2_cold=a2_cold, b2_cold=b2_cold, a2_hot, b2_hot, M_DSB=M_DSB)
         
         return M_DSB
 
@@ -244,7 +257,8 @@ class DssCalibrator(Experiment):
         channels = range(1, self.nchannels, self.settings.cal_chnl_step)
         partial_freqs = [] # for plotting
         sb_ratios = []
-        cal_data = {}
+        cal_dataname = self.lo_dataname + 'cal_rawdata'
+        os.makedir(cal_dataname)
 
         self.calplotter = DssCalibrationPlotter(self.fpga, window_title)
         self.calplotter.create_window()
@@ -254,8 +268,10 @@ class DssCalibrator(Experiment):
             # set generator frequency
             if tone_in_usb:
                 self.rf_source.set_freq_mhz(center_freq + freq)
+                cal_datafile = cal_datname + '/chnl_' + str(chnl) + '_usb'
             else: # tone in lsb
                 self.rf_source.set_freq_mhz(center_freq - freq)    
+                cal_datafile = cal_datname + '/chnl_' + str(chnl) + '_lsb'
             # plot while the generator is changing to frequency to give the system time to update
             plt.pause(1) 
 
@@ -263,12 +279,13 @@ class DssCalibrator(Experiment):
             cal_a2, cal_b2 = self.fpga.get_bram_list_interleaved_data(self.settings.cal_pow_info)
             cal_ab_re, cal_ab_im = self.fpga.get_bram_list_interleaved_data(self.settings.cal_crosspow_info)
 
+            # save cal rawdata
+            np.savez(cal_datafile, cal_a2=cal_a2, cal_b2=cal_b2, cal_ab_re=cal_ab_re, cal_ab_im=cal_ab_im)
+
             # compute constant
             ab = cal_ab_re[chnl] + 1j*cal_ab_im[chnl]
             if tone_in_usb:
                 sb_ratios.append(np.conj(ab) / cal_a2[chnl]) # (ab*)* / aa* = a*b / aa* = b/a = LSB/USB
-                self.cal_usb_a2.append(cal_a2)
-                self.cal_usb_b2.append(cal_b2)
             else: # tone in lsb
                 sb_ratios.append(ab / cal_b2[chnl]) # ab* / bb* = a/b = USB/LSB.
 
@@ -290,15 +307,6 @@ class DssCalibrator(Experiment):
         # compute interpolations
         sb_ratios = np.interp(range(self.nchannels), channels, sb_ratios)
 
-        # save calibration data
-        cal_data['sbratios'] = sb_ratios.tolist()
-        if tone_in_usb:
-            cal_data['rf_freq'] = (center_freq + self.freqs).tolist()
-            #self.dss_data['cal_tone_usb'] = cal_data
-        else: # tone_in_lsb
-            cal_data['rf_freq'] = (center_freq - self.freqs).tolist()
-            #self.dss_data['cal_tone_lsb'] = cal_data
-            
         return sb_ratios
 
     def compute_srr(self, M_DSB, center_freq_usb, center_freq_lsb):
@@ -315,7 +323,8 @@ class DssCalibrator(Experiment):
         partial_freqs = [] # for plotting
         srr_usb = []
         srr_lsb = []
-        synth_data = {}
+        syn_dataname = self.lo_dataname + 'syn_rawdata'
+        os.makedir(syn_dataname)
 
         self.srrplotter = DssSrrPlotter(self.fpga)
         self.srrplotter.create_window()
@@ -328,10 +337,6 @@ class DssCalibrator(Experiment):
             
             # get USB and LSB power data
             a2_tone_usb, b2_tone_usb = self.fpga.get_bram_list_interleaved_data(self.settings.synth_info)
-
-            # save spec data
-            synth_data['a2_ch_'+str(chnl)+'_tone_usb'] = a2_tone_usb.tolist()
-            synth_data['b2_ch_'+str(chnl)+'_tone_usb'] = b2_tone_usb.tolist()
 
             # plot spec data
             for spec_data, axis in zip([a2_tone_usb, b2_tone_usb], self.srrplotter.axes[:2]):
@@ -346,16 +351,15 @@ class DssCalibrator(Experiment):
             # get USB and LSB power data
             a2_tone_lsb, b2_tone_lsb = self.fpga.get_bram_list_interleaved_data(self.settings.synth_info)
 
-            # save spec data
-            synth_data['a2_ch'+str(chnl)+'_tone_lsb'] = a2_tone_lsb.tolist()
-            synth_data['b2_ch'+str(chnl)+'_tone_lsb'] = b2_tone_lsb.tolist()
+            # save syn rawdata
+            np.savez(syn_dataname+'/chnl_'+str(chnl), a2_tone_usb=a2_tone_usb, b2_tone_usb=b2_tone_usb, 
+                a2_tone_lsb=a2_tone_lsb, b2_tone_lsb=b2_tone_lsb)
 
             # plot spec data
             for spec_data, axis in zip([a2_tone_lsb, b2_tone_lsb], self.srrplotter.axes[:2]):
                 spec_data = spec_data / float(self.fpga.read_reg(self.settings.synth_info['acc_len_reg'])) # divide by accumulation
                 spec_data = linear_to_dBFS(spec_data, self.settings.synth_info)
                 axis.plot(spec_data)
-            #plt.pause(1) 
 
             # Compute sideband ratios
             ratio_usb = np.divide(a2_tone_usb[chnl], b2_tone_usb[chnl], dtype=np.float64)
@@ -382,9 +386,10 @@ class DssCalibrator(Experiment):
         plt.pause(1)
 
         # save srr data
-        synth_data['srr_usb'] = srr_usb
-        synth_data['srr_lsb'] = srr_lsb
-        #self.dss_data['synth'] = synth_data
+        np.savez(self.lo_dataname+"/srr", srr_usb=srr_usb, srr_lsb=srr_lsb)
+
+    def print_srr_plot(self): # TODO finish function
+        pass
 
 class DssCalibrationPlotter(Plotter):
     """
@@ -444,34 +449,6 @@ def float2fixed(nbits, bin_pt, data):
     check_overflow(nbits, bin_pt, data)
     fixedpoint_data = (2**bin_pt * data).astype('>i'+str(nbits/8))
     return fixedpoint_data
-
-def float2fixed_comp(nbits, bin_pt, data):
-    """
-    Convert a numpy array with complex values into CASPER complex 
-    format ([realpart:imagpart]). The real and imaginary part have
-    the same bitwidth given by nbits. bin_pt indicates the binary
-    point position for both the real and imaginary part. The 
-    resulting array should have an integer numpy datatype, of 
-    bitwidth 2*nbits, and it should be in big endian format: >Xi.
-    :param nbits: bitwidth of real part (=imag part).
-    :param bin_pt: binary point of real part (= imag part).
-    :param data: data array to convert.
-    :return: converted data array.
-    """
-    data_real = np.real(data)
-    data_imag = np.imag(data)
-
-    check_overflow(nbits, bin_pt,  data_real)
-    check_overflow(nbits, bin_pt,  data_imag)
-    
-    data_real = (2**bin_pt * data_real).astype('>u'+str(nbits/8))
-    data_imag = (2**bin_pt * data_imag).astype('>u'+str(nbits/8))
-
-    # combine real and imag data
-    data_real = 2**nbits * (data_real.astype('>u'+str(2*nbits/8)))
-    data_comp = (data_real + data_imag).astype('>u'+str(2*nbits/8))
-
-    return data_comp
 
 def check_overflow(nbits, bin_pt, data):
     """

@@ -82,7 +82,7 @@ class DssCalibrator(Experiment):
                 freq = self.freqs[chnl]
                 # set generator frequency
                 self.rf_source.set_freq_mhz(center_freq + freq)
-                plt.pause(1) 
+                plt.pause(self.settings.pause_time) 
 
                 # get power-crosspower data
                 cal_a2, cal_b2 = self.fpga.get_bram_list_interleaved_data(self.settings.cal_pow_info)
@@ -105,7 +105,7 @@ class DssCalibrator(Experiment):
                 self.calplotter.axes[3].plot(partial_freqs, np.angle(sb_ratios, deg=True))
 
             # plot last frequency
-            plt.pause(1) 
+            plt.pause(self.settings.pause_time) 
 
             # compute delay difference
             angles = np.angle(sb_ratios)
@@ -273,7 +273,7 @@ class DssCalibrator(Experiment):
                 self.rf_source.set_freq_mhz(center_freq - freq)    
                 cal_datafile = cal_datname + '/chnl_' + str(chnl) + '_lsb'
             # plot while the generator is changing to frequency to give the system time to update
-            plt.pause(1) 
+            plt.pause(self.settings.pause_time) 
 
             # get power-crosspower data
             cal_a2, cal_b2 = self.fpga.get_bram_list_interleaved_data(self.settings.cal_pow_info)
@@ -302,7 +302,7 @@ class DssCalibrator(Experiment):
             self.calplotter.axes[3].plot(partial_freqs, np.angle(sb_ratios, deg=True))
 
         # plot last frequency
-        plt.pause(1) 
+        plt.pause(self.settings.pause_time) 
 
         # compute interpolations
         sb_ratios = np.interp(range(self.nchannels), channels, sb_ratios)
@@ -333,7 +333,7 @@ class DssCalibrator(Experiment):
             freq = self.freqs[chnl]
             # set generator at USB frequency
             self.rf_source.set_freq_mhz(center_freq_usb + freq)
-            plt.pause(1) 
+            plt.pause(self.settings.pause_time) 
             
             # get USB and LSB power data
             a2_tone_usb, b2_tone_usb = self.fpga.get_bram_list_interleaved_data(self.settings.synth_info)
@@ -346,7 +346,7 @@ class DssCalibrator(Experiment):
 
             # set generator at LSB frequency
             self.rf_source.set_freq_mhz(center_freq_lsb - freq)
-            plt.pause(1) 
+            plt.pause(self.settings.pause_time) 
             
             # get USB and LSB power data
             a2_tone_lsb, b2_tone_lsb = self.fpga.get_bram_list_interleaved_data(self.settings.synth_info)
@@ -383,7 +383,7 @@ class DssCalibrator(Experiment):
             self.srrplotter.axes[3].plot(partial_freqs, srr_lsb)
         
         # plot last frequency
-        plt.pause(1)
+        plt.pause(self.settings.pause_time)
 
         # save srr data
         np.savez(self.lo_dataname+"/srr", srr_usb=srr_usb, srr_lsb=srr_lsb)

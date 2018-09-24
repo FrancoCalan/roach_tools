@@ -9,6 +9,7 @@ fpga = CalanFpga()
 fpga.initialize()
 if fpga.settings.cal_adcs:
     fpga.calibrate_adcs()
+dc = DssCalibrator(fpga)
 if fpga.settings.sync_adcs:
-    DssCalibrator(fpga).synchronize_adcs()
-DssCalibrator(fpga).run_dss_test()
+    dc.synchronize_adcs()
+dc.run_dss_test()

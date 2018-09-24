@@ -1,4 +1,4 @@
-import os, time, datetime, itertools, json, tarfile
+import os, time, datetime, itertools, json, tarfile, shutil
 import numpy as np
 import scipy.stats
 import matplotlib.pyplot as plt
@@ -28,21 +28,35 @@ class DssCalibrator(Experiment):
         self.rf_source = self.create_instrument(self.settings.rf_source)
         self.lo_sources = [self.create_instrument(lo_source) for lo_source in self.settings.lo_sources]
         
+        # test channels array
+        self.cal_channels = np.arange(1, self.nchannels, self.settings.cal_chnl_step)
+        self.syn_channels = np.arange(1, self.nchannels, self.settings.syn_chnl_step)
+
+        # plotters
+        self.srrplotter = DssSrrPlotter(self.fpga)
+        self.srrplotter.create_window()
+        self.calplotter_lsb = DssCalibrationPlotter(self.fpga)
+        self.calplotter_lsb.create_window()
+        self.calplotter_usb = DssCalibrationPlotter(self.fpga)
+        self.calplotter_usb.create_window()
+        
         # data save attributes
-        self.dataname = self.settings.dataname + '_' + datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S') + '_'
-        os.makedir(self.dataname)
-        self.testinfo = {'cal_acc_len'      : self.settings.set_regs.cal_acc_len['val'],
-                         'syn_acc_len'      : self.settings.set_regs.syn_acc_len['val'],
+        self.datadir = self.settings.datadir + '_' + datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+        os.mkdir(self.datadir)
+        self.testinfo = {'bw'               : self.settings.bw,
+                         'cal_acc_len'      : self.fpga.read_reg(self.settings.cal_pow_info['acc_len_reg']),
+                         'syn_acc_len'      : self.fpga.read_reg(self.settings.synth_info['acc_len_reg']),
                          'cal_adcs'         : self.settings.cal_adcs,
                          'sync_adcs'        : self.settings.sync_adcs,
                          'kerr_correction'  : self.settings.kerr_correction,
                          'use_ideal_consts' : self.settings.ideal_consts['load'],
                          'ideal_const'      : str(self.settings.ideal_consts['val']),
                          'cal_chnl_step'    : self.settings.cal_chnl_step,
-                         'syn_chnl_step'    : self.settings.syn_chnl_step,
-                         'if_freqs'         : self.freqs.tolist()}
-        with open(self.dataname + '/testinfo.json') as jsonfile:
-            json.dump(self.testifo, jsonfile, indent=4)
+                         'syn_chnl_step'    : self.settings.syn_chnl_step}
+
+
+        with open(self.datadir + '/testinfo.json', 'w') as jsonfile:
+            json.dump(self.testinfo, jsonfile, indent=4)
         
     def synchronize_adcs(self):
         """
@@ -56,10 +70,9 @@ class DssCalibrator(Experiment):
         """
         test_channels = range(1, 101, 10)
 
-        self.calplotter = DssCalibrationPlotter(self.fpga, 'ADC Synchronization Figure')
-        self.calplotter.axes[2].ax.set_xlim((self.freqs[test_channels[0]], self.freqs[test_channels[-1]]))
-        self.calplotter.axes[3].ax.set_xlim((self.freqs[test_channels[0]], self.freqs[test_channels[-1]]))
-        self.calplotter.create_window()
+        self.calplotter_usb.fig.canvas.set_window_title('ADC Sync')
+        self.calplotter_usb.axes[2].ax.set_xlim((self.freqs[test_channels[0]], self.freqs[test_channels[-1]]))
+        self.calplotter_usb.axes[3].ax.set_xlim((self.freqs[test_channels[0]], self.freqs[test_channels[-1]]))
         
         # set power and turn on sources
         self.rf_source.set_power_dbm()
@@ -68,7 +81,7 @@ class DssCalibrator(Experiment):
             lo_source.set_power_dbm()
             lo_source.turn_output_on()
         
-        # set LO freqs as fisrt freq combination
+        # set LO freqs as first freq combination
         lo_comb = self.get_lo_combinations()[0]
         for lo_source, freq in zip(self.lo_sources, lo_comb):
             lo_source.set_freq_mhz(freq)
@@ -93,16 +106,16 @@ class DssCalibrator(Experiment):
                 sb_ratios.append(np.conj(ab) / cal_a2[chnl]) # (ab*)* / aa* = a*b / aa* = b/a = LSB/USB
 
                 # plot spec data
-                for spec_data, axis in zip([cal_a2, cal_b2], self.calplotter.axes[:2]):
+                for spec_data, axis in zip([cal_a2, cal_b2], self.calplotter_usb.axes[:2]):
                     spec_data = spec_data / float(self.fpga.read_reg(self.settings.cal_pow_info['acc_len_reg'])) # divide by accumulation
                     spec_data = linear_to_dBFS(spec_data, self.settings.cal_pow_info)
                     axis.plot(spec_data)
             
                 partial_freqs.append(freq)
                 # plot magnitude ratio
-                self.calplotter.axes[2].plot(partial_freqs, np.abs(sb_ratios))
+                self.calplotter_usb.axes[2].plot(partial_freqs, np.abs(sb_ratios))
                 # plot angle difference
-                self.calplotter.axes[3].plot(partial_freqs, np.angle(sb_ratios, deg=True))
+                self.calplotter_usb.axes[3].plot(partial_freqs, np.angle(sb_ratios, deg=True))
 
             # plot last frequency
             plt.pause(self.settings.pause_time) 
@@ -113,12 +126,13 @@ class DssCalibrator(Experiment):
             angle_slope = linregress_results.slope
             delay = int(round(angle_slope * 2*self.settings.bw / (2*np.pi))) # delay = dphi/df * Fs / 2pi
             print "Computed delay: " + str(delay)
-            print "Error standard deviation: " + str(linregress_results.stderr)
 
             # check adc sync status, apply delay if needed
             if delay == 0:
                 print "ADCs successfully synthronized"
-                plt.close(self.calplotter.fig)
+                # reset axis to original values
+                self.calplotter_usb.axes[2].ax.set_xlim((0, self.settings.bw))
+                self.calplotter_usb.axes[3].ax.set_xlim((0, self.settings.bw))
                 return
             elif delay > 0: # if delay is positive adc1 is ahead, hence delay adc1
                 self.fpga.set_reg('adc1_delay', delay)
@@ -141,10 +155,10 @@ class DssCalibrator(Experiment):
         for lo_comb in lo_combinations:
             cycle_time = time.time()
             lo_label = '_'.join(['LO'+str(i+1)+'_'+str(lo/1e3)+'GHZ' for i,lo in enumerate(lo_comb)]) 
-            self.lo_dataname = self.dataname + "/" + self.lo_label
-            os.makedir(self.lo_dataname)
-            print lo_label.replace("_", " ")
-
+            self.lo_datadir = self.datadir + "/" + lo_label
+            os.mkdir(self.lo_datadir)
+            
+            print lo_label
             for i, lo in enumerate(lo_comb):
                 self.lo_sources[i].set_freq_mhz(lo)
                 
@@ -160,15 +174,17 @@ class DssCalibrator(Experiment):
                 if not self.settings.ideal_consts['load']:
                     print "\tComputing sideband ratios, tone in USB..."; step_time = time.time()
                     center_freq = lo_comb[0] + sum(lo_comb[1:])
-                    sb_ratios_usb = self.compute_sb_ratios(center_freq, tone_in_usb=True, window_title='Calibration USB Figure')
+                    self.calplotter_usb.fig.canvas.set_window_title('Calibration USB ' + lo_label)
+                    sb_ratios_usb = self.compute_sb_ratios(center_freq, tone_in_usb=True)
                     print "\tdone (" + str(time.time() - step_time) + "[s])" 
                     print "\tComputing sideband ratios, tone in LSB..."; step_time = time.time()
                     center_freq = lo_comb[0] - sum(lo_comb[1:])
-                    sb_ratios_lsb = self.compute_sb_ratios(center_freq, tone_in_usb=False, window_title='Calibration LSB Figure')
+                    self.calplotter_lsb.fig.canvas.set_window_title('Calibration LSB ' + lo_label)
+                    sb_ratios_lsb = self.compute_sb_ratios(center_freq, tone_in_usb=False)
                     print "\tdone (" + str(time.time() - step_time) + "[s])"
 
                     # save sb ratios
-                    np.savez(self.lo_datname+'/sb_ratios', sb_ratios_usb=sb_ratios_usb, sb_ratios_lsb=sb_ratios_lsb)
+                    np.savez(self.lo_datadir+'/sb_ratios', sb_ratios_usb=sb_ratios_usb, sb_ratios_lsb=sb_ratios_lsb)
 
                     # constant computation
                     consts_usb = -1.0*sb_ratios_usb
@@ -193,6 +209,7 @@ class DssCalibrator(Experiment):
                 print "\tComputing SRR..."; step_time = time.time()
                 center_freq_usb = lo_comb[0] + sum(lo_comb[1:])
                 center_freq_lsb = lo_comb[0] - sum(lo_comb[1:])
+                self.srrplotter.fig.canvas.set_window_title('SRR Computation ' + lo_label)
                 self.compute_srr(M_DSB, center_freq_usb, center_freq_lsb)
                 print "\tdone (" + str(time.time() - step_time) + "[s])"
 
@@ -202,12 +219,16 @@ class DssCalibrator(Experiment):
             lo_source.turn_output_off()
 
         # print srr (full) plot
-        self.print_srr_plot()
+        self.print_srr_plot(lo_combinations)
 
         # compress saved data
-        tar = tarfile.open(self.dataname + ".tar.gz", "w:gz")
-        tar.add(self.dataname)
+        tar = tarfile.open(self.datadir + ".tar.gz", "w:gz")
+        for datafile in os.listdir(self.datadir):
+            tar.add(self.datadir + '/' + datafile)
         tar.close()
+
+        # delete data folder
+        shutil.rmtree(self.datadir)
 
         print "Total time: " + str(time.time() - initial_time) + "[s]"
 
@@ -237,11 +258,12 @@ class DssCalibrator(Experiment):
         M_DSB = np.divide(a2_hot - a2_cold, b2_hot - b2_cold, dtype=np.float64)
 
         # save hotcold data
-        np.savez(self.lo_dataname+'/hotcold', a2_cold=a2_cold, b2_cold=b2_cold, a2_hot, b2_hot, M_DSB=M_DSB)
+        np.savez(self.lo_datadir+'/hotcold', a2_cold=a2_cold, b2_cold=b2_cold, 
+            a2_hot=a2_hot, b2_hot=b2_hot, M_DSB=M_DSB)
         
         return M_DSB
 
-    def compute_sb_ratios(self, center_freq, tone_in_usb, window_title):
+    def compute_sb_ratios(self, center_freq, tone_in_usb):
         """
         Sweep a tone through the receiver bandwidth and computes the
         sideband ratio for a number of FFT channel. The total number of 
@@ -254,24 +276,27 @@ class DssCalibrator(Experiment):
             False: tone is swept over the LSB, and the ratio computed
             is USB/LSB.
         """
-        channels = range(1, self.nchannels, self.settings.cal_chnl_step)
         partial_freqs = [] # for plotting
         sb_ratios = []
-        cal_dataname = self.lo_dataname + 'cal_rawdata'
-        os.makedir(cal_dataname)
+        cal_datadir = self.lo_datadir + '/cal_rawdata'
+        try:
+            os.mkdir(cal_datadir)
+        except OSError:
+            pass # directory already created
 
-        self.calplotter = DssCalibrationPlotter(self.fpga, window_title)
-        self.calplotter.create_window()
-        
-        for chnl in channels:
-            freq = self.freqs[chnl]
+        # usb/lsb specific objects
+        if tone_in_usb:
+            rf_freqs = center_freq + self.freqs
+            cal_datafile = cal_datadir + '/usb_chnl_'
+            calplotter = self.calplotter_usb
+        else: # tone in lsb
+            rf_freqs = center_freq - self.freqs
+            cal_datafile = cal_datadir + '/lsb_chnl_'
+            calplotter = self.calplotter_lsb
+
+        for chnl in self.cal_channels:
             # set generator frequency
-            if tone_in_usb:
-                self.rf_source.set_freq_mhz(center_freq + freq)
-                cal_datafile = cal_datname + '/chnl_' + str(chnl) + '_usb'
-            else: # tone in lsb
-                self.rf_source.set_freq_mhz(center_freq - freq)    
-                cal_datafile = cal_datname + '/chnl_' + str(chnl) + '_lsb'
+            self.rf_source.set_freq_mhz(rf_freqs[chnl])    
             # plot while the generator is changing to frequency to give the system time to update
             plt.pause(self.settings.pause_time) 
 
@@ -280,7 +305,8 @@ class DssCalibrator(Experiment):
             cal_ab_re, cal_ab_im = self.fpga.get_bram_list_interleaved_data(self.settings.cal_crosspow_info)
 
             # save cal rawdata
-            np.savez(cal_datafile, cal_a2=cal_a2, cal_b2=cal_b2, cal_ab_re=cal_ab_re, cal_ab_im=cal_ab_im)
+            np.savez(cal_datafile + str(chnl), 
+                cal_a2=cal_a2, cal_b2=cal_b2, cal_ab_re=cal_ab_re, cal_ab_im=cal_ab_im)
 
             # compute constant
             ab = cal_ab_re[chnl] + 1j*cal_ab_im[chnl]
@@ -290,22 +316,22 @@ class DssCalibrator(Experiment):
                 sb_ratios.append(ab / cal_b2[chnl]) # ab* / bb* = a/b = USB/LSB.
 
             # plot spec data
-            for spec_data, axis in zip([cal_a2, cal_b2], self.calplotter.axes[:2]):
+            for spec_data, axis in zip([cal_a2, cal_b2], calplotter.axes[:2]):
                 spec_data = spec_data / float(self.fpga.read_reg(self.settings.cal_pow_info['acc_len_reg'])) # divide by accumulation
                 spec_data = linear_to_dBFS(spec_data, self.settings.cal_pow_info)
                 axis.plot(spec_data)
             
-            partial_freqs.append(freq)
+            partial_freqs.append(self.freqs[chnl])
             # plot magnitude ratio
-            self.calplotter.axes[2].plot(partial_freqs, np.abs(sb_ratios))
+            calplotter.axes[2].plot(partial_freqs, np.abs(sb_ratios))
             # plot angle difference
-            self.calplotter.axes[3].plot(partial_freqs, np.angle(sb_ratios, deg=True))
+            calplotter.axes[3].plot(partial_freqs, np.angle(sb_ratios, deg=True))
 
         # plot last frequency
         plt.pause(self.settings.pause_time) 
 
         # compute interpolations
-        sb_ratios = np.interp(range(self.nchannels), channels, sb_ratios)
+        sb_ratios = np.interp(range(self.nchannels), self.cal_channels, sb_ratios)
 
         return sb_ratios
 
@@ -319,20 +345,19 @@ class DssCalibrator(Experiment):
         :param center_freq: analog center frequency of the downconverted 
             signal. Used to properly set the RF input.
         """
-        channels = range(1, self.nchannels, self.settings.syn_chnl_step)
         partial_freqs = [] # for plotting
         srr_usb = []
         srr_lsb = []
-        syn_dataname = self.lo_dataname + 'syn_rawdata'
-        os.makedir(syn_dataname)
+        syn_datadir = self.lo_datadir + '/syn_rawdata'
+        os.mkdir(syn_datadir)
 
-        self.srrplotter = DssSrrPlotter(self.fpga)
-        self.srrplotter.create_window()
-        
-        for chnl in channels:
+        rf_freqs_usb = center_freq_usb + self.freqs
+        rf_freqs_lsb = center_freq_lsb - self.freqs
+ 
+        for chnl in self.syn_channels:
             freq = self.freqs[chnl]
             # set generator at USB frequency
-            self.rf_source.set_freq_mhz(center_freq_usb + freq)
+            self.rf_source.set_freq_mhz(rf_freqs_usb[chnl])
             plt.pause(self.settings.pause_time) 
             
             # get USB and LSB power data
@@ -345,14 +370,14 @@ class DssCalibrator(Experiment):
                 axis.plot(spec_data)
 
             # set generator at LSB frequency
-            self.rf_source.set_freq_mhz(center_freq_lsb - freq)
+            self.rf_source.set_freq_mhz(rf_freqs_lsb[chnl])
             plt.pause(self.settings.pause_time) 
             
             # get USB and LSB power data
             a2_tone_lsb, b2_tone_lsb = self.fpga.get_bram_list_interleaved_data(self.settings.synth_info)
 
             # save syn rawdata
-            np.savez(syn_dataname+'/chnl_'+str(chnl), a2_tone_usb=a2_tone_usb, b2_tone_usb=b2_tone_usb, 
+            np.savez(syn_datadir+'/chnl_'+str(chnl), a2_tone_usb=a2_tone_usb, b2_tone_usb=b2_tone_usb, 
                 a2_tone_lsb=a2_tone_lsb, b2_tone_lsb=b2_tone_lsb)
 
             # plot spec data
@@ -386,19 +411,40 @@ class DssCalibrator(Experiment):
         plt.pause(self.settings.pause_time)
 
         # save srr data
-        np.savez(self.lo_dataname+"/srr", srr_usb=srr_usb, srr_lsb=srr_lsb)
+        np.savez(self.lo_datadir+"/srr", srr_usb=srr_usb, srr_lsb=srr_lsb)
 
-    def print_srr_plot(self): # TODO finish function
-        pass
+    def print_srr_plot(self, lo_combinations):
+        """
+        Print SRR plot using the data saved from the test.
+        :lo_combination: list of lo combinations used for the DSS calibration.
+        """
+        for lo_comb in lo_combinations:
+            lo_label = '_'.join(['LO'+str(i+1)+'_'+str(lo/1e3)+'GHZ' for i,lo in enumerate(lo_comb)]) 
+            datadir = self.datadir + '/' + lo_label
+
+            srrdata = np.load(datadir + '/srr.npz')
+            
+            srr_freqs = np.array([self.freqs[chnl]/1.0e3 for chnl in self.syn_channels])
+            usb_freqs = lo_comb[0]/1.0e3 + sum(lo_comb[1:])/1.0e3 + srr_freqs
+            lsb_freqs = lo_comb[0]/1.0e3 - sum(lo_comb[1:])/1.0e3 - srr_freqs
+            
+            fig = plt.figure()
+            plt.plot(usb_freqs, srrdata['srr_usb'], '-r')
+            plt.plot(lsb_freqs, srrdata['srr_lsb'], '-b')
+            plt.grid()
+            plt.xlabel('Frequency [GHz]')
+            plt.ylabel('SRR [dB]')
+
+        plt.savefig(self.datadir + '/' + 'srr.pdf', bbox_inches='tight')
+
 
 class DssCalibrationPlotter(Plotter):
     """
     Inner class for calibration plots.
     """
-    def __init__(self, calanfpga, window_title):
+    def __init__(self, calanfpga):
         self.create_gui = False
         Plotter.__init__(self, calanfpga)
-        self.fig.canvas.set_window_title(window_title)
         self.nplots = 4
         mpl_axes = self.create_axes()
         self.nchannels = get_nchannels(self.settings.cal_pow_info)
@@ -420,7 +466,6 @@ class DssSrrPlotter(Plotter):
     def __init__(self, calanfpga):
         self.create_gui = False
         Plotter.__init__(self, calanfpga)
-        self.fig.canvas.set_window_title('SRR Figure')
         self.nplots = 4
         mpl_axes = self.create_axes()
         self.nchannels = get_nchannels(self.settings.synth_info)

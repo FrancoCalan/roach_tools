@@ -19,6 +19,7 @@ class DssCalibrator(Experiment):
         Experiment.__init__(self, calanfpga)
         self.nchannels = get_nchannels(self.settings.synth_info)
         self.freqs = np.linspace(0, self.settings.bw, self.nchannels, endpoint=False)
+        self.lo_combinations = self.get_lo_combinations()
         
         # const dtype info
         self.consts_nbits = self.settings.const_brams_info['data_width']
@@ -44,6 +45,7 @@ class DssCalibrator(Experiment):
         self.datadir = self.settings.datadir + '_' + datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
         os.mkdir(self.datadir)
         self.testinfo = {'bw'               : self.settings.bw,
+                         'nchannels'        : self.nchannels,
                          'cal_acc_len'      : self.fpga.read_reg(self.settings.cal_pow_info['acc_len_reg']),
                          'syn_acc_len'      : self.fpga.read_reg(self.settings.synth_info['acc_len_reg']),
                          'cal_adcs'         : self.settings.cal_adcs,
@@ -52,8 +54,8 @@ class DssCalibrator(Experiment):
                          'use_ideal_consts' : self.settings.ideal_consts['load'],
                          'ideal_const'      : str(self.settings.ideal_consts['val']),
                          'cal_chnl_step'    : self.settings.cal_chnl_step,
-                         'syn_chnl_step'    : self.settings.syn_chnl_step}
-
+                         'syn_chnl_step'    : self.settings.syn_chnl_step,
+                         'lo_combinations'  : self.lo_combinations}
 
         with open(self.datadir + '/testinfo.json', 'w') as jsonfile:
             json.dump(self.testinfo, jsonfile, indent=4)
@@ -150,9 +152,8 @@ class DssCalibrator(Experiment):
             lo_source.set_power_dbm()
             lo_source.turn_output_on()
 
-        lo_combinations = self.get_lo_combinations()
         initial_time = time.time()
-        for lo_comb in lo_combinations:
+        for lo_comb in self.lo_combinations:
             cycle_time = time.time()
             lo_label = '_'.join(['LO'+str(i+1)+'_'+str(lo/1e3)+'GHZ' for i,lo in enumerate(lo_comb)]) 
             self.lo_datadir = self.datadir + "/" + lo_label
@@ -219,13 +220,15 @@ class DssCalibrator(Experiment):
             lo_source.turn_output_off()
 
         # print srr (full) plot
-        self.print_srr_plot(lo_combinations)
+        self.print_srr_plot(self.lo_combinations)
 
         # compress saved data
+        print "\tCompressing data..."; step_time = time.time()
         tar = tarfile.open(self.datadir + ".tar.gz", "w:gz")
         for datafile in os.listdir(self.datadir):
             tar.add(self.datadir + '/' + datafile, datafile)
         tar.close()
+        print "\tdone (" + str(time.time() - step_time) + "[s])"
 
         # delete data folder
         shutil.rmtree(self.datadir)
@@ -433,6 +436,7 @@ class DssCalibrator(Experiment):
         Print SRR plot using the data saved from the test.
         :lo_combination: list of lo combinations used for the DSS calibration.
         """
+        srr_freqs = np.array([self.freqs[chnl]/1.0e3 for chnl in self.syn_channels])
         fig = plt.figure()
         for lo_comb in lo_combinations:
             lo_label = '_'.join(['LO'+str(i+1)+'_'+str(lo/1e3)+'GHZ' for i,lo in enumerate(lo_comb)]) 
@@ -440,7 +444,6 @@ class DssCalibrator(Experiment):
 
             srrdata = np.load(datadir + '/srr.npz')
             
-            srr_freqs = np.array([self.freqs[chnl]/1.0e3 for chnl in self.syn_channels])
             usb_freqs = lo_comb[0]/1.0e3 + sum(lo_comb[1:])/1.0e3 + srr_freqs
             lsb_freqs = lo_comb[0]/1.0e3 - sum(lo_comb[1:])/1.0e3 - srr_freqs
             
@@ -451,7 +454,6 @@ class DssCalibrator(Experiment):
             plt.ylabel('SRR [dB]')
 
         plt.savefig(self.datadir + '/' + 'srr.pdf', bbox_inches='tight')
-
 
 class DssCalibrationPlotter(Plotter):
     """

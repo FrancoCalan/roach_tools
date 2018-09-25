@@ -224,7 +224,7 @@ class DssCalibrator(Experiment):
         # compress saved data
         tar = tarfile.open(self.datadir + ".tar.gz", "w:gz")
         for datafile in os.listdir(self.datadir):
-            tar.add(self.datadir + '/' + datafile)
+            tar.add(self.datadir + '/' + datafile, datafile)
         tar.close()
 
         # delete data folder
@@ -249,10 +249,25 @@ class DssCalibrator(Experiment):
         """
         # make the receiver cold
         self.chopper.move_90cw()
-        a2_cold, b2_cold = self.fpga.get_bram_list_interleaved_data(self.settings.cal_pow_info)
+        a2_cold, b2_cold = self.fpga.get_bram_list_interleaved_data(self.settings.cal_pow_info)# plot spec data
+                
+        # plot spec data
+        for spec_data, axis in zip([a2_cold, b2_cold], self.calplotter_usb.axes[:2]):
+            spec_data = spec_data / float(self.fpga.read_reg(self.settings.cal_pow_info['acc_len_reg'])) # divide by accumulation
+            spec_data = linear_to_dBFS(spec_data, self.settings.cal_pow_info)
+            axis.plot(spec_data)
+        plt.pause(self.settings.pause_time) 
+
         # make the receiver hot
         self.chopper.move_90ccw()
         a2_hot, b2_hot = self.fpga.get_bram_list_interleaved_data(self.settings.cal_pow_info)
+
+        # plot spec data
+        for spec_data, axis in zip([a2_hot, b2_hot], self.calplotter_usb.axes[:2]):
+            spec_data = spec_data / float(self.fpga.read_reg(self.settings.cal_pow_info['acc_len_reg'])) # divide by accumulation
+            spec_data = linear_to_dBFS(spec_data, self.settings.cal_pow_info)
+            axis.plot(spec_data)
+        plt.pause(self.settings.pause_time) 
 
         # Compute Kerr's parameter.
         M_DSB = np.divide(a2_hot - a2_cold, b2_hot - b2_cold, dtype=np.float64)
@@ -418,6 +433,7 @@ class DssCalibrator(Experiment):
         Print SRR plot using the data saved from the test.
         :lo_combination: list of lo combinations used for the DSS calibration.
         """
+        fig = plt.figure()
         for lo_comb in lo_combinations:
             lo_label = '_'.join(['LO'+str(i+1)+'_'+str(lo/1e3)+'GHZ' for i,lo in enumerate(lo_comb)]) 
             datadir = self.datadir + '/' + lo_label
@@ -428,7 +444,6 @@ class DssCalibrator(Experiment):
             usb_freqs = lo_comb[0]/1.0e3 + sum(lo_comb[1:])/1.0e3 + srr_freqs
             lsb_freqs = lo_comb[0]/1.0e3 - sum(lo_comb[1:])/1.0e3 - srr_freqs
             
-            fig = plt.figure()
             plt.plot(usb_freqs, srrdata['srr_usb'], '-r')
             plt.plot(lsb_freqs, srrdata['srr_lsb'], '-b')
             plt.grid()

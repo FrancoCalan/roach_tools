@@ -123,7 +123,7 @@ class DssCalibrator(Experiment):
             plt.pause(self.settings.pause_time) 
 
             # compute delay difference
-            angles = np.angle(sb_ratios)
+            angles = np.unwrap(np.angle(sb_ratios))
             linregress_results = scipy.stats.linregress(partial_freqs, angles)
             angle_slope = linregress_results.slope
             delay = int(round(angle_slope * 2*self.settings.bw / (2*np.pi))) # delay = dphi/df * Fs / 2pi

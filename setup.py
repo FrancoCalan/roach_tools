@@ -17,6 +17,7 @@ setup(name = 'roach_tools',
                      'roach_tools.dummies' : 'src/dummies',
                      'roach_tools.instruments' : 'src/instruments'},
       scripts = glob.glob('bin/*.py') +
+                glob.glob('bin/general_utils/*.py') +
                 glob.glob('bin/dss_utils/*.py'),
       install_requires = [
             'construct', 

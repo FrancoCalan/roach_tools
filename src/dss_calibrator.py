@@ -30,8 +30,9 @@ class DssCalibrator(Experiment):
         self.lo_sources = [self.create_instrument(lo_source) for lo_source in self.settings.lo_sources]
         
         # test channels array
-        self.cal_channels = np.arange(1, self.nchannels, self.settings.cal_chnl_step)
-        self.syn_channels = np.arange(1, self.nchannels, self.settings.syn_chnl_step)
+        self.syn_channels = range(1, 101, 10)
+        self.cal_channels = range(1, self.nchannels, self.settings.cal_chnl_step)
+        self.srr_channels = range(1, self.nchannels, self.settings.srr_chnl_step)
 
         # plotters
         self.srrplotter = DssSrrPlotter(self.fpga)
@@ -70,19 +71,12 @@ class DssCalibrator(Experiment):
         benefit that is less cumbersome when using DSS backends, and more
         precise.
         """
-        test_channels = range(1, 101, 10)
-
         self.calplotter_usb.fig.canvas.set_window_title('ADC Sync')
         self.calplotter_usb.axes[2].ax.set_xlim((self.freqs[test_channels[0]], self.freqs[test_channels[-1]]))
         self.calplotter_usb.axes[3].ax.set_xlim((self.freqs[test_channels[0]], self.freqs[test_channels[-1]]))
         
-        # set power and turn on sources
-        self.rf_source.set_power_dbm()
-        self.rf_source.turn_output_on()
-        for lo_source in self.lo_sources:
-            lo_source.set_power_dbm()
-            lo_source.turn_output_on()
-        
+        self.init_sources()
+
         # set LO freqs as first freq combination
         lo_comb = self.get_lo_combinations()[0]
         for lo_source, freq in zip(self.lo_sources, lo_comb):
@@ -92,8 +86,8 @@ class DssCalibrator(Experiment):
         print "Synchronizing ADCs..."
         while True:
             sb_ratios = []
-            partial_freqs = [] # for plotting
-            for chnl in test_channels:
+
+            for i, chnl in enumerate(test_channels):
                 freq = self.freqs[chnl]
                 # set generator frequency
                 self.rf_source.set_freq_mhz(center_freq + freq)
@@ -108,12 +102,9 @@ class DssCalibrator(Experiment):
                 sb_ratios.append(np.conj(ab) / cal_a2[chnl]) # (ab*)* / aa* = a*b / aa* = b/a = LSB/USB
 
                 # plot spec data
-                for spec_data, axis in zip([cal_a2, cal_b2], self.calplotter_usb.axes[:2]):
-                    spec_data = spec_data / float(self.fpga.read_reg(self.settings.cal_pow_info['acc_len_reg'])) # divide by accumulation
-                    spec_data = linear_to_dBFS(spec_data, self.settings.cal_pow_info)
-                    axis.plot(spec_data)
-            
-                partial_freqs.append(freq)
+                self.plot_spec_data(self.calplotter_usb.axes[:2], [cal_a2, cal_b2], self.settings.cal_pow_info)
+
+                partial_freqs = self.freqs(self.syn_channels[:i+1])
                 # plot magnitude ratio
                 self.calplotter_usb.axes[2].plot(partial_freqs, np.abs(sb_ratios))
                 # plot angle difference
@@ -122,13 +113,7 @@ class DssCalibrator(Experiment):
             # plot last frequency
             plt.pause(self.settings.pause_time) 
 
-            # compute delay difference
-            angles = np.unwrap(np.angle(sb_ratios))
-            linregress_results = scipy.stats.linregress(partial_freqs, angles)
-            angle_slope = linregress_results.slope
-            delay = int(round(angle_slope * 2*self.settings.bw / (2*np.pi))) # delay = dphi/df * Fs / 2pi
-            print "Computed delay: " + str(delay)
-
+            delay = self.compute_adc_delay_freq(partial_freqs, sb_ratios)            
             # check adc sync status, apply delay if needed
             if delay == 0:
                 print "ADCs successfully synthronized"
@@ -145,19 +130,14 @@ class DssCalibrator(Experiment):
         """
         Perform a full DSS test, with constants and SRR computation. 
         """
-        # set power and turn on sources
-        self.rf_source.set_power_dbm()
-        self.rf_source.turn_output_on()
-        for lo_source in self.lo_sources:
-            lo_source.set_power_dbm()
-            lo_source.turn_output_on()
+        self.init_sources()
 
         initial_time = time.time()
         for lo_comb in self.lo_combinations:
             cycle_time = time.time()
             lo_label = '_'.join(['LO'+str(i+1)+'_'+str(lo/1e3)+'GHZ' for i,lo in enumerate(lo_comb)]) 
-            self.lo_datadir = self.datadir + "/" + lo_label
-            os.mkdir(self.lo_datadir)
+            lo_datadir = self.datadir + "/" + lo_label
+            os.mkdir(lo_datadir)
             
             print lo_label
             for i, lo in enumerate(lo_comb):
@@ -174,14 +154,13 @@ class DssCalibrator(Experiment):
                 # compute calibration constants (sideband ratios)
                 if not self.settings.ideal_consts['load']:
                     print "\tComputing sideband ratios, tone in USB..."; step_time = time.time()
-                    center_freq = lo_comb[0] + sum(lo_comb[1:])
                     self.calplotter_usb.fig.canvas.set_window_title('Calibration USB ' + lo_label)
-                    sb_ratios_usb = self.compute_sb_ratios(center_freq, tone_in_usb=True)
+                    sb_ratios_usb = self.compute_sb_ratios_usb(lo_comb, lo_datadir)
                     print "\tdone (" + str(time.time() - step_time) + "[s])" 
+
                     print "\tComputing sideband ratios, tone in LSB..."; step_time = time.time()
-                    center_freq = lo_comb[0] - sum(lo_comb[1:])
                     self.calplotter_lsb.fig.canvas.set_window_title('Calibration LSB ' + lo_label)
-                    sb_ratios_lsb = self.compute_sb_ratios(center_freq, tone_in_usb=False)
+                    sb_ratios_lsb = self.compute_sb_ratios_lsb(lo_comb, lo_datadir)
                     print "\tdone (" + str(time.time() - step_time) + "[s])"
 
                     # save sb ratios
@@ -208,10 +187,8 @@ class DssCalibrator(Experiment):
 
                 # compute SRR
                 print "\tComputing SRR..."; step_time = time.time()
-                center_freq_usb = lo_comb[0] + sum(lo_comb[1:])
-                center_freq_lsb = lo_comb[0] - sum(lo_comb[1:])
                 self.srrplotter.fig.canvas.set_window_title('SRR Computation ' + lo_label)
-                self.compute_srr(M_DSB, center_freq_usb, center_freq_lsb)
+                self.compute_srr(M_DSB, lo_comb, lo_datadir)
                 print "\tdone (" + str(time.time() - step_time) + "[s])"
 
         # turn off sources
@@ -235,15 +212,6 @@ class DssCalibrator(Experiment):
 
         print "Total time: " + str(time.time() - initial_time) + "[s]"
 
-    def get_lo_combinations(self):
-        """
-        Creates a list of tuples with all the possible LO combinations from
-        the lo_sources parameter of the config file. Used to perform a
-        nested loop that set all LO combinations in generators.
-        """
-        lo_freqs_arr = [lo_source['lo_freqs'] for lo_source in self.settings.lo_sources]
-        return list(itertools.product(*lo_freqs_arr))
-
     def make_hotcold_test(self):
         """
         Perform a hotcold test (Kerr calibration) to the determine the M_DSB parameter to
@@ -252,13 +220,10 @@ class DssCalibrator(Experiment):
         """
         # make the receiver cold
         self.chopper.move_90cw()
-        a2_cold, b2_cold = self.fpga.get_bram_list_interleaved_data(self.settings.cal_pow_info)# plot spec data
+        a2_cold, b2_cold = self.fpga.get_bram_list_interleaved_data(self.settings.cal_pow_info)
                 
         # plot spec data
-        for spec_data, axis in zip([a2_cold, b2_cold], self.calplotter_usb.axes[:2]):
-            spec_data = spec_data / float(self.fpga.read_reg(self.settings.cal_pow_info['acc_len_reg'])) # divide by accumulation
-            spec_data = linear_to_dBFS(spec_data, self.settings.cal_pow_info)
-            axis.plot(spec_data)
+        self.plot_spec_data(self.calplotter_usb.axes[:2], [a2_cold, b2_cold], self.settings.cal_pow_info)
         plt.pause(self.settings.pause_time) 
 
         # make the receiver hot
@@ -266,10 +231,7 @@ class DssCalibrator(Experiment):
         a2_hot, b2_hot = self.fpga.get_bram_list_interleaved_data(self.settings.cal_pow_info)
 
         # plot spec data
-        for spec_data, axis in zip([a2_hot, b2_hot], self.calplotter_usb.axes[:2]):
-            spec_data = spec_data / float(self.fpga.read_reg(self.settings.cal_pow_info['acc_len_reg'])) # divide by accumulation
-            spec_data = linear_to_dBFS(spec_data, self.settings.cal_pow_info)
-            axis.plot(spec_data)
+        self.plot_spec_data(self.calplotter_usb.axes[:2], [a2_hot, b2_hot], self.settings.cal_pow_info)
         plt.pause(self.settings.pause_time) 
 
         # Compute Kerr's parameter.
@@ -281,38 +243,26 @@ class DssCalibrator(Experiment):
         
         return M_DSB
 
-    def compute_sb_ratios(self, center_freq, tone_in_usb):
+    def compute_sb_ratios_usb(self, lo_comb, lo_datadir):
         """
-        Sweep a tone through the receiver bandwidth and computes the
-        sideband ratio for a number of FFT channel. The total number of 
-        channels used for the computations depends in the config file parameter 
-        cal_chnl_step. The channels not measured are interpolated.
-        :param center_freq: analog center frequency of the downconverted 
-            signal. Used to properly set the RF input.
-        :param tone_in_usb: True: tone is swept over the USB, and the
-            and the ratio computed is LSB/USB.
-            False: tone is swept over the LSB, and the ratio computed
-            is USB/LSB.
+        Sweep a tone through the receiver bandwidth and computes the USB
+        sideband ratio for a number of FFT channel. The USB sideband ratio is 
+        defined as the complex division LSB/USB when the test tone is in the USB.
+        The total number of  channels used for the computations depends in the config 
+        file parameter cal_chnl_step. The channels not measured are interpolated.
+        :param lo_comb: LO frequency combination for the test. Used to properly set
+            the RF test input.
+        :param lo_datadir: diretory for the data of the current LO frequency combination.
+        :return: USB sideband ratios
         """
-        partial_freqs = [] # for plotting
         sb_ratios = []
-        cal_datadir = self.lo_datadir + '/cal_rawdata'
-        try:
-            os.mkdir(cal_datadir)
-        except OSError:
-            pass # directory already created
+        rf_freqs = lo_comb[0] + sum(lo_comb[1:]) + self.freqs
 
-        # usb/lsb specific objects
-        if tone_in_usb:
-            rf_freqs = center_freq + self.freqs
-            cal_datafile = cal_datadir + '/usb_chnl_'
-            calplotter = self.calplotter_usb
-        else: # tone in lsb
-            rf_freqs = center_freq - self.freqs
-            cal_datafile = cal_datadir + '/lsb_chnl_'
-            calplotter = self.calplotter_lsb
+        cal_datadir = lo_datadir + '/cal_rawdata'
+        # creates directory for the raw calibration data
+        os.mkdir(cal_datadir)
 
-        for chnl in self.cal_channels:
+        for i, chnl in enumerate(self.cal_channels):
             # set generator frequency
             self.rf_source.set_freq_mhz(rf_freqs[chnl])    
             # plot while the generator is changing to frequency to give the system time to update
@@ -323,27 +273,21 @@ class DssCalibrator(Experiment):
             cal_ab_re, cal_ab_im = self.fpga.get_bram_list_interleaved_data(self.settings.cal_crosspow_info)
 
             # save cal rawdata
-            np.savez(cal_datafile + str(chnl), 
+            np.savez(cal_datadir + '/usb_chnl_' + str(chnl), 
                 cal_a2=cal_a2, cal_b2=cal_b2, cal_ab_re=cal_ab_re, cal_ab_im=cal_ab_im)
 
             # compute constant
             ab = cal_ab_re[chnl] + 1j*cal_ab_im[chnl]
-            if tone_in_usb:
-                sb_ratios.append(np.conj(ab) / cal_a2[chnl]) # (ab*)* / aa* = a*b / aa* = b/a = LSB/USB
-            else: # tone in lsb
-                sb_ratios.append(ab / cal_b2[chnl]) # ab* / bb* = a/b = USB/LSB.
+            sb_ratios.append(np.conj(ab) / cal_a2[chnl]) # (ab*)* / aa* = a*b / aa* = b/a = LSB/USB
 
             # plot spec data
-            for spec_data, axis in zip([cal_a2, cal_b2], calplotter.axes[:2]):
-                spec_data = spec_data / float(self.fpga.read_reg(self.settings.cal_pow_info['acc_len_reg'])) # divide by accumulation
-                spec_data = linear_to_dBFS(spec_data, self.settings.cal_pow_info)
-                axis.plot(spec_data)
+            self.plot_spec_data(self.calplotter_usb.axes[:2], [cal_a2, cal_b2], self.settings.cal_pow_info)
             
-            partial_freqs.append(self.freqs[chnl])
+            partial_freqs = self.freqs(self.cal_channels[:i+1])
             # plot magnitude ratio
-            calplotter.axes[2].plot(partial_freqs, np.abs(sb_ratios))
+            self.calplotter_usb.axes[2].plot(partial_freqs, np.abs(sb_ratios))
             # plot angle difference
-            calplotter.axes[3].plot(partial_freqs, np.angle(sb_ratios, deg=True))
+            self.calplotter_usb.axes[3].plot(partial_freqs, np.angle(sb_ratios, deg=True))
 
         # plot last frequency
         plt.pause(self.settings.pause_time) 
@@ -353,42 +297,92 @@ class DssCalibrator(Experiment):
 
         return sb_ratios
 
-    def compute_srr(self, M_DSB, center_freq_usb, center_freq_lsb):
+    def compute_sb_ratios_lsb(self, lo_comb, lo_datadir):
+        """
+        Sweep a tone through the receiver bandwidth and computes the LSB
+        sideband ratio for a number of FFT channel. The LSB sideband ratio is 
+        defined as the complex division USB/LSB when the test tone is in the LSB.
+        The total number of  channels used for the computations depends in the config 
+        file parameter cal_chnl_step. The channels not measured are interpolated.
+        :param lo_comb: LO frequency combination for the test. Used to properly set
+            the RF test input.
+        :param lo_datadir: diretory for the data of the current LO frequency combination.
+        :return: USB sideband ratios
+        """
+        sb_ratios = []
+        rf_freqs = lo_comb[0] - sum(lo_comb[1:]) - self.freqs
+
+        cal_datadir = lo_datadir + '/cal_rawdata'
+
+        for i, chnl in enumerate(self.cal_channels):
+            # set generator frequency
+            self.rf_source.set_freq_mhz(rf_freqs[chnl])    
+            # plot while the generator is changing to frequency to give the system time to update
+            plt.pause(self.settings.pause_time) 
+
+            # get power-crosspower data
+            cal_a2, cal_b2 = self.fpga.get_bram_list_interleaved_data(self.settings.cal_pow_info)
+            cal_ab_re, cal_ab_im = self.fpga.get_bram_list_interleaved_data(self.settings.cal_crosspow_info)
+
+            # save cal rawdata
+            np.savez(cal_datadir + '/lsb_chnl_' + str(chnl), 
+                cal_a2=cal_a2, cal_b2=cal_b2, cal_ab_re=cal_ab_re, cal_ab_im=cal_ab_im)
+
+            # compute constant
+            ab = cal_ab_re[chnl] + 1j*cal_ab_im[chnl]
+            sb_ratios.append(ab / cal_b2[chnl]) # ab* / bb* = a/b = USB/LSB.
+
+            # plot spec data
+            self.plot_spec_data(self.calplotter_lsb.axes[:2], [cal_a2, cal_b2], self.settings.cal_pow_info)
+            
+            partial_freqs = self.freqs(self.cal_channels[:i+1])
+            # plot magnitude ratio
+            self.calplotter_lsb.axes[2].plot(partial_freqs, np.abs(sb_ratios))
+            # plot angle difference
+            self.calplotter_lsb.axes[3].plot(partial_freqs, np.angle(sb_ratios, deg=True))
+
+        # plot last frequency
+        plt.pause(self.settings.pause_time) 
+
+        # compute interpolations
+        sb_ratios = np.interp(range(self.nchannels), self.cal_channels, sb_ratios)
+
+        return sb_ratios
+
+    def compute_srr(self, M_DSB, lo_comb, lo_datadir):
         """
         Compute SRR from the DSS receiver using the Kerr method
         (see ALMA Memo 357 (http://legacy.nrao.edu/alma/memos/html-memos/abstracts/abs357.html)).
-        The channel total number of channels used for the SRR computations
+        The total number of channels used for the SRR computations
         can be controlled by the config file parameter syn_chnl_step.
         :param M_DSB: constant computed in the hotcold test used for the Kerr method.
-        :param center_freq: analog center frequency of the downconverted 
-            signal. Used to properly set the RF input.
+        :param lo_comb: LO frequency combination for the test. Used to properly set
+            the RF test input.
+        :param lo_datadir: diretory for the data of the current LO frequency combination.
         """
-        partial_freqs = [] # for plotting
         srr_usb = []
         srr_lsb = []
-        syn_datadir = self.lo_datadir + '/syn_rawdata'
-        os.mkdir(syn_datadir)
+        rf_freqs_usb = lo_comb[0] + sum(lo_comb[1:]) + self.freqs
+        rf_freqs_lsb = lo_comb[0] - sum(lo_comb[1:]) - self.freqs
 
-        rf_freqs_usb = center_freq_usb + self.freqs
-        rf_freqs_lsb = center_freq_lsb - self.freqs
+        syn_datadir = lo_datadir + '/srr_rawdata'
+        os.mkdir(syn_datadir)
  
-        for chnl in self.syn_channels:
-            freq = self.freqs[chnl]
+        for i, chnl in enumerate(self.srr_channels):
             # set generator at USB frequency
             self.rf_source.set_freq_mhz(rf_freqs_usb[chnl])
+            # plot while the generator is changing to frequency to give the system time to update
             plt.pause(self.settings.pause_time) 
             
             # get USB and LSB power data
             a2_tone_usb, b2_tone_usb = self.fpga.get_bram_list_interleaved_data(self.settings.synth_info)
 
             # plot spec data
-            for spec_data, axis in zip([a2_tone_usb, b2_tone_usb], self.srrplotter.axes[:2]):
-                spec_data = spec_data / float(self.fpga.read_reg(self.settings.synth_info['acc_len_reg'])) # divide by accumulation
-                spec_data = linear_to_dBFS(spec_data, self.settings.synth_info)
-                axis.plot(spec_data)
+            self.plot_spec_data(self.srrplotter.axes[:2], [a2_tone_usb, b2_tone_usb], self.settings.synth_info)
 
             # set generator at LSB frequency
             self.rf_source.set_freq_mhz(rf_freqs_lsb[chnl])
+            # plot while the generator is changing to frequency to give the system time to update
             plt.pause(self.settings.pause_time) 
             
             # get USB and LSB power data
@@ -399,10 +393,7 @@ class DssCalibrator(Experiment):
                 a2_tone_lsb=a2_tone_lsb, b2_tone_lsb=b2_tone_lsb)
 
             # plot spec data
-            for spec_data, axis in zip([a2_tone_lsb, b2_tone_lsb], self.srrplotter.axes[:2]):
-                spec_data = spec_data / float(self.fpga.read_reg(self.settings.synth_info['acc_len_reg'])) # divide by accumulation
-                spec_data = linear_to_dBFS(spec_data, self.settings.synth_info)
-                axis.plot(spec_data)
+            self.plot_spec_data(self.srrplotter.axes[:2], [a2_tone_lsb, b2_tone_lsb], self.settings.synth_info)
 
             # Compute sideband ratios
             ratio_usb = np.divide(a2_tone_usb[chnl], b2_tone_usb[chnl], dtype=np.float64)
@@ -419,7 +410,7 @@ class DssCalibrator(Experiment):
             srr_usb.append(10*np.log10(new_srr_usb))
             srr_lsb.append(10*np.log10(new_srr_lsb))
 
-            partial_freqs.append(freq)
+            partial_freqs = self.freqs(self.cal_channels[:i+1])
             # plot magnitude ratio
             self.srrplotter.axes[2].plot(partial_freqs, srr_usb)
             # plot angle difference
@@ -429,7 +420,59 @@ class DssCalibrator(Experiment):
         plt.pause(self.settings.pause_time)
 
         # save srr data
-        np.savez(self.lo_datadir+"/srr", srr_usb=srr_usb, srr_lsb=srr_lsb)
+        np.savez(lo_datadir+"/srr", srr_usb=srr_usb, srr_lsb=srr_lsb)
+
+    def init_sources(self):
+        """
+        Turn on LO and RF sources and set them to their default power value.
+        """
+        self.rf_source.set_power_dbm()
+        self.rf_source.turn_output_on()
+        for lo_source in self.lo_sources:
+            lo_source.set_power_dbm()
+            lo_source.turn_output_on()
+
+    def get_lo_combinations(self):
+        """
+        Creates a list of tuples with all the possible LO combinations from
+        the lo_sources parameter of the config file. Used to perform a
+        nested loop that set all LO combinations in generators.
+        :return: list of tuples of LO combinations.
+        """
+        lo_freqs_arr = [lo_source['lo_freqs'] for lo_source in self.settings.lo_sources]
+        return list(itertools.product(*lo_freqs_arr))
+
+    def plot_spec_data(self, axes, spec_data_arr, spec_info):
+        """
+        Plot an array of spec data given the plotting axes and the spec_info.
+        The spec_info is used both to normalize by the accumulation length, and
+        convert the data to dBFS.
+        :axes: calan axes where to plot the data.
+        :spec_data_arr: array of spectral data to plot.
+        :spec_info: spectral info in calanfpga format (see calanfpga.py).
+        """
+        for spec_data, axis in zip(spec_data_arr, axes):
+            spec_data = spec_data / float(self.fpga.read_reg(spec_info['acc_len_reg'])) # divide by accumulation
+            spec_data = linear_to_dBFS(spec_data, spec_info)
+            axis.plot(spec_data)
+
+    def compute_adc_delay_freq(self, freqs, sb_ratios):
+        """
+        Compute the adc delay between two unsynchronized adcs using information
+        in the frequency domain. It's done by computing the slope of the phase
+        diffrence with respect the frequency, and then it translates this value
+        into an interger delay in number of samples.
+        :freqs: frequency array in which the sideband ratios where computed.
+        :sb_ratios: sideband ratios array of the adcs. by definition the sideband
+            ratio is the complex division of an spectral channel from adc0 with adc1.
+        :return: adc delaty in number of samples.
+        """
+        phase_diffs = np.unwrap(np.angle(sb_ratios))
+        linregress_results = scipy.stats.linregress(freqs, phase_diffs)
+        angle_slope = linregress_results.slope
+        delay = int(round(angle_slope * 2*self.settings.bw / (2*np.pi))) # delay = dphi/df * Fs / 2pi
+        print "Computed delay: " + str(delay)
+        return delay
 
     def print_srr_plot(self, lo_combinations):
         """

@@ -30,9 +30,9 @@ class DssCalibrator(Experiment):
         self.lo_sources = [self.create_instrument(lo_source) for lo_source in self.settings.lo_sources]
         
         # test channels array
-        self.syn_channels = range(1, 101, 10)
-        self.cal_channels = range(1, self.nchannels, self.settings.cal_chnl_step)
-        self.srr_channels = range(1, self.nchannels, self.settings.srr_chnl_step)
+        self.sync_channels = range(1, 101, 10)
+        self.cal_channels  = range(1, self.nchannels, self.settings.cal_chnl_step)
+        self.srr_channels  = range(1, self.nchannels, self.settings.srr_chnl_step)
 
         # plotters
         self.srrplotter = DssSrrPlotter(self.fpga)
@@ -55,7 +55,7 @@ class DssCalibrator(Experiment):
                          'use_ideal_consts' : self.settings.ideal_consts['load'],
                          'ideal_const'      : str(self.settings.ideal_consts['val']),
                          'cal_chnl_step'    : self.settings.cal_chnl_step,
-                         'syn_chnl_step'    : self.settings.syn_chnl_step,
+                         'srr_chnl_step'    : self.settings.srr_chnl_step,
                          'lo_combinations'  : self.lo_combinations}
 
         with open(self.datadir + '/testinfo.json', 'w') as jsonfile:
@@ -104,7 +104,7 @@ class DssCalibrator(Experiment):
                 # plot spec data
                 self.plot_spec_data(self.calplotter_usb.axes[:2], [cal_a2, cal_b2], self.settings.cal_pow_info)
 
-                partial_freqs = self.freqs(self.syn_channels[:i+1])
+                partial_freqs = self.freqs(self.sync_channels[:i+1])
                 # plot magnitude ratio
                 self.calplotter_usb.axes[2].plot(partial_freqs, np.abs(sb_ratios))
                 # plot angle difference
@@ -354,7 +354,7 @@ class DssCalibrator(Experiment):
         Compute SRR from the DSS receiver using the Kerr method
         (see ALMA Memo 357 (http://legacy.nrao.edu/alma/memos/html-memos/abstracts/abs357.html)).
         The total number of channels used for the SRR computations
-        can be controlled by the config file parameter syn_chnl_step.
+        can be controlled by the config file parameter srr_chnl_step.
         :param M_DSB: constant computed in the hotcold test used for the Kerr method.
         :param lo_comb: LO frequency combination for the test. Used to properly set
             the RF test input.
@@ -479,7 +479,7 @@ class DssCalibrator(Experiment):
         Print SRR plot using the data saved from the test.
         :lo_combination: list of lo combinations used for the DSS calibration.
         """
-        srr_freqs = np.array([self.freqs[chnl]/1.0e3 for chnl in self.syn_channels])
+        srr_freqs = np.array([self.freqs[chnl]/1.0e3 for chnl in self.srr_channels])
         fig = plt.figure()
         for lo_comb in lo_combinations:
             lo_label = '_'.join(['LO'+str(i+1)+'_'+str(lo/1e3)+'GHZ' for i,lo in enumerate(lo_comb)]) 

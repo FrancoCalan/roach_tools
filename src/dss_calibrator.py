@@ -72,8 +72,8 @@ class DssCalibrator(Experiment):
         precise.
         """
         self.calplotter_usb.fig.canvas.set_window_title('ADC Sync')
-        self.calplotter_usb.axes[2].ax.set_xlim((self.freqs[test_channels[0]], self.freqs[test_channels[-1]]))
-        self.calplotter_usb.axes[3].ax.set_xlim((self.freqs[test_channels[0]], self.freqs[test_channels[-1]]))
+        self.calplotter_usb.axes[2].ax.set_xlim((self.freqs[self.sync_channels[0]], self.freqs[self.sync_channels[-1]]))
+        self.calplotter_usb.axes[3].ax.set_xlim((self.freqs[self.sync_channels[0]], self.freqs[self.sync_channels[-1]]))
         
         self.init_sources()
 
@@ -87,7 +87,7 @@ class DssCalibrator(Experiment):
         while True:
             sb_ratios = []
 
-            for i, chnl in enumerate(test_channels):
+            for i, chnl in enumerate(self.sync_channels):
                 freq = self.freqs[chnl]
                 # set generator frequency
                 self.rf_source.set_freq_mhz(center_freq + freq)
@@ -104,7 +104,7 @@ class DssCalibrator(Experiment):
                 # plot spec data
                 self.plot_spec_data(self.calplotter_usb.axes[:2], [cal_a2, cal_b2], self.settings.cal_pow_info)
 
-                partial_freqs = self.freqs(self.sync_channels[:i+1])
+                partial_freqs = self.freqs[self.sync_channels[:i+1]]
                 # plot magnitude ratio
                 self.calplotter_usb.axes[2].plot(partial_freqs, np.abs(sb_ratios))
                 # plot angle difference
@@ -164,7 +164,7 @@ class DssCalibrator(Experiment):
                     print "\tdone (" + str(time.time() - step_time) + "[s])"
 
                     # save sb ratios
-                    np.savez(self.lo_datadir+'/sb_ratios', sb_ratios_usb=sb_ratios_usb, sb_ratios_lsb=sb_ratios_lsb)
+                    np.savez(lo_datadir+'/sb_ratios', sb_ratios_usb=sb_ratios_usb, sb_ratios_lsb=sb_ratios_lsb)
 
                     # constant computation
                     consts_usb = -1.0*sb_ratios_usb
@@ -283,7 +283,7 @@ class DssCalibrator(Experiment):
             # plot spec data
             self.plot_spec_data(self.calplotter_usb.axes[:2], [cal_a2, cal_b2], self.settings.cal_pow_info)
             
-            partial_freqs = self.freqs(self.cal_channels[:i+1])
+            partial_freqs = self.freqs[self.cal_channels[:i+1]]
             # plot magnitude ratio
             self.calplotter_usb.axes[2].plot(partial_freqs, np.abs(sb_ratios))
             # plot angle difference
@@ -335,7 +335,7 @@ class DssCalibrator(Experiment):
             # plot spec data
             self.plot_spec_data(self.calplotter_lsb.axes[:2], [cal_a2, cal_b2], self.settings.cal_pow_info)
             
-            partial_freqs = self.freqs(self.cal_channels[:i+1])
+            partial_freqs = self.freqs[self.cal_channels[:i+1]]
             # plot magnitude ratio
             self.calplotter_lsb.axes[2].plot(partial_freqs, np.abs(sb_ratios))
             # plot angle difference
@@ -410,7 +410,7 @@ class DssCalibrator(Experiment):
             srr_usb.append(10*np.log10(new_srr_usb))
             srr_lsb.append(10*np.log10(new_srr_lsb))
 
-            partial_freqs = self.freqs(self.cal_channels[:i+1])
+            partial_freqs = self.freqs[self.cal_channels[:i+1]]
             # plot magnitude ratio
             self.srrplotter.axes[2].plot(partial_freqs, srr_usb)
             # plot angle difference

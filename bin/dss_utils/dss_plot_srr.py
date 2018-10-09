@@ -11,7 +11,7 @@ testinfo_json = tar_datafile.extractfile("testinfo.json")
 testinfo = json.load(testinfo_json)
 
 freqs = np.linspace(0, testinfo['bw'], testinfo['nchannels'], endpoint=False)
-syn_channels = np.arange(1, testinfo['nchannels'], testinfo['syn_chnl_step'])
+syn_channels = np.arange(1, testinfo['nchannels'], testinfo['srr_chnl_step'])
 srr_freqs = np.array([freqs[chnl]/1.0e3 for chnl in syn_channels])
 
 fig = plt.figure()

@@ -30,12 +30,12 @@ class BeamwidthAnimator(KestfiltAnimator):
         bwlims_label = Tk.Label(self.button_frame, text="BW lims:")
         bwlims_label.pack(side=Tk.LEFT)
         self.bwlims_entry = Tk.Entry(self.button_frame)
-        self.bwlims_entry.insert(Tk.END, '200 1200')
+        self.bwlims_entry.insert(Tk.END, '100 2000')
         self.bwlims_entry.pack(side=Tk.LEFT)
 
         # change save default text
         self.save_entry.delete(0, Tk.END)
-        self.save_entry.insert(Tk.END, 'offset_0_0')
+        self.save_entry.insert(Tk.END, 'offset_-15_0')
 
     def save_data(self):
         """
@@ -43,6 +43,12 @@ class BeamwidthAnimator(KestfiltAnimator):
         """
         KestfiltAnimator.save_data(self)
         self.plot_bw()
+
+        # change save text to next offset
+        entry_text = self.save_entry.get()
+        offset = get_offset(entry_text)
+        self.save_entry.delete(0, Tk.END)
+        self.save_entry.insert(Tk.END, 'offset_'+str(offset+1)+'_0')
 
     def plot_bw(self):
         """
@@ -57,8 +63,6 @@ class BeamwidthAnimator(KestfiltAnimator):
         offset_filenames = filter(is_offset, filenames)
 
         # sort filenames using the offset in the name
-        def get_offset(filename):
-            return int(filename[7:filename.index('_', 7)])
         offsets = [get_offset(offset_filename) for offset_filename in offset_filenames]
         offset_filenames = sorted(offset_filenames, key=get_offset)
 
@@ -83,3 +87,6 @@ class BeamwidthAnimator(KestfiltAnimator):
         self.axes[3].plot(offsets, [np.array(prim_power), np.array(filt_power)])
         self.axes[3].ax.set_xlim((min(offsets), max(offsets)))
         self.axes[3].ax.set_ylim((min(prim_power+filt_power), max(prim_power+ filt_power)))
+
+def get_offset(filename):
+    return int(filename[7:filename.index('_', 7)])

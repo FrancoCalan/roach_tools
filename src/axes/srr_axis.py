@@ -11,7 +11,7 @@ class SrrAxis(SingleLineAxis):
         SingleLineAxis.__init__(self, ax, xdata, title)
 
         self.ax.set_xlim((0, bw))
-        self.ax.set_ylim((0, 60))
+        self.ax.set_ylim((0, 80))
         self.ax.set_xlabel('Frequency [MHz]')
         self.ax.set_ylabel('Sideband Rejection Ratio [dB]')
 

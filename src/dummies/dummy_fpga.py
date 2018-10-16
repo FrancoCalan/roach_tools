@@ -1,4 +1,3 @@
-import struct
 import numpy as np
 from itertools import chain
 from dummy_generator import DummyGenerator
@@ -26,9 +25,6 @@ class DummyFpga():
                 self.snapshots += snap_data['names']
         except:
             pass
-        # add snapshots register
-        for snapshot in self.snapshots:
-            self.regs.append({'name' : snapshot+'_ctrl', 'val' : 0})
 
         # add spectrometers brams
         try:
@@ -36,26 +32,6 @@ class DummyFpga():
         except:
             self.spec_brams = []
 
-        # add conv_info brams
-        try:
-            self.conv_info_chnl_brams = self.settings.conv_info_chnl['bram_list']
-        except:
-            self.conv_info_chnl_brams = []
-        try:
-            self.conv_info_max_brams = [self.settings.conv_info_max['bram_name']]
-        except:
-            self.conv_info_max_brams = []
-        try:
-            self.conv_info_mean_brams = [self.settings.conv_info_mean['bram_name']]
-        except:
-            self.conv_info_mean_brams = []
-
-        # add stability brams
-        try:
-            self.stab_brams = list(chain.from_iterable(self.settings.inst_chnl_info['bram_list2d'])) # flatten list
-        except:
-            self.stab_brams = []
-            
     def is_connected(self):
         """
         Emulates ROACH connection test. Always True.
@@ -100,8 +76,7 @@ class DummyFpga():
         """
         List dummy registers.
         """
-        return self.regs + self.snapshots + self.spec + self.conv_info_chnl_brams +\
-            self.conv_info_max_brams + self.conv_info_mean_brams + self.stab_brams
+        return self.regs + self.snapshots + self.spec_brams
 
     def read_uint(self, reg_name):
         """
@@ -128,14 +103,7 @@ class DummyFpga():
         """
         Returns snapshot signal given by generator.
         """
-        if not arm:
-            if snapshot == "adcsnap0":
-                snap_data = self.get_generator_signal(self.settings.snap_samples, delay=0) # hardcode delay to test adc_sync
-            elif snapshot == "adcsnap1":
-                snap_data = self.get_generator_signal(self.settings.snap_samples, delay=30) # hardcode delay to test adc_sync
-            else:
-                raise Exception("Snapshot not defined in config file.")
-        elif snapshot in self.snapshots:
+        if snapshot in self.snapshots:
             snap_data = self.get_generator_signal(self.settings.snap_samples)
         else:
             raise Exception("Snapshot not defined in config file.")
@@ -149,46 +117,21 @@ class DummyFpga():
         if bram in self.spec_brams:
             # Returns spectra of generator signal accumulated acc_len times.
             acc_len = self.read_uint('acc_len')
-            spec_len = get_n_data(nbytes, self.settings.spec_info['data_width'])
-            spec = np.zeros(spec_len)
+            spec_len = get_ndata(nbytes, self.settings.spec_info['data_width'])
+            spec_dtype = '>' + self.settings.spec_info['sign_type'] + str(self.settings.spec_info['data_width']/8)
+            spec = np.zeros(spec_len, dtype=spec_dtype)
+
             for _ in range(acc_len):
                 signal = self.get_generator_signal(2*spec_len)
-                spec += np.abs(np.fft.rfft(signal)[:spec_len])
-            spec = spec / acc_len
-            return struct.pack('>'+self.settings.spec_info['sign_type']+str(spec_len), *spec)
+                spec += np.square(np.abs(np.fft.rfft(signal)[:spec_len])).astype(spec_dtype)
 
-        # Returns dummy convergence signal
-        elif bram in self.conv_info_chnl_brams:
-            return gen_exp_decay_signal(nbytes, self.settings.conv_info_chnl)
-        elif bram in self.conv_info_max_brams:
-            return gen_exp_decay_signal(nbytes, self.settings.conv_info_max)
-        elif bram in self.conv_info_mean_brams:
-            return gen_exp_decay_signal(nbytes, self.settings.conv_info_mean)
+            return spec.tobytes()
 
-        # Returns dummy stability signal
-        elif bram in self.stab_brams:
-            n_data = get_n_data(nbytes, self.settings.inst_chnl_info['data_width'])
-            inst_chnl_data = 10 * (np.random.random(n_data)+1)
-            return struct.pack('>'+self.settings.inst_chnl_info['sign_type']+str(n_data), *inst_chnl_data)
-        
         # Raise exception if the bram is not declared in the config file
         else: 
             raise Exception("BRAM " + bram + " not defined in config file.")
 
-def gen_exp_decay_signal(nbytes, bram_info):
-    """
-    Generates an exponential decay signal for convergence dummy data.
-    Uses unformation from bram_bram to get the signal size and data type.
-    """
-    n_data = get_n_data(nbytes, bram_info['data_width'])
-    # conv data a + exp(b*x)
-    a = 10
-    b = -(100.0/n_data)*np.random.random()
-    exp_signal = np.exp(a*np.exp((b*np.arange(n_data)))) + np.random.random(n_data)
-
-    return struct.pack('>'+bram_info['sign_type']+str(n_data), *exp_signal)
-
-def get_n_data(nbytes, data_width):
+def get_ndata(nbytes, data_width):
     """
     Computes the number of data values given the total number of
     bytes in the data array, and data width in bits.

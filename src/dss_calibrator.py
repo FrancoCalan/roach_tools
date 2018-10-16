@@ -410,7 +410,7 @@ class DssCalibrator(Experiment):
             srr_usb.append(10*np.log10(new_srr_usb))
             srr_lsb.append(10*np.log10(new_srr_lsb))
 
-            partial_freqs = self.freqs[self.cal_channels[:i+1]]
+            partial_freqs = self.freqs[self.srr_channels[:i+1]]
             # plot magnitude ratio
             self.srrplotter.axes[2].plot(partial_freqs, srr_usb)
             # plot angle difference

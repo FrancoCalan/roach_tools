@@ -1,28 +1,27 @@
-import os, sys
 import matplotlib.animation as animation
 import Tkinter as Tk
-from plotter import Plotter
+from experiment import Experiment
 
-class Animator(Plotter):
+class Animator(Experiment):
     """
     Generic animator class.
     """
     def __init__(self, calanfpga):
-        Plotter.__init__(self, calanfpga)
+        Experiment.__init__(self, calanfpga)
 
     def start_animation(self):
         """
         Add the basic parameters to the plot and starts the animation.
         """
-        self.fig.set_tight_layout(True)
-        self.create_window()
-        anim = animation.FuncAnimation(self.fig, animate, fargs=(self,), blit=True)
+        self.figure.create_window()
+        anim = animation.FuncAnimation(self.figure.fig, animate, fargs=(self,), blit=True)
         Tk.mainloop()
 
 def animate(_, self):
     """
     It's call on every frame of the animation. Updates the data.
     """
-    self.plot_axes()
+    animation_data = self.get_data()
+    self.figure.plot_axes(animation_data)
 
     return []

@@ -4,42 +4,36 @@ import numpy as np
 import matplotlib.pyplot as plt
 import Tkinter as Tk
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg, NavigationToolbar2Tk
-from experiment import Experiment, get_nchannels
 
-class Plotter(Experiment):
+class CalanFigure():
     """
-    Generic plotter class.
+    Class representing a figure for a generic experiment with roach.
     """
-    def __init__(self, calanfpga):
-        Experiment.__init__(self, calanfpga)
-        # Workaround to Tk.mainloop not clsing properly for plt.figure()
-        if not hasattr(self, 'create_gui') or self.create_gui==True:
-            self.create_gui = True
+    def __init__(self, experiment, n_plots, create_gui, figure_name='Figure'):
+        self.experiment = experiment
+        self.figure_name = figure_name
+        self.n_plots = n_plots
+        # Workaround to Tk.mainloop not closing properly for plt.figure()
+        self.create_gui = create_gui
+        if self.create_gui:
             self.fig = plt.Figure()
         else:
             self.fig = plt.figure()
         self.plot_map = {1:'11', 2:'12', 3:'22', 4:'22'}
-        self.config_file = os.path.splitext(sys.argv[1])[0]
         self.axes = []
-        self.data_dict = {}
 
-    def create_axes(self):
+    def create_axis(self, n_axis, calanaxis_class, *axis_args):
         """
-        Return an array of Matplotlib Axes given the number of plots in the plotter.
+        Create a calanaxis by adding a subplot to the figure and appending the 
+        calanaxis to the axis array.
+        :param n_axis: axis number in the plot map.
+        :param calanaxis_class: calanaxis class to be created (spectrum_axis, 
+            snapshot_axis, etc.)
+        :param axis_args: arguments for the calanaxis instansiation.
         """
-        axes = []
-        for i in range(self.nplots):
-            axes.append(self.fig.add_subplot(self.plot_map[self.nplots]+str(i+1)))
-
-        return axes
-
-    def show_plot(self):
-        """
-        Show plot window.
-        """
-        self.create_window()
-        self.plot_axes() 
-        Tk.mainloop()
+        matplotlib_axis = self.fig.add_subplot(self.plot_map[self.n_plots]+str(n_axis+1))
+        calanaxis = calanaxis_class(matplotlib_axis, *axis_args)
+        self.axes.append(calanaxis)
 
     def create_window(self):
         """
@@ -74,7 +68,7 @@ class Plotter(Experiment):
             save_label = Tk.Label(save_frame, text="Save/Print filename:")
             save_label.pack(side=Tk.LEFT)
             self.save_entry = Tk.Entry(save_frame)
-            self.save_entry.insert(Tk.END, self.config_file)
+            self.save_entry.insert(Tk.END, self.figure_name)
             self.save_entry.pack(side=Tk.LEFT)
 
             # save datetime checkbox
@@ -89,36 +83,41 @@ class Plotter(Experiment):
         else:
             self.fig.show()
 
-    def plot_axes(self):
+    def plot_axes(self, data_arr):
         """
-        Draw plot for every axes in canvas.
+        Plot the data in every axes of the figure.
+        :param data_arr: Array containing the data elements for
+            every axes. the exact structure of the data elements
+            depends on the type of axis.
         """
-        data_arr = self.get_data()
-        for axis, ydata in zip(self.axes, data_arr):
-            axis.plot(ydata)
+        for axis, data in zip(self.axes, data_arr):
+            axis.plot(data)
 
     def save_data(self):
         """
-        Save plot data if data2dict is implemented.
+        Save plot data if save_data is implemented in experiment.
         """
-        try:
-            self.data2dict()
-            json_filename = self.save_entry.get()
-            if self.datetime_check.get():
-                json_filename += ' ' + datetime.now().strftime('%Y-%m-%d %H:%M:%S')
-            with open(json_filename+'.json', 'w') as jsonfile:
-                json.dump(self.data_dict, jsonfile,  indent=4)
-            print "Data saved."
-        except AttributeError as e:
-            print "This plot doesn't have save option."
+        json_filename = self.save_entry.get()
+        if self.datetime_check.get():
+            json_filename += ' ' + datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+    
+        figure_data_dict = self.get_ydata()
+        if getattr(self.experiment, 'save_data', None):
+            self.experiment.save_data(json_filename, figure_data_dict)
+        else:
+            print "This experiment does not have save option."
 
-    def get_ydata_to_dict(self):
+    def get_ydata(self):
         """
-        Get the data from axes, and save the to the data dict. 
+        Get the y-data from axes.
+        :return: dictionary with the y-data from every axes.
         """
+        data_dict = {}
         for axis in self.axes:
             axis_data_dict = axis.gen_ydata_dict()
-            self.data_dict.update(axis_data_dict)
+            data_dict.update(axis_data_dict)
+
+        return data_dict
 
     def save_fig(self):
         """
@@ -129,19 +128,3 @@ class Plotter(Experiment):
             fig_filename += ' ' + datetime.now().strftime('%Y-%m-%d %H:%M:%S')
         self.fig.savefig(fig_filename + '.pdf')
         print "Plot saved."
-
-    def get_freq_from_channel(self, channel, bram_info):
-        """
-        Compute the frequency of channel using the bandwidth information.
-        """
-        return self.settings.bw * channel / get_nchannels(bram_info)
-
-    def get_spec_time_arr(self, n_specs):
-        """
-        Compute a time array with timestamps for 'n_specs' spetra, starting at 0.
-        Used as x-axis for time related plots. In [us].
-        """
-        n_brams = len(self.settings.spec_info['bram_list2d'][0])
-        n_channels = n_brams * 2**self.settings.spec_info['addr_width']
-        x_time = np.arange(0, n_specs) * (1.0/self.settings.bw) * n_channels # [us]
-        return x_time

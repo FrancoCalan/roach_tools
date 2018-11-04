@@ -3,6 +3,7 @@ import numexpr
 import numpy as np
 import Tkinter as Tk
 from animator import Animator
+from calanfigure import CalanFigure
 from experiment import linear_to_dBFS, get_nchannels
 from axes.spectrum_axis import SpectrumAxis
 
@@ -12,66 +13,66 @@ class SpectraAnimator(Animator):
     """
     def __init__(self, calanfpga):
         Animator.__init__(self, calanfpga)
-        self.nplots = len(self.settings.plot_titles)
-        self.acc_len_reg = self.settings.spec_info['acc_len_reg']
-        mpl_axes = self.create_axes()
-        
+        self.figure = CalanFigure(n_plots=len(self.settings.plot_titles), create_gui=True)
         self.nchannels = get_nchannels(self.settings.spec_info)
-        for i, ax in enumerate(mpl_axes):
-            self.axes.append(SpectrumAxis(ax, self.nchannels,
-                self.settings.bw, self.settings.plot_titles[i]))
+        
+        for i in range(self.figure.n_plots):
+            self.figure.create_axis(i, SpectrumAxis, 
+                self.nchannels, self.settings.bw, self.settings.plot_titles[i])
 
         self.entries = []
         
-        self.maxhold_on = False
-        self.maxhold_data = self.nplots * [-np.inf*np.ones(self.nchannels)]
-        
     def get_data(self):
         """
-        Gets the spectra data form the spectrometer model.
+        Gets the spectra data from the spectrometer model.
+        :return: spectral data.
+        """
+        return self.get_spec_data(self.settings.spec_info)
+
+    def get_spec_data(self, spec_info):
+        """
+        Gets spectra data given spec_info dict.
+        :param spec_info: dictionary with info of the spectra memory in the FPGA.
+        :return: spectral data in dBFS.
         """
         spec_data_arr = self.fpga.get_bram_list_interleaved_data(self.settings.spec_info)
         spec_plot_arr = []
-        for i, spec_data in enumerate(spec_data_arr):
-            spec_data = spec_data / float(self.fpga.read_reg(self.acc_len_reg)) # divide by accumulation
+        for spec_data in spec_data_arr:
+            spec_data = spec_data / float(self.fpga.read_reg(self.settings.spec_info['acc_len_reg'])) # divide by accumulation
             spec_data = linear_to_dBFS(spec_data, self.settings.spec_info)
-            if self.maxhold_on:
-                self.maxhold_data[i] = np.maximum(self.maxhold_data[i], spec_data)
-                spec_data = self.maxhold_data[i]
             spec_plot_arr.append(spec_data)
 
         return spec_plot_arr
 
-    def create_window(self):
+    def add_figure_widgets(self):
         """
-        Create window and add widgets.
+        Add widgets to spectrometer figure.
         """
-        Animator.create_window(self)
+        self.add_save_widgets("spec_data")
 
         # reset button
         self.reset_button = Tk.Button(self.button_frame, text='Reset', command=self.reset_spec)
         self.reset_button.pack(side=Tk.LEFT)
 
-        # max hold button
-        self.maxhold_button = Tk.Button(self.button_frame, text='Max Hold Off', command=self.toggle_maxhold)
-        self.maxhold_button.pack(side=Tk.LEFT)
-
         # acc_len entry
-        self.add_reg_entry(self.acc_len_reg)
+        self.add_reg_entry(self.settings.spec_info['acc_len_reg'])
 
-    def data2dict(self):
+    def get_save_data(self):
         """
-        Fills the data_dict dictuinary with spectrometer data for file saving.
+        Get spectra data for saving.
+        :return: spectra data in dictionary datatype.
         """
-        self.get_ydata_to_dict()
-        self.data_dict.update(self.axes[0].gen_xdata_dict())
-        self.data_dict['acc_len'] = self.fpga.read_reg('acc_len')
+        save_data = Animator.get_save_data(self)
+        save_data.update(self.figure.axes[0].gen_xdata_dict())
+        save_data['acc_len'] = self.fpga.read_reg('acc_len')
+
+        return save_data
 
     def add_reg_entry(self, reg):
         """
         Add a text entry for modifying regiters in FPGA."
         """
-        frame = Tk.Frame(master=self.root)
+        frame = Tk.Frame(master=self.figure.root)
         frame.pack(side = Tk.TOP, anchor="w")
         label = Tk.Label(frame, text=reg+":")
         label.pack(side=Tk.LEFT)
@@ -98,21 +99,3 @@ class SpectraAnimator(Animator):
         Reset spectra counters, accumulators and software max hold.
         """
         self.fpga.reset_reg('cnt_rst')
-        if self.maxhold_on:
-            self.toggle_maxhold()
-
-    def toggle_maxhold(self):
-        """
-        Activate and deactivate max hold of spectral data on button press.
-        """
-        if self.maxhold_on:
-            self.maxhold_on = False
-            self.maxhold_button.config(relief=Tk.RAISED)
-            self.maxhold_button.config(text="Max Hold Off")
-            self.maxhold_data = self.nplots * [-np.inf*np.ones(self.nchannels)]
-            print "Max Hold off"
-        else:
-            self.maxhold_on = True
-            self.maxhold_button.config(relief=Tk.SUNKEN)
-            self.maxhold_button.config(text="Max Hold On")
-            print "Max Hold on"

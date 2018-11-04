@@ -2,6 +2,7 @@
 *.pickle
 *.swp
 *.json
+*.pdf
 build/
 dist/
 *.egg-info/

@@ -1,5 +1,4 @@
 import os, sys, importlib, json
-from datetime import datetime
 import numpy as np
 import matplotlib.pyplot as plt
 import Tkinter as Tk
@@ -9,8 +8,7 @@ class CalanFigure():
     """
     Class representing a figure for a generic experiment with roach.
     """
-    def __init__(self, experiment, n_plots, create_gui, figure_name='Figure'):
-        self.experiment = experiment
+    def __init__(self, n_plots, create_gui, figure_name='Figure'):
         self.figure_name = figure_name
         self.n_plots = n_plots
         # Workaround to Tk.mainloop not closing properly for plt.figure()
@@ -54,32 +52,6 @@ class CalanFigure():
             toolbar.update()
             self.canvas._tkcanvas.pack(side=Tk.TOP, fill=Tk.BOTH, expand=1)        
 
-            # button frame
-            self.button_frame = Tk.Frame(master=self.root)
-            self.button_frame.pack(side=Tk.TOP, anchor="w")
-
-            # save button
-            self.save_button = Tk.Button(self.button_frame, text='Save', command=self.save_data)
-            self.save_button.pack(side=Tk.LEFT)
-            
-            # save entry
-            save_frame = Tk.Frame(master=self.root)
-            save_frame.pack(side = Tk.TOP, anchor="w")
-            save_label = Tk.Label(save_frame, text="Save/Print filename:")
-            save_label.pack(side=Tk.LEFT)
-            self.save_entry = Tk.Entry(save_frame)
-            self.save_entry.insert(Tk.END, self.figure_name)
-            self.save_entry.pack(side=Tk.LEFT)
-
-            # save datetime checkbox
-            self.datetime_check = Tk.IntVar()
-            self.save_datetime_checkbox = Tk.Checkbutton(save_frame, text="add datetime", variable=self.datetime_check)
-            self.save_datetime_checkbox.pack(side=Tk.LEFT)
-
-            # print button
-            self.print_button = Tk.Button(self.button_frame, text='Print', command=self.save_fig)
-            self.print_button.pack(side=Tk.LEFT)
-
         else:
             self.fig.show()
 
@@ -93,20 +65,6 @@ class CalanFigure():
         for axis, data in zip(self.axes, data_arr):
             axis.plot(data)
 
-    def save_data(self):
-        """
-        Save plot data if save_data is implemented in experiment.
-        """
-        json_filename = self.save_entry.get()
-        if self.datetime_check.get():
-            json_filename += ' ' + datetime.now().strftime('%Y-%m-%d %H:%M:%S')
-    
-        figure_data_dict = self.get_ydata()
-        if getattr(self.experiment, 'save_data', None):
-            self.experiment.save_data(json_filename, figure_data_dict)
-        else:
-            print "This experiment does not have save option."
-
     def get_ydata(self):
         """
         Get the y-data from axes.
@@ -118,13 +76,3 @@ class CalanFigure():
             data_dict.update(axis_data_dict)
 
         return data_dict
-
-    def save_fig(self):
-        """
-        Save current plot as a .pdf figure.
-        """
-        fig_filename = self.save_entry.get()
-        if self.datetime_check.get():
-            fig_filename += ' ' + datetime.now().strftime('%Y-%m-%d %H:%M:%S')
-        self.fig.savefig(fig_filename + '.pdf')
-        print "Plot saved."

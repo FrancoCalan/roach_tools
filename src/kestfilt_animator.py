@@ -11,11 +11,11 @@ class KestfiltAnimator(SpectraAnimator):
     def __init__(self, calanfpga):
         SpectraAnimator.__init__(self, calanfpga)
 
-    def create_window(self):
+    def add_figure_widgets(self):
         """
-        Create window and add widgets.
+        add widgets for kestfilt figure.
         """
-        SpectraAnimator.create_window(self)
+        SpectraAnimator.add_figure_widgets(self)
         
         # filter_on button
         self.filter_on_button = Tk.Button(self.button_frame, command=self.toggle_filter)
@@ -44,13 +44,16 @@ class KestfiltAnimator(SpectraAnimator):
         # channel entry
         self.add_channel_entry('channel')
 
-    def data2dict(self):
+    def get_save_data(self):
         """
-        Creates dict with kestfilt data for file saving.
+        Get kestfilt data for saving.
+        :return: kestfilt data id dictionary format.
         """
-        SpectraAnimator.data2dict(self)
-        self.data_dict['filter_gain'] = self.fpga.read_reg('filter_gain')
-        self.data_dict['filter_acc'] = self.fpga.read_reg('filter_acc')
+        save_data = SpectraAnimator.get_save_data(self)
+        save_data['filter_gain'] = self.fpga.read_reg('filter_gain')
+        save_data['filter_acc'] = self.fpga.read_reg('filter_acc')
+
+        return save_data
 
     def toggle_filter(self):
         """

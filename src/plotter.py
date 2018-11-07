@@ -4,20 +4,12 @@ import Tkinter as Tk
 from experiment import Experiment
 from datetime import datetime
 
-class Animator(Experiment):
+class Plotter(Experiment):
     """
-    Generic animator class.
+    Generic plotter class.
     """
     def __init__(self, calanfpga):
         Experiment.__init__(self, calanfpga)
-
-    def start_animation(self):
-        """
-        Add the basic parameters to the plot and starts the animation.
-        """
-        self.create_figure_window()
-        anim = animation.FuncAnimation(self.figure.fig, animate, fargs=(self,), blit=True)
-        Tk.mainloop()
 
     def create_figure_window(self):
         """
@@ -79,7 +71,7 @@ class Animator(Experiment):
     def get_save_data(self):
         """
         Get experiment data for saving.
-        :return: experiment data in dictionary datatype. By 
+        :return: experiment data in dictionary format. By 
             default only the y-data of the plots is saved.
         """
         return self.figure.get_ydata()
@@ -93,6 +85,23 @@ class Animator(Experiment):
             fig_filename += ' ' + datetime.now().strftime('%Y-%m-%d %H:%M:%S')
         self.figure.fig.savefig(fig_filename + '.pdf')
         print "Plot saved."
+
+    def show_plot(self):
+        """
+        Create the plot window and plot the data.
+        """
+        self.create_figure_window()
+        plot_data = self.get_data()
+        self.figure.plot_axes(plot_data)
+        Tk.mainloop()
+
+    def start_animation(self):
+        """
+        Add the basic parameters to the plot and starts an animation.
+        """
+        self.create_figure_window()
+        anim = animation.FuncAnimation(self.figure.fig, animate, fargs=(self,), blit=True)
+        Tk.mainloop()
 
 def animate(_, self):
     """

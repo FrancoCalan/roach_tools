@@ -1,8 +1,7 @@
 import sys, os
 sys.path.append(os.getcwd())
-from plotter import Plotter
-from experiment import linear_to_dBFS
-from axes.multi_line_axis import MultiLineAxis
+from experiment import Exxperiment, linear_to_dBFS
+from axes.convergence_axis import ConvergenceAxis
 
 class ConvergencePlotter(Plotter):
     """
@@ -10,22 +9,33 @@ class ConvergencePlotter(Plotter):
     It includes channel power, max power, and mean power.
     """
     def __init__(self, calanfpga):
-        Plotter.__init__(self, calanfpga)
-        self.nplots = 1
-        self.legends = ['chnl', 'max', 'mean']
-        mpl_axis = self.create_axes()[0]
-
+        Experiment.__init__(self, calanfpga)
+        self.figure.CalanFigure(1, create_gui=True)
+        
         # get xdata
         n_specs = 2**self.settings.conv_info_chnl['addr_width']
-        self.xdata = self.get_spec_time_arr(n_specs)
+        self.time_arr = self.get_spec_time_arr(self.setting.bw, n_specs, self.settings.spec_info)
+        
+        self.figure.create_axis(1, ConvergenceAxis, self.time_arr)
 
-        mpl_axis.set_title('')
-        mpl_axis.set_xlim(0, self.xdata[-1])
-        mpl_axis.set_ylim((-100, 10))
-        mpl_axis.set_xlabel('Time [$\mu$s]')
-        mpl_axis.set_ylabel('Power [dBFS]')
-        self.axes.append(MultiLineAxis(mpl_axis, self.xdata, self.legends))
+    def add_figure_widgets(self):
+        """
+        Add widgets for convergence figure.
+        """
+        self.add_save_widgets("conv_data")
 
+    def get_save_data(self):
+        """
+        Get convergence data for saving.
+        :return: convergence data in dictionary format.
+        """
+        save_data = Plotter.get_save_data(self)
+        save_data.update(self.figure.axes[0].gen_xdata_dict())
+        save_data['filter_gain'] = self.fpga.read_reg('filter_gain')
+        save_data['filter_acc'] = self.fpga.read_reg('filter_acc')
+        save_data['channel'] = self.fpga.read_reg('channel')
+        
+        return save_data
 
     def get_data(self):
         """
@@ -46,13 +56,3 @@ class ConvergencePlotter(Plotter):
         mean_data = linear_to_dBFS(mean_data, self.settings.spec_info)
 
         return [[chnl_data, max_data, mean_data]]
-
-    def data2dict(self):
-        """
-        Creates dict with convergence data for file saving.
-        """
-        self.get_ydata_to_dict()
-        self.data_dict.update(self.axes[0].gen_xdata_dict())
-        self.data_dict['filter_gain'] = self.fpga.read_reg('filter_gain')
-        self.data_dict['filter_acc'] = self.fpga.read_reg('filter_acc')
-        self.data_dict['channel'] = self.fpga.read_reg('channel')

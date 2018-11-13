@@ -2,7 +2,8 @@ import sys, os
 sys.path.append(os.getcwd())
 import numpy as np
 from plotter import Plotter
-from axes.single_line_axis import SingleLineAxis
+from axes.mag_ratio_time_axis import MagRatioTimeAxis
+from axes.angle_diff_time_axis import AngleDiffTimeAxis
 
 class StabilityPlotter(Plotter):
     """
@@ -11,29 +12,28 @@ class StabilityPlotter(Plotter):
     """
     def __init__(self, calanfpga):
         Plotter.__init__(self, calanfpga)
-        self.ylims = [(-1, 10), (-200, 200)]
-        self.ylabels = ['Magnitude ratio', 'Angle difference [deg]']
-
-        self.titles = ['', '']
-        self.nplots = len(self.titles)
-        mpl_axes = self.create_axes()
+        self.figure = CalaanFigure(2, create_gui=True)
 
         # get xdata
         n_specs = 2**self.settings.inst_chnl_info['addr_width']
-        self.xdata = self.get_spec_time_arr(n_specs)
+        self.time_arr = get_spec_time_arr(self.settings.bw, n_specs, self.settings.spec_info)
+        
+        self.figure.create_axis(0, MagRatioTimeAxis, self.time_arr, 'Magnitude Ratio')
+        self.figure.create_axis(1, AngleDiffTimeAxis, self.time_arr, 'Angle Difference')
 
-        for i, ax in enumerate(mpl_axes):
-            ax.set_title(self.titles[i])
-            ax.set_xlim((0, self.xdata[-1]))
-            ax.set_ylim(self.ylims[i])
-            ax.set_xlabel('Time [$\mu$s]')
-            ax.set_ylabel(self.ylabels[i])
-            self.axes.append(SingleLineAxis(ax, self.xdata))
+    def get_save_data(self):
+        """
+        Get stability data for saving.
+        :returns: stability data in dictionary format.
+        """
+        save_data = Plotter.get_save_data(self)
+        self.data_dict['channel'] = self.fpga.read_reg('channel')
 
     def get_data(self):
         """
         Gets the complex data from a single channel within consecutive instantaneous spectra
         for different inputs. Then computes the magnitude ratio and angle difference.
+        :return: stability data array.
         """
         [[chnl0_data_real, chnl0_data_imag], [chnl1_data_real, chnl1_data_imag]] =\
             self.fpga.get_bram_list2d_data(self.settings.inst_chnl_info)
@@ -45,10 +45,3 @@ class StabilityPlotter(Plotter):
 
         return [np.abs(stability_data), np.angle(stability_data, deg=True)]
 
-    def data2dict(self):
-        """
-        Creates dict with stability data for file saving.
-        """
-        self.get_ydata_to_dict()
-        self.data_dict.update(self.axes[0].gen_xdata_dict())
-        self.data_dict['channel'] = self.fpga.read_reg('channel')

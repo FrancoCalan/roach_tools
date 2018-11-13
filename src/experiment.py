@@ -66,7 +66,7 @@ def get_freq_from_channel(bw, channel, bram_info):
     :return: center frequency of the spectrl bin. Note that the measurement unit 
         is the same as for the bw parameter.
     """
-    return self.settings.bw * channel / get_nchannels(bram_info)
+    return bw * channel / get_nchannels(bram_info)
 
 def get_spec_time_arr(bw, n_specs, bram_info):
     """

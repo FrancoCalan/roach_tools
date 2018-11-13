@@ -1,6 +1,8 @@
 import sys, os
 sys.path.append(os.getcwd())
-from experiment import Exxperiment, linear_to_dBFS
+from experiment import linear_to_dBFS, get_spec_time_arr
+from plotter import Plotter
+from calanfigure import CalanFigure
 from axes.convergence_axis import ConvergenceAxis
 
 class ConvergencePlotter(Plotter):
@@ -9,14 +11,14 @@ class ConvergencePlotter(Plotter):
     It includes channel power, max power, and mean power.
     """
     def __init__(self, calanfpga):
-        Experiment.__init__(self, calanfpga)
-        self.figure.CalanFigure(1, create_gui=True)
+        Plotter.__init__(self, calanfpga)
+        self.figure = CalanFigure(1, create_gui=True)
         
         # get xdata
         n_specs = 2**self.settings.conv_info_chnl['addr_width']
-        self.time_arr = self.get_spec_time_arr(self.setting.bw, n_specs, self.settings.spec_info)
+        self.time_arr = get_spec_time_arr(self.settings.bw, n_specs, self.settings.spec_info)
         
-        self.figure.create_axis(1, ConvergenceAxis, self.time_arr)
+        self.figure.create_axis(0, ConvergenceAxis, self.time_arr)
 
     def add_figure_widgets(self):
         """
@@ -41,6 +43,7 @@ class ConvergencePlotter(Plotter):
         """
         Gets the convergence analysis data. This includes single channel power,
         max channel power, and mean channel power.
+        :return: convergence data array.
         """
         # single channel
         [chnl_data_real, chnl_data_imag] = self.fpga.get_bram_list_data(self.settings.conv_info_chnl)

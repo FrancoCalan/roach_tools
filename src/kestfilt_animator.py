@@ -1,6 +1,7 @@
 import numpy as np
 import Tkinter as Tk
 from spectra_animator import SpectraAnimator
+from experiment import get_freq_from_channel
 from convergence_plotter import ConvergencePlotter
 from stability_plotter import StabilityPlotter
 
@@ -78,7 +79,7 @@ class KestfiltAnimator(SpectraAnimator):
         frame = SpectraAnimator.add_reg_entry(self, chnl_reg)
         chnl_entry = self.entries[-1]
         chnl_value = self.fpga.read_reg(chnl_reg)
-        chnl_freq = self.get_freq_from_channel(chnl_value, self.settings.spec_info)
+        chnl_freq = get_freq_from_channel(self.settings.bw, chnl_value, self.settings.spec_info)
         freq_label = Tk.Label(frame, text= str(chnl_freq) + " MHz")
         freq_label.pack(side=Tk.LEFT)
         chnl_entry.bind('<Return>', lambda x: self.set_channel_reg(chnl_reg, chnl_entry, freq_label))
@@ -89,9 +90,8 @@ class KestfiltAnimator(SpectraAnimator):
         """
         SpectraAnimator.set_reg_from_entry(self, chnl_reg, chnl_entry)
         chnl_value = self.fpga.read_reg(chnl_reg)
-        chnl_freq = self.get_freq_from_channel(chnl_value)
+        chnl_freq = get_freq_from_channel(self.settings.bw, chnl_value, self.settings.spec_info)
         freq_label['text'] = str(chnl_freq) + " MHz" 
-        
 
     def plot_convergence(self):
         ConvergencePlotter(self.fpga).show_plot()

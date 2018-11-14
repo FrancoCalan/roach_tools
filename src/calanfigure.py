@@ -65,6 +65,17 @@ class CalanFigure():
         for axis, data in zip(self.axes, data_arr):
             axis.plot(data)
 
+    def draw_axes(self, data_arr):
+        """
+        Uses plot_axes() to draw the data on axes. Used for experiments
+        that have to updates plots in controlled way, for examples in calibrations.
+        Use with create_gui=False figures.
+        :param data_arr: Array containing the data elements for
+            every axes.
+        """
+        self.plot_axes(data_arr)
+        self.fig.canvas.draw()
+
     def get_ydata(self):
         """
         Get the y-data from axes.

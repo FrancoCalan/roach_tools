@@ -1,7 +1,6 @@
-import numpy as np
 from single_line_axis import SingleLineAxis
 
-class MagRatioAxis(SingleLineAxis):
+class MagRatioTimeAxis(SingleLineAxis):
     """
     Class representing an axis from a magnitude ratio v/s time plot.
     """

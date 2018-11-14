@@ -2,7 +2,7 @@ import os, json
 import numpy as np
 import Tkinter as Tk
 from kestfilt_animator import KestfiltAnimator
-from axes.multi_line_axis import MultiLineAxis
+from axes.kestfilt_beamwidth_axis import KestfiltBeamwidthAxis
 
 class BeamwidthAnimator(KestfiltAnimator):
     """
@@ -10,17 +10,15 @@ class BeamwidthAnimator(KestfiltAnimator):
     """
     def __init__(self, calanfpga):
         KestfiltAnimator.__init__(self, calanfpga)
-        bw_axis = self.fig.add_subplot('224')
-        bw_axis.set_xlabel('Offset [deg]')
-        bw_axis.set_ylabel('Power [dBFS]')
-        labels = ['Primary signal', 'Filter output']
-        self.axes.append(MultiLineAxis(bw_axis, [], labels, 'Beamwidth'))
+        
+        # add beamwidth axis
+        self.figure.create_axis(3, KestfiltBeamwidthAxis, [], 'Beamwidth')
 
-    def create_window(self):
+    def add_figure_widgets(self):
         """
-        Create window and add widgets.
+        Add widgets to beamwidth figure.
         """
-        KestfiltAnimator.create_window(self)
+        KestfiltAnimator.add_figure_widgets(self)
 
         # beamwidth button
         self.bw_button = Tk.Button (self.button_frame, text='bw', command=self.plot_bw)
@@ -39,7 +37,8 @@ class BeamwidthAnimator(KestfiltAnimator):
 
     def save_data(self):
         """
-        Save and update beamwidth plot 
+        Save the beamwidth figure, update the beamwith plot with the new data, 
+        and change the save text for the next offset measurement.
         """
         KestfiltAnimator.save_data(self)
         self.plot_bw()
@@ -84,9 +83,9 @@ class BeamwidthAnimator(KestfiltAnimator):
 
         # plot data
         offsets = [get_offset(offset_filename) for offset_filename in offset_filenames]
-        self.axes[3].plot(offsets, [np.array(prim_power), np.array(filt_power)])
-        self.axes[3].ax.set_xlim((min(offsets), max(offsets)))
-        self.axes[3].ax.set_ylim((min(prim_power+filt_power), max(prim_power+ filt_power)))
+        self.figure.axes[3].plot(offsets, [np.array(prim_power), np.array(filt_power)])
+        self.figure.axes[3].ax.set_xlim((min(offsets), max(offsets)))
+        self.figure.axes[3].ax.set_ylim((min(prim_power+filt_power), max(prim_power+ filt_power)))
 
 def get_offset(filename):
     return int(filename[7:filename.index('_', 7)])

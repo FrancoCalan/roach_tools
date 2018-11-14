@@ -1,7 +1,8 @@
 import sys, time
 import numpy as np
 from experiment import Experiment
-from snapshot_animator import SnapshotAnimator
+from calanfigure import CalanFigure
+from axes.snapshot_axis import SnapshotAxis
 from instruments.generator import create_generator
 from dummies.dummy_generator import DummyGenerator
 from dummies.dummy_generator import gen_time_arr
@@ -12,7 +13,13 @@ class AdcSynchronator(Experiment):
     """
     def __init__(self, calanfpga):
         Experiment.__init__(self, calanfpga)
-        self.snapshot_animator = SnapshotAnimator(self.fpga)
+
+        self.snapshots = self.fpga.get_snapshot_names()
+        self.figure = CalanFigure(n_plots=2, create_gui=False)
+        for i in range(self.figure.n_plots):
+            self.figure.create_axis(i, SnapshotAxis, 
+                self.settings.snap_samples, self.snapshots[i])
+
         self.Ts = 1.0/(2*self.settings.bw)
         self.source = self.create_instrument(self.settings.sync_source)
 
@@ -28,7 +35,7 @@ class AdcSynchronator(Experiment):
         single frequency DFT.
         """
         # start plot
-        self.snapshot_animator.create_window()
+        self.figure.create_window()
 
         # turn source on and set default freq and power
         self.source.set_freq_mhz() 
@@ -37,9 +44,7 @@ class AdcSynchronator(Experiment):
 
         while True:
             [snap_adc0, snap_adc1] = self.fpga.get_snapshots_sync()
-            self.snapshot_animator.axes[0].plot(snap_adc0[:self.settings.snap_samples])
-            self.snapshot_animator.axes[1].plot(snap_adc1[:self.settings.snap_samples])
-            self.snapshot_animator.canvas.draw()
+            self.figure.draw_axes([snap_adc0[:self.settings.snap_samples], snap_adc1[:self.settings.snap_samples]])
             time.sleep(1)
             snap0_phasor = self.estimate_phasor(self.sync_freq, snap_adc0)
             snap1_phasor = self.estimate_phasor(self.sync_freq, snap_adc1)
@@ -56,8 +61,6 @@ class AdcSynchronator(Experiment):
         
         print "ADCs successfully synchronized"
         self.source.turn_output_off()
-        for lo_source in self.lo_sources:
-            lo_source.turn_output_off()
 
     def estimate_phasor(self, freq, data):
         """

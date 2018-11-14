@@ -2,6 +2,8 @@ import sys, os
 sys.path.append(os.getcwd())
 import numpy as np
 from plotter import Plotter
+from experiment import get_spec_time_arr
+from calanfigure import CalanFigure
 from axes.mag_ratio_time_axis import MagRatioTimeAxis
 from axes.angle_diff_time_axis import AngleDiffTimeAxis
 
@@ -12,14 +14,20 @@ class StabilityPlotter(Plotter):
     """
     def __init__(self, calanfpga):
         Plotter.__init__(self, calanfpga)
-        self.figure = CalaanFigure(2, create_gui=True)
+        self.figure = CalanFigure(2, create_gui=True)
 
         # get xdata
         n_specs = 2**self.settings.inst_chnl_info['addr_width']
         self.time_arr = get_spec_time_arr(self.settings.bw, n_specs, self.settings.spec_info)
         
-        self.figure.create_axis(0, MagRatioTimeAxis, self.time_arr, 'Magnitude Ratio')
-        self.figure.create_axis(1, AngleDiffTimeAxis, self.time_arr, 'Angle Difference')
+        self.figure.create_axis(0, MagRatioTimeAxis, self.time_arr)
+        self.figure.create_axis(1, AngleDiffTimeAxis, self.time_arr)
+
+    def add_figure_widgets(self):
+        """
+        Add widgets for stability figure.
+        """
+        self.add_save_widgets("stab_data")
 
     def get_save_data(self):
         """
@@ -27,7 +35,10 @@ class StabilityPlotter(Plotter):
         :returns: stability data in dictionary format.
         """
         save_data = Plotter.get_save_data(self)
-        self.data_dict['channel'] = self.fpga.read_reg('channel')
+        save_data.update(self.figure.axes[0].gen_xdata_dict())
+        save_data['channel'] = self.fpga.read_reg('channel')
+
+        return save_data
 
     def get_data(self):
         """

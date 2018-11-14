@@ -14,7 +14,7 @@ class KestfiltAnimator(SpectraAnimator):
 
     def add_figure_widgets(self):
         """
-        add widgets for kestfilt figure.
+        Add widgets for kestfilt figure.
         """
         SpectraAnimator.add_figure_widgets(self)
         
@@ -48,7 +48,7 @@ class KestfiltAnimator(SpectraAnimator):
     def get_save_data(self):
         """
         Get kestfilt data for saving.
-        :return: kestfilt data id dictionary format.
+        :return: kestfilt data in dictionary format.
         """
         save_data = SpectraAnimator.get_save_data(self)
         save_data['filter_gain'] = self.fpga.read_reg('filter_gain')

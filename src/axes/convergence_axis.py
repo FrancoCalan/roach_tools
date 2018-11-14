@@ -1,4 +1,3 @@
-import numpy as np
 from multi_line_axis import MultiLineAxis
 
 class ConvergenceAxis(MultiLineAxis):

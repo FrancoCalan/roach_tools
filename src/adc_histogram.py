@@ -1,7 +1,7 @@
 import numpy as np
-from animator import Animator
 from snapshot_animator import SnapshotAnimator
-from axes.single_line_axis import SingleLineAxis
+from calanfigure import CalanFigure
+from axes.snapshot_axis import SnapshotAxis
 from axes.bar_axis import BarAxis
 
 class AdcHistogram(SnapshotAnimator):
@@ -10,26 +10,19 @@ class AdcHistogram(SnapshotAnimator):
     Useful to find 'missing codes' and debug the ADC.
     """
     def __init__(self, calanfpga):
-        Animator.__init__(self, calanfpga)
-        self.snapshots = self.fpga.get_snapshot_names()
-        self.nplots = 2 * len(self.settings.snapshots)
-        mpl_axes = self.create_axes()
+        SnapshotAnimator.__init__(self, calanfpga)
+        self.figure = CalanFigure(n_plots=2*len(self.settings.snapshots), create_gui=True)
         
-        self.xdata_hist = range(-2**7, 2**7) # Hardcoded 8-bit ADC
+        for i in range(self.figure.n_plots/2):
+            self.figure.create_axis(i, SnapshotAxis, 
+                self.settings.snap_samples, self.snapshots[i])
 
-        SnapshotAnimator.set_axes_parameters(self, mpl_axes[:self.nplots/2]) # set axes for snapshots
+        for i in range(self.figure.n_plots/2, self.figure.n_plots):
+            self.figure.create_axis(i, BarAxis,
+                range(-2**7, 2**7), self.snapshots[(i-1)/2]) # Hardcoded 8-bit ADC
 
-        # set axes for histograms
-        for i, ax in enumerate(mpl_axes[self.nplots/2:]):
-            ax.set_title(self.snapshots[i] + "hist")
-            ax.set_xlim((-2**7, 2**7-1)) # Hardcoded 8-bit ADC
-            ax.set_ylim((0, 0.035))
-            ax.set_xlabel('Code')
-            ax.set_ylabel('Normalized Fequency')
-            self.axes.append(BarAxis(ax, self.xdata_hist))
-
-        self.nhists = self.nplots / 2
-        self.abs_hists = self.nhists * [np.zeros(2**8)] # Hardcoded 8-bit ADC
+        self.n_hists = self.figure.n_plots / 2
+        self.abs_hists = self.n_hists * [np.zeros(2**8)] # Hardcoded 8-bit ADC
 
     def get_data(self):
         """

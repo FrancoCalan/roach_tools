@@ -18,7 +18,18 @@ class SnapshotAnimator(Plotter):
     def get_data(self):
         """
         Gets the snapshot data from fpga.
+        :return: snapshot data.
         """
-        snapshots = self.fpga.get_snapshots()
-        sliced_snapshots = [snapshot[:self.settings.snap_samples] for snapshot in snapshots]
-        return sliced_snapshots
+        return get_snapshot_data(self.fpga, self.settings.snap_samples)
+
+def get_snapshot_data(fpga, snap_samples):
+    """
+    Gets snapshot data given a CalanFpga object and snapshot samples.
+    :param fpga: CalanFpga object.
+    :param snap_samples: number of samples to return. 
+    :return: snapshot data.
+    """
+    snapshots = fpga.get_snapshots()
+    sliced_snapshots = [snapshot[:snap_samples] for snapshot in snapshots]
+    return sliced_snapshots
+

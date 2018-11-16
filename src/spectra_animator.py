@@ -73,7 +73,7 @@ class SpectraAnimator(Plotter):
 
     def reset_spec(self):
         """
-        Reset spectra counters, accumulators and software max hold.
+        Reset spectra counters and accumulators.
         """
         self.fpga.reset_reg('cnt_rst')
 
@@ -82,19 +82,20 @@ class SpectraAnimator(Plotter):
         Gets the spectra data from the spectrometer model.
         :return: spectral data.
         """
-        return self.get_spec_data(self.settings.spec_info)
+        return get_spec_data(self.fpga, self.settings.spec_info)
 
-    def get_spec_data(self, spec_info):
-        """
-        Gets spectra data given spec_info dict.
-        :param spec_info: dictionary with info of the spectra memory in the FPGA.
-        :return: spectral data in dBFS.
-        """
-        spec_data_arr = self.fpga.get_bram_list_interleaved_data(self.settings.spec_info)
-        spec_plot_arr = []
-        for spec_data in spec_data_arr:
-            spec_data = spec_data / float(self.fpga.read_reg(self.settings.spec_info['acc_len_reg'])) # divide by accumulation
-            spec_data = linear_to_dBFS(spec_data, self.settings.spec_info)
-            spec_plot_arr.append(spec_data)
+def get_spec_data(fpga, spec_info):
+    """
+    Gets spectra data given a CalanFpga object and spec_info dict.
+    :param fpga: CalanFpga object.
+    :param spec_info: dictionary with info of the spectra memory in the FPGA.
+    :return: spectral data in dBFS.
+    """
+    spec_data_arr = fpga.get_bram_list_interleaved_data(spec_info)
+    spec_plot_arr = []
+    for spec_data in spec_data_arr:
+        spec_data = spec_data / float(fpga.read_reg(spec_info['acc_len_reg'])) # divide by accumulation
+        spec_data = linear_to_dBFS(spec_data, spec_info)
+        spec_plot_arr.append(spec_data)
 
-        return spec_plot_arr
+    return spec_plot_arr

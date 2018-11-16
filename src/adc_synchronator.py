@@ -13,9 +13,9 @@ class AdcSynchronator(Experiment):
     """
     def __init__(self, calanfpga):
         Experiment.__init__(self, calanfpga)
-
         self.snapshots = self.fpga.get_snapshot_names()
         self.figure = CalanFigure(n_plots=2, create_gui=False)
+        
         for i in range(self.figure.n_plots):
             self.figure.create_axis(i, SnapshotAxis, 
                 self.settings.snap_samples, self.snapshots[i])

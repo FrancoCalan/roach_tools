@@ -1,16 +1,17 @@
 import numpy as np
-from snapshot_animator import SnapshotAnimator
+from experiment import Experiment
+from snapshot_animator import get_snapshot_data
 from calanfigure import CalanFigure
 from axes.snapshot_axis import SnapshotAxis
 from axes.bar_axis import BarAxis
 
-class AdcHistogram(SnapshotAnimator):
+class AdcHistogram(Experiment):
     """
     Class responsible of making histogram from ADC snapshot data.
     Useful to find 'missing codes' and debug the ADC.
     """
     def __init__(self, calanfpga):
-        SnapshotAnimator.__init__(self, calanfpga)
+        Experiment.__init__(self, calanfpga)
         self.figure = CalanFigure(n_plots=2*len(self.settings.snapshots), create_gui=True)
         
         for i in range(self.figure.n_plots/2):
@@ -28,7 +29,7 @@ class AdcHistogram(SnapshotAnimator):
         """
         Get snapshot data and generate histogram data to plot.
         """
-        snapshots = SnapshotAnimator.get_data(self)
+        snapshots = get_snapshot_data(self.fpga, self.settings.snap_samples)
         norm_hists = []
         for i, snapshot in enumerate(snapshots):
             new_hist, _ = np.histogram(snapshot, bins=range(-2**7, 2**7+1)) # Hardcoded 8-bit ADC

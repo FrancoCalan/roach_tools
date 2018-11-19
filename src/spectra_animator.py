@@ -92,10 +92,30 @@ def get_spec_data(fpga, spec_info):
     :return: spectral data in dBFS.
     """
     spec_data_arr = fpga.get_bram_list_interleaved_data(spec_info)
-    spec_plot_arr = []
-    for spec_data in spec_data_arr:
-        spec_data = spec_data / float(fpga.read_reg(spec_info['acc_len_reg'])) # divide by accumulation
-        spec_data = linear_to_dBFS(spec_data, spec_info)
-        spec_plot_arr.append(spec_data)
+    spec_plot_arr = scale_spec_data_arr(spec_data_arr, spec_info)
 
     return spec_plot_arr
+    
+def scale_spec_data(spec_data, spec_info):
+    """
+    Scale spectral data by the accumulation length given by the
+    accumulation reg in the spec_info dictionary, and convert
+    the data to dBFS. Used for plotting spectra.
+    :param spec_data: spectral data in linear scale, as read with CalanFpga's
+        get_bram_data() (or equivalent).
+    :param spec_info: dictionary with info of the spectra memory in the FPGA.
+        Used to read the accumulation register.
+    :return: spectral data in dBFS.
+    """
+    spec_data = spec_data / float(fpga.read_reg(spec_info['acc_len_reg'])) # divide by accumulation
+    spec_data = linear_to_dBFS(spec_data, spec_info)
+    return spec_data
+
+def scale_spec_data_arr(spec_data_arr, spec_info):
+    """
+    Same as scale_spec_data() but for an array of spectral data.
+    """
+    scaled_spec_data = [scale_spec_data(spec_data, spec_info) for spec_data in spec_data_arr]
+    return scaled_spec_data
+
+

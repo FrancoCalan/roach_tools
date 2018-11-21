@@ -17,7 +17,8 @@ class CalanFpga():
         second argument in the command-line arguments.
         """
         if len(sys.argv) <= 1:
-            raise RuntimeError("Please provide a config file as a command line argument: " + os.path.basename(sys.argv[0]) + " [config file]")  
+            print("Please provide a config file as a command line argument: " + os.path.basename(sys.argv[0]) + " [config file]")  
+            exit()
         config_file = os.path.splitext(sys.argv[1])[0]
         self.settings = importlib.import_module(config_file)
         if self.settings.simulated:
@@ -50,7 +51,8 @@ class CalanFpga():
         if self.fpga.is_connected():
             print 'ok'
         else:
-            raise Exception('Unable to connect to ROACH.')
+            print('Unable to connect to ROACH.')
+            exit()
 
     def program_fpga(self):
         """

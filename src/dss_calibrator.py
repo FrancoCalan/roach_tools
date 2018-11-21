@@ -496,7 +496,7 @@ class DssCalibrator(Experiment):
             plt.xlabel('Frequency [GHz]')
             plt.ylabel('SRR [dB]')
 
-        plt.savefig(self.datadir + '/' + 'srr.pdf', bbox_inches='tight')
+        plt.savefig(self.datadir + '/srr.pdf', bbox_inches='tight')
 
 class DssCalibrationPlotter(Plotter):
     """

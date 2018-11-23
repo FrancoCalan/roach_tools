@@ -48,15 +48,11 @@ class TransferFunction(Experiment):
             time.sleep(self.settings.pause_time)
 
             # get spectrum data
-            spec_data = self.fpga.get_bram_interleaved_data(self.settings.spec_info)
+            spec_data = self.fpga.get_bram_list_interleaved_data(self.settings.spec_info)[0]
             spec_data_dbfs = scale_spec_data(self.fpga, spec_data, self.settings.spec_info)
 
             # update transfer function
             Hf_arr.append(spec_data_dbfs[chnl])
-            #print "set frequency: " + str(self.freqs[chnl])
-            #print "max frequency: " + str(self.freqs[np.argmax(spec_data_dbfs)])
-            print "set channel: " + str(chnl)
-            print "max channel: " + str(np.argmax(spec_data_dbfs))
 
             # plot spectrum and transfer function
             self.figure.axes[0].plot(spec_data_dbfs)

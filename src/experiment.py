@@ -56,17 +56,31 @@ def get_nchannels(bram_info):
 def get_freq_from_channel(bw, channel, bram_info):
     """
     Compute the center frequency of a channel, given the spectrometer
-    bandwith and the bram info data.
+    bandwidth and the bram info data.
     :param bw: bandwith of the spectrometer.
     :param channel: the channel position used to compute the frequency
-    (note that channel 0 is always 0Hz).
+        (note that channel 0 is always 0Hz).
     :param bram_info: dictionary with the information of the group of 
         brams used to save the spectral data. Needed to compute the number
         of channels of the spectrometer.
-    :return: center frequency of the spectrl bin. Note that the measurement unit 
+    :return: center frequency of the spectral bin. Note that the measurement unit 
         is the same as for the bw parameter.
     """
     return bw * channel / get_nchannels(bram_info)
+
+def get_channel_from_freq(bw, freq, bram_info):
+    """
+    Compute the closest channel to a fixed frequency, given the spectrometer
+    bandwidth and bram_info data.
+    :param bw: bandwith of the spectrometer.
+    :param freq: frequency to compute the channel position.
+        Must be in the same units as bw (note that channel 0 is always 0Hz).
+    :param bram_info: dictionary with the information of the group of 
+        brams used to save the spectral data. Needed to compute the number
+        of channels of the spectrometer.
+    :return: Closest channel to the frequency freq.
+    """
+    return int(round(freq / (bw / get_nchannels(bram_info))))
 
 def get_spec_time_arr(bw, n_specs, bram_info):
     """

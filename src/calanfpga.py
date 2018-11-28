@@ -327,32 +327,7 @@ class CalanFpga():
             When 1 data is ready to read.
             This register should be reset by the FPGA when req_reg 1->0.
         """
-        if self.read_reg(req_reg) != 0:
-            print "WARNING: attempt to sync read brams when request reg is not zero."
-            print "Sync read failed."
-            return
-
-        # request new bram data
-        print "WWW"
-        print "readok: " + str(self.read_reg(readok_reg))
-        self.set_reg(req_reg, 1)
-        print "readok: " + str(self.read_reg(readok_reg))
-
-        # wait for read ok register to report valid data to read
-        while True:
-            if self.read_reg(readok_reg) == 1:
-                break
-            print "AAA"
-
-        print "XXX"
-        # read data
-        read_data = read_funct(bram_info)
-
-        # inform read data finished
-        self.set_reg(req_reg, 0)
-        print "readok: " + str(self.read_reg(readok_reg))
-
-        return read_data
+        pass # not required for the moment
 
     def write_bram_data(self, bram_info, data):
         """

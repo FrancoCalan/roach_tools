@@ -66,7 +66,7 @@ class VMFreqTest(Experiment):
                 "Press enter to continue.")
             
             comp_ratios = []
-            # compute mag_ratio and ang_diff nsamples times
+            # compute power ratio and angle diff nsamples times
             for i in range(self.nsamples):
                 # get power-crosspower data
                 a2, b2 = self.fpga.get_bram_list_interleaved_data(self.settings.spec_info)
@@ -74,9 +74,8 @@ class VMFreqTest(Experiment):
 
                 # compute complex ratios
                 ab = ab_re[self.test_chnl] + 1j*ab_im[self.test_chnl]
-                comp_ratios.append(ab / b2[self.test_chnl]) # ab* / bb* = a/b = USB/LSB.
-                #ab = ab_re[100] + 1j*ab_im[100]
-                #comp_ratios.append(ab / b2[100]) # ab* / bb* = a/b = USB/LSB.
+                #comp_ratios.append(ab / b2[self.test_chnl]) # ab* / bb* = a/b = USB/LSB.
+                comp_ratios.append(np.conj(ab) / a2[self.test_chnl]) # (ab*)* / bb* = b/a = LSB/USB.
 
                 # plot spec data
                 a2_dbfs = scale_spec_data(self.fpga, a2, self.settings.spec_info)
@@ -84,12 +83,15 @@ class VMFreqTest(Experiment):
                 b2_dbfs = scale_spec_data(self.fpga, b2, self.settings.spec_info)
                 self.figure.axes[1].plot(b2_dbfs)
 
-                # plot magnitude ratio
-                print 10*np.log10(a2[self.test_chnl]/b2[self.test_chnl])
-                print 20*np.log10(np.abs(comp_ratios[-1]))
-                self.figure.axes[2].plot(range(i+1), 20*np.log10(np.abs(comp_ratios)))
+                # plot power ratio
+                #self.figure.axes[2].plot(range(i+1), 20*np.log10(np.abs(comp_ratios)))
+                self.figure.axes[2].plot(range(i+1), -1*20*np.log10(np.abs(comp_ratios)))
                 # plot angle difference
-                self.figure.axes[3].plot(range(i+1), np.angle(comp_ratios, deg=True))
+                #self.figure.axes[3].plot(range(i+1), np.angle(comp_ratios, deg=True))
+                self.figure.axes[3].plot(range(i+1), -1*np.angle(comp_ratios, deg=True))
+
+                #print "a^2/b^2 power ratio: \t" + str(a2_dbfs[self.test_chnl] - b2_dbfs[self.test_chnl])
+                #print "(ab/b^2)^2 power ratio: " + str(10*np.log10(np.abs(comp_ratios[-1])**2))
 
                 plt.pause(self.settings.pause_time)
 

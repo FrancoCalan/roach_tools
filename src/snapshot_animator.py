@@ -8,7 +8,7 @@ class SnapshotAnimator(Plotter):
     """
     def __init__(self, calanfpga):
         Plotter.__init__(self, calanfpga)
-        self.snapshots = self.fpga.get_snapshot_names()
+        self.snapshots = self.settings.snapshots
         self.figure = CalanFigure(n_plots=len(self.settings.snapshots), create_gui=True)
         
         for i in range(self.figure.n_plots):

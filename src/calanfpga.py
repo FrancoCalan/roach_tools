@@ -1,7 +1,7 @@
 import sys, os, importlib, time
 import numpy as np
 from itertools import chain
-import corr, adc5g
+import corr
 from dummies.dummy_fpga import DummyFpga
 
 class CalanFpga():
@@ -21,11 +21,45 @@ class CalanFpga():
             exit()
         config_file = os.path.splitext(sys.argv[1])[0]
         self.settings = importlib.import_module(config_file)
+        
+        if len(sys.argv) > 2:
+            self.parse_commandline_args(sys.argv[2:])
+
         if self.settings.simulated:
             self.fpga = DummyFpga(self.settings)
         else:
             self.fpga = corr.katcp_wrapper.FpgaClient(self.settings.roach_ip, self.settings.roach_port)
             time.sleep(1)
+    
+    def parse_commandline_args(self, arg_list):
+        """
+        Parse aditional command line arguments given when excecuting
+        a roach_tools script. The arguments are added as attributes to
+        the self.settings variable. It should only be used to override 
+        parameters given in the configuration file.
+        :param arg_list: list with the command line arguments. The number
+            of elements in the list should be even, with the even positioned
+            elements being the attributes to be modified in self.settings,
+            with the following element being the new value of said attribute. 
+            For example: "spectra_animator.py spectra_config.py --boffile newmodel.bof.gz"
+        """
+        if len(arg_list) % 2 == 1:
+            print("Error. The number of additional command line arguments must be even.")
+            exit()
+
+        for attrname, attrval in zip(arg_list[0::2], arg_list[1::2]):
+            if attrname[0:2] != "--":
+                print("Error in command line " + attrname + 
+                    ". Use double dash '--' at the begining of attributes names in command line")
+                exit()
+                
+            # try to evaluate attribute value, if fails keep the value as a string.
+            try:
+                attrval = eval(attrval)
+            except NameError:
+                pass
+            
+            setattr(self.settings, attrname[2:], attrval)
 
     def initialize(self):
         """
@@ -140,35 +174,6 @@ class CalanFpga():
         reg_val = self.fpga.read_uint(reg)
         return reg_val
 
-    def calibrate_adcs(self):
-        """
-        Calibrate adcs using external calibration routines.
-        """
-        # Hardcoded ADC5G calibration
-        for snap_data in self.settings.snapshots:
-            adc5g.set_test_mode(self.fpga, snap_data['zdok'])
-        adc5g.sync_adc(self.fpga)
-
-        for snap_data in self.settings.snapshots:
-            print "Calibrating ADC5G ZDOK" + str(snap_data['zdok']) + "..."
-            opt, glitches = adc5g.calibrate_mmcm_phase(self.fpga, \
-                snap_data['zdok'], snap_data['names'])
-
-            print "done"
-            adc5g.unset_test_mode(self.fpga, snap_data['zdok'])
-
-    def get_snapshot_names(self):
-        """
-        Get snapshot names from snapshots setting format:
-            {'zdok' : adc zdok input number,
-             'names' : list of snapshots associated to that ADC.}
-        """
-        snapshots = []
-        for snap_data in self.settings.snapshots:
-            snapshots += snap_data['names']
-
-        return snapshots
-
     def get_snapshots(self):
         """
         Get snapshot data from all snapshot blocks specified in the config 
@@ -177,7 +182,7 @@ class CalanFpga():
         data type is fixed to 8 bits as all of our ADC work at that size. 
         """
         snap_data_arr = []
-        for snapshot in self.get_snapshot_names():
+        for snapshot in self.settings.snapshots:
             snap_data = np.fromstring(self.fpga.snapshot_get(snapshot, man_trig=True, 
                 man_valid=True)['data'], dtype='>i1')
             snap_data_arr.append(snap_data)
@@ -194,7 +199,7 @@ class CalanFpga():
         self.fpga.write_int('snap_trig', 0)
         
         # activate snapshots to get data
-        for snapshot in self.get_snapshot_names():
+        for snapshot in self.settings.snapshots:
             self.fpga.write_int(snapshot + '_ctrl', 0)
             self.fpga.write_int(snapshot + '_ctrl', 1)
         
@@ -203,7 +208,7 @@ class CalanFpga():
         
         # get data without activating a new recording (arm=False)
         snap_data_arr = []
-        for snapshot in self.get_snapshot_names():
+        for snapshot in self.settings.snapshots:
             snap_data = np.fromstring(self.fpga.snapshot_get(snapshot, arm=False)['data'], dtype='>i1')
             snap_data_arr.append(snap_data)
         

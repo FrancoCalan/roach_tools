@@ -7,7 +7,4 @@ from roach_tools.vmfreq_test import VMFreqTest
 
 fpga = CalanFpga()
 fpga.initialize()
-if fpga.settings.cal_adcs:
-    fpga.calibrate_adcs()
-vm = VMFreqTest(fpga)
-vm.run_vmfreq_test()
+VMFreqTest(fpga).run_vmfreq_test()

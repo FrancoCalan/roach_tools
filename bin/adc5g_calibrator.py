@@ -3,8 +3,8 @@
 import sys, os
 sys.path.append(os.getcwd())
 from roach_tools.calanfpga import CalanFpga
-from roach_tools.transfer_function import TransferFunction
+from roach_tools.adc5g_calibrator import Adc5gCalibrator
 
 fpga = CalanFpga()
 fpga.initialize()
-TransferFunction(fpga).run_transfer_function_test()
+Adc5gCalibrator(fpga).perform_calibrations()

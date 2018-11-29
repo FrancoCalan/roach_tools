@@ -7,6 +7,4 @@ from roach_tools.beamwidth_animator import BeamwidthAnimator
 
 fpga = CalanFpga()
 fpga.initialize()
-if fpga.settings.cal_adcs:
-    fpga.calibrate_adcs()
 BeamwidthAnimator(fpga).start_animation()

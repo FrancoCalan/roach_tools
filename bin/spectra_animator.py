@@ -7,6 +7,4 @@ from roach_tools.spectra_animator import SpectraAnimator
 
 fpga = CalanFpga()
 fpga.initialize()
-if fpga.settings.cal_adcs:
-    fpga.calibrate_adcs()
 SpectraAnimator(fpga).start_animation()

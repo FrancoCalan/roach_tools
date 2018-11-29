@@ -5,6 +5,8 @@ import matplotlib.pyplot as plt
 from experiment import Experiment
 from plotter import Plotter
 from experiment import linear_to_dBFS, get_nchannels
+from calanfigure import CalanFigure
+from spectra_animator import scale_spec_data_arr
 from axes.spectrum_axis import SpectrumAxis
 from axes.mag_ratio_axis import MagRatioAxis
 from axes.angle_diff_axis import AngleDiffAxis
@@ -34,14 +36,32 @@ class DssCalibrator(Experiment):
         self.cal_channels  = range(1, self.nchannels, self.settings.cal_chnl_step)
         self.srr_channels  = range(1, self.nchannels, self.settings.srr_chnl_step)
 
-        # plotters
-        self.srrplotter = DssSrrPlotter(self.fpga)
-        self.srrplotter.create_window()
-        self.calplotter_lsb = DssCalibrationPlotter(self.fpga)
-        self.calplotter_lsb.create_window()
-        self.calplotter_usb = DssCalibrationPlotter(self.fpga)
-        self.calplotter_usb.create_window()
+        # figures
+        self.calfigure_lsb = CalanFigure(n_plots=4, create_gui=False)
+        self.calfigure_usb = CalanFigure(n_plots=4, create_gui=False)
+        self.srrfigure     = CalanFigure(n_plots=4, create_gui=False)
         
+        # axes on figures
+        self.calfigure_lsb.create_axis(0, SpectrumAxis, self.nchannels, self.settings.bw, 'ZDOK0 spec')
+        self.calfigure_lsb.create_axis(1, SpectrumAxis, self.nchannels, self.settings.bw, 'ZDOK1 spec')
+        self.calfigure_lsb.create_axis(2, MagRatioAxis, self.nchannels, self.settings.bw, 'Magnitude Ratio')
+        self.calfigure_lsb.create_axis(3, AngleDiffAxis, self.nchannels, self.settings.bw, 'Angle Difference')
+        #
+        self.calfigure_usb.create_axis(0, SpectrumAxis, self.nchannels, self.settings.bw, 'ZDOK0 spec')
+        self.calfigure_usb.create_axis(1, SpectrumAxis, self.nchannels, self.settings.bw, 'ZDOK1 spec')
+        self.calfigure_usb.create_axis(2, MagRatioAxis, self.nchannels, self.settings.bw, 'Magnitude Ratio')
+        self.calfigure_usb.create_axis(3, AngleDiffAxis, self.nchannels, self.settings.bw, 'Angle Difference')
+        #
+        self.srrfigure.create_axis(0, SpectrumAxis, self.nchannels, self.settings.bw, 'USB spec')
+        self.srrfigure.create_axis(1, SpectrumAxis, self.nchannels, self.settings.bw, 'LSB spec')
+        self.srrfigure.create_axis(2, SrrAxis, self.nchannels, self.settings.bw, 'SRR USB')
+        self.srrfigure.create_axis(3, SrrAxis, self.nchannels, self.settings.bw, 'SRR LSB')
+
+        # create figure
+        self.calfigure_lsb.create_window()
+        self.calfigure_usb.create_window()
+        self.srrfigure.create_window()
+
         # data save attributes
         self.datadir = self.settings.datadir + '_' + datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
         os.mkdir(self.datadir)
@@ -71,9 +91,9 @@ class DssCalibrator(Experiment):
         benefit that is less cumbersome when using DSS backends, and more
         precise.
         """
-        self.calplotter_usb.fig.canvas.set_window_title('ADC Sync')
-        self.calplotter_usb.axes[2].ax.set_xlim((self.freqs[self.sync_channels[0]], self.freqs[self.sync_channels[-1]]))
-        self.calplotter_usb.axes[3].ax.set_xlim((self.freqs[self.sync_channels[0]], self.freqs[self.sync_channels[-1]]))
+        self.calfigure_usb.fig.canvas.set_window_title('ADC Sync')
+        self.calfigure_usb.axes[2].ax.set_xlim((self.freqs[self.sync_channels[0]], self.freqs[self.sync_channels[-1]]))
+        self.calfigure_usb.axes[3].ax.set_xlim((self.freqs[self.sync_channels[0]], self.freqs[self.sync_channels[-1]]))
         
         self.init_sources()
 
@@ -102,13 +122,16 @@ class DssCalibrator(Experiment):
                 sb_ratios.append(np.conj(ab) / cal_a2[chnl]) # (ab*)* / aa* = a*b / aa* = b/a = LSB/USB
 
                 # plot spec data
-                self.plot_spec_data(self.calplotter_usb.axes[:2], [cal_a2, cal_b2], self.settings.cal_pow_info)
+                [cal_a2_scaled, cal_b2_scaled] = \
+                    scale_spec_data_arr(self.fpga, [cal_a2, cal_b2], self.settings.cal_pow_info)
+                self.calfigure_usb.axes[0].plot(cal_a2_scaled)
+                self.calfigure_usb.axes[1].plot(cal_b2_scaled)
 
                 partial_freqs = self.freqs[self.sync_channels[:i+1]]
                 # plot magnitude ratio
-                self.calplotter_usb.axes[2].plot(partial_freqs, np.abs(sb_ratios))
+                self.calfigure_usb.axes[2].plot(partial_freqs, np.abs(sb_ratios))
                 # plot angle difference
-                self.calplotter_usb.axes[3].plot(partial_freqs, np.angle(sb_ratios, deg=True))
+                self.calfigure_usb.axes[3].plot(partial_freqs, np.angle(sb_ratios, deg=True))
 
             # plot last frequency
             plt.pause(self.settings.pause_time) 
@@ -118,8 +141,8 @@ class DssCalibrator(Experiment):
             if delay == 0:
                 print "ADCs successfully synthronized"
                 # reset axis to original values
-                self.calplotter_usb.axes[2].ax.set_xlim((0, self.settings.bw))
-                self.calplotter_usb.axes[3].ax.set_xlim((0, self.settings.bw))
+                self.calfigure_usb.axes[2].ax.set_xlim((0, self.settings.bw))
+                self.calfigure_usb.axes[3].ax.set_xlim((0, self.settings.bw))
                 return
             elif delay > 0: # if delay is positive adc1 is ahead, hence delay adc1
                 self.fpga.set_reg('adc1_delay', delay)
@@ -154,12 +177,12 @@ class DssCalibrator(Experiment):
                 # compute calibration constants (sideband ratios)
                 if not self.settings.ideal_consts['load']:
                     print "\tComputing sideband ratios, tone in USB..."; step_time = time.time()
-                    self.calplotter_usb.fig.canvas.set_window_title('Calibration USB ' + lo_label)
+                    self.calfigure_usb.fig.canvas.set_window_title('Calibration USB ' + lo_label)
                     sb_ratios_usb = self.compute_sb_ratios_usb(lo_comb, lo_datadir)
                     print "\tdone (" + str(time.time() - step_time) + "[s])" 
 
                     print "\tComputing sideband ratios, tone in LSB..."; step_time = time.time()
-                    self.calplotter_lsb.fig.canvas.set_window_title('Calibration LSB ' + lo_label)
+                    self.calfigure_lsb.fig.canvas.set_window_title('Calibration LSB ' + lo_label)
                     sb_ratios_lsb = self.compute_sb_ratios_lsb(lo_comb, lo_datadir)
                     print "\tdone (" + str(time.time() - step_time) + "[s])"
 
@@ -187,7 +210,7 @@ class DssCalibrator(Experiment):
 
                 # compute SRR
                 print "\tComputing SRR..."; step_time = time.time()
-                self.srrplotter.fig.canvas.set_window_title('SRR Computation ' + lo_label)
+                self.srrfigure.fig.canvas.set_window_title('SRR Computation ' + lo_label)
                 self.compute_srr(M_DSB, lo_comb, lo_datadir)
                 print "\tdone (" + str(time.time() - step_time) + "[s])"
 
@@ -223,7 +246,10 @@ class DssCalibrator(Experiment):
         a2_cold, b2_cold = self.fpga.get_bram_list_interleaved_data(self.settings.cal_pow_info)
                 
         # plot spec data
-        self.plot_spec_data(self.calplotter_usb.axes[:2], [a2_cold, b2_cold], self.settings.cal_pow_info)
+        [a2_cold_scaled, b2_cold_scaled] = \
+            scale_spec_data_arr(self.fpga, [a2_cold, b2_cold], self.settings.cal_pow_info)
+        self.calfigure_usb.axes[0].plot(a2_cold_scaled)
+        self.calfigure_usb.axes[1].plot(b2_cold_scaled)
         plt.pause(self.settings.pause_time) 
 
         # make the receiver hot
@@ -231,7 +257,10 @@ class DssCalibrator(Experiment):
         a2_hot, b2_hot = self.fpga.get_bram_list_interleaved_data(self.settings.cal_pow_info)
 
         # plot spec data
-        self.plot_spec_data(self.calplotter_usb.axes[:2], [a2_hot, b2_hot], self.settings.cal_pow_info)
+        [a2_hot_scaled, b2_hot_scaled] = \
+            scale_spec_data_arr(self.fpga, [a2_hot, b2_hot], self.settings.cal_pow_info)
+        self.calfigure_usb.axes[0].plot(a2_hot_scaled)
+        self.calfigure_usb.axes[1].plot(b2_hot_scaled)
         plt.pause(self.settings.pause_time) 
 
         # Compute Kerr's parameter.
@@ -281,13 +310,16 @@ class DssCalibrator(Experiment):
             sb_ratios.append(np.conj(ab) / cal_a2[chnl]) # (ab*)* / aa* = a*b / aa* = b/a = LSB/USB
 
             # plot spec data
-            self.plot_spec_data(self.calplotter_usb.axes[:2], [cal_a2, cal_b2], self.settings.cal_pow_info)
+            [cal_a2_scaled, cal_b2_scaled] = \
+                scale_spec_data_arr(self.fpga, [cal_a2, cal_b2], self.settings.cal_pow_info)
+            self.calfigure_usb.axes[0].plot(cal_a2_scaled)
+            self.calfigure_usb.axes[1].plot(cal_b2_scaled)
             
             partial_freqs = self.freqs[self.cal_channels[:i+1]]
             # plot magnitude ratio
-            self.calplotter_usb.axes[2].plot(partial_freqs, np.abs(sb_ratios))
+            self.calfigure_usb.axes[2].plot(partial_freqs, np.abs(sb_ratios))
             # plot angle difference
-            self.calplotter_usb.axes[3].plot(partial_freqs, np.angle(sb_ratios, deg=True))
+            self.calfigure_usb.axes[3].plot(partial_freqs, np.angle(sb_ratios, deg=True))
 
         # plot last frequency
         plt.pause(self.settings.pause_time) 
@@ -333,13 +365,16 @@ class DssCalibrator(Experiment):
             sb_ratios.append(ab / cal_b2[chnl]) # ab* / bb* = a/b = USB/LSB.
 
             # plot spec data
-            self.plot_spec_data(self.calplotter_lsb.axes[:2], [cal_a2, cal_b2], self.settings.cal_pow_info)
+            [cal_a2_scaled, cal_b2_scaled] = \
+                scale_spec_data_arr(self.fpga, [cal_a2, cal_b2], self.settings.cal_pow_info)
+            self.calfigure_lsb.axes[0].plot(cal_a2_scaled)
+            self.calfigure_lsb.axes[1].plot(cal_b2_scaled)
             
             partial_freqs = self.freqs[self.cal_channels[:i+1]]
             # plot magnitude ratio
-            self.calplotter_lsb.axes[2].plot(partial_freqs, np.abs(sb_ratios))
+            self.calfigure_lsb.axes[2].plot(partial_freqs, np.abs(sb_ratios))
             # plot angle difference
-            self.calplotter_lsb.axes[3].plot(partial_freqs, np.angle(sb_ratios, deg=True))
+            self.calfigure_lsb.axes[3].plot(partial_freqs, np.angle(sb_ratios, deg=True))
 
         # plot last frequency
         plt.pause(self.settings.pause_time) 
@@ -378,7 +413,10 @@ class DssCalibrator(Experiment):
             a2_tone_usb, b2_tone_usb = self.fpga.get_bram_list_interleaved_data(self.settings.synth_info)
 
             # plot spec data
-            self.plot_spec_data(self.srrplotter.axes[:2], [a2_tone_usb, b2_tone_usb], self.settings.synth_info)
+            [a2_tone_usb_scaled, b2_tone_usb_scaled] = \
+                scale_spec_data_arr(self.fpga, [a2_tone_usb, b2_tone_usb], self.settings.synth_info)
+            self.srrfigure.axes[0].plot(a2_tone_usb_scaled)
+            self.srrfigure.axes[1].plot(b2_tone_usb_scaled)
 
             # set generator at LSB frequency
             self.rf_source.set_freq_mhz(rf_freqs_lsb[chnl])
@@ -393,7 +431,10 @@ class DssCalibrator(Experiment):
                 a2_tone_lsb=a2_tone_lsb, b2_tone_lsb=b2_tone_lsb)
 
             # plot spec data
-            self.plot_spec_data(self.srrplotter.axes[:2], [a2_tone_lsb, b2_tone_lsb], self.settings.synth_info)
+            [a2_tone_lsb_scaled, b2_tone_lsb_scaled] = \
+                scale_spec_data_arr(self.fpga, [a2_tone_lsb, b2_tone_lsb], self.settings.synth_info)
+            self.srrfigure.axes[0].plot(a2_tone_lsb_scaled)
+            self.srrfigure.axes[1].plot(b2_tone_lsb_scaled)
 
             # Compute sideband ratios
             ratio_usb = np.divide(a2_tone_usb[chnl], b2_tone_usb[chnl], dtype=np.float64)
@@ -412,9 +453,9 @@ class DssCalibrator(Experiment):
 
             partial_freqs = self.freqs[self.srr_channels[:i+1]]
             # plot magnitude ratio
-            self.srrplotter.axes[2].plot(partial_freqs, srr_usb)
+            self.srrfigure.axes[2].plot(partial_freqs, srr_usb)
             # plot angle difference
-            self.srrplotter.axes[3].plot(partial_freqs, srr_lsb)
+            self.srrfigure.axes[3].plot(partial_freqs, srr_lsb)
         
         # plot last frequency
         plt.pause(self.settings.pause_time)
@@ -441,20 +482,6 @@ class DssCalibrator(Experiment):
         """
         lo_freqs_arr = [lo_source['lo_freqs'] for lo_source in self.settings.lo_sources]
         return list(itertools.product(*lo_freqs_arr))
-
-    def plot_spec_data(self, axes, spec_data_arr, spec_info):
-        """
-        Plot an array of spec data given the plotting axes and the spec_info.
-        The spec_info is used both to normalize by the accumulation length, and
-        convert the data to dBFS.
-        :axes: calan axes where to plot the data.
-        :spec_data_arr: array of spectral data to plot.
-        :spec_info: spectral info in calanfpga format (see calanfpga.py).
-        """
-        for spec_data, axis in zip(spec_data_arr, axes):
-            spec_data = spec_data / float(self.fpga.read_reg(spec_info['acc_len_reg'])) # divide by accumulation
-            spec_data = linear_to_dBFS(spec_data, spec_info)
-            axis.plot(spec_data)
 
     def compute_adc_delay_freq(self, freqs, sb_ratios):
         """
@@ -497,48 +524,6 @@ class DssCalibrator(Experiment):
             plt.ylabel('SRR [dB]')
 
         plt.savefig(self.datadir + '/srr.pdf', bbox_inches='tight')
-
-class DssCalibrationPlotter(Plotter):
-    """
-    Inner class for calibration plots.
-    """
-    def __init__(self, calanfpga):
-        self.create_gui = False
-        Plotter.__init__(self, calanfpga)
-        self.nplots = 4
-        mpl_axes = self.create_axes()
-        self.nchannels = get_nchannels(self.settings.cal_pow_info)
-        
-        # add custom axes
-        self.axes.append(SpectrumAxis(mpl_axes[0], self.nchannels,
-                self.settings.bw, 'ZDOK0 spec'))
-        self.axes.append(SpectrumAxis(mpl_axes[1], self.nchannels,
-                self.settings.bw, 'ZDOK1 spec'))
-        self.axes.append(MagRatioAxis(mpl_axes[2], self.nchannels,
-                self.settings.bw, 'Magnitude ratio'))
-        self.axes.append(AngleDiffAxis(mpl_axes[3], self.nchannels,
-                self.settings.bw, 'Angle difference'))
-       
-class DssSrrPlotter(Plotter):
-    """
-    Inner class for post-calibration plots.
-    """
-    def __init__(self, calanfpga):
-        self.create_gui = False
-        Plotter.__init__(self, calanfpga)
-        self.nplots = 4
-        mpl_axes = self.create_axes()
-        self.nchannels = get_nchannels(self.settings.synth_info)
-
-        # add custom axes
-        self.axes.append(SpectrumAxis(mpl_axes[0], self.nchannels,
-                self.settings.bw, 'USB spec'))
-        self.axes.append(SpectrumAxis(mpl_axes[1], self.nchannels,
-                self.settings.bw, 'LSB spec'))
-        self.axes.append(SrrAxis(mpl_axes[2], self.nchannels,
-                self.settings.bw, 'SRR USB'))
-        self.axes.append(SrrAxis(mpl_axes[3], self.nchannels,
-                self.settings.bw, 'SRR LSB'))
 
 def float2fixed(nbits, bin_pt, data):
     """

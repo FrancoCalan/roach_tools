@@ -2,7 +2,7 @@ import glob
 from setuptools import setup, find_packages
 
 setup(name = 'roach_tools',
-      version = '0.4',
+      version = '0.5',
       description = 'Roach tools for digital development in the MWL.',
       url = 'http://github.com/francocalan/roach_tools',
       author = 'Franco Curotto',

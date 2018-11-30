@@ -1,5 +1,6 @@
 import adc5g
 from experiment import Experiment
+from calanfigure import CalanFigure
 
 class Adc5gCalibrator(Experiment):
     """
@@ -15,18 +16,37 @@ class Adc5gCalibrator(Experiment):
     """
     def __init__(self, calanfpga):
         Experiment.__init__(self, calanfpga)
+        self.snapshots = self.settings.snapshots
+
+        # figures
+        self.snapfigure = CalanFigure(n_plots=len(self.snapshots), create_gui=True)
+        self.specfigure = CalanFigure(n_plots=len(self.snapshots), create_gui=True)
+
+        # figure axes
+        for snapshot in range(len(self.snapshots)):
+            self.snapfigure.create_axis(i, SnapshotAxis, self.settings.snap_samples, self.snapshots[i])
+            self.specfigure.create_axis(i, SpectrumAxis, self.settings.snap_samples/2, 
+                self.settings.bw, self.snapshots[i] + str(" spec"))
+            
 
     def perform_calibrations(self):
         """
         Perform MMCM, OGP or/and INL calibrations as indicated in the
         config file.
         """
+        # pre calibrations plot
+        if plot
+
         if self.settings.do_mmcm:
             self.perform_mmcm_calibration()
         #if self.settings.do_ogp:
         #    self.perform_ogp_calibration()
         #if self.settings.do_inl:
         #    self.perform_inl_calibration()
+        #if self.settings.load_ogp:
+        #    self.load_ogp_calibration()
+        #if self.settings.load_inl:
+        #    self.load_inl_calibration()
 
     def perform_mmcm_calibration(self):
         """

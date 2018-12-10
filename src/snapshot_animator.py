@@ -29,7 +29,6 @@ def get_snapshot_data(fpga, snap_samples):
     :param snap_samples: number of samples to return. 
     :return: snapshot data.
     """
-    snapshots = fpga.get_snapshots()
-    sliced_snapshots = [snapshot[:snap_samples] for snapshot in snapshots]
-    return sliced_snapshots
+    snapshots = fpga.get_snapshots(snap_samples)
+    return snapshots
 

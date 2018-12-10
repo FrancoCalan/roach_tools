@@ -23,7 +23,7 @@ class MultiLineAxis(CalanAxis):
         else:
             self.xdata = args[0]
             ydata_arr = args[1]
-        for line, ydata in zip(self.lines, ydata_arr):
+        for line, ydata in zip(self.lines[:len(ydata_arr)], ydata_arr):
             line.set_data(self.xdata, ydata)
 
     def gen_ydata_dict(self):

@@ -1,6 +1,8 @@
 import adc5g
+import matplotlib.pyplot as plt
 from experiment import Experiment
 from calanfigure import CalanFigure
+from axes.snapshot_cal_axis import SnapshotCalAxis
 
 class Adc5gCalibrator(Experiment):
     """
@@ -19,14 +21,14 @@ class Adc5gCalibrator(Experiment):
         self.snapshots = self.settings.snapshots
 
         # figures
-        self.snapfigure = CalanFigure(n_plots=len(self.snapshots), create_gui=True)
+        self.snapfigure = CalanFigure(n_plots=len(self.snapshots), create_gui=False)
         self.specfigure = CalanFigure(n_plots=len(self.snapshots), create_gui=True)
 
         # figure axes
-        for snapshot in range(len(self.snapshots)):
-            self.snapfigure.create_axis(i, SnapshotAxis, self.settings.snap_samples, self.snapshots[i])
-            self.specfigure.create_axis(i, SpectrumAxis, self.settings.snap_samples/2, 
-                self.settings.bw, self.snapshots[i] + str(" spec"))
+        for i in range(len(self.snapshots)):
+            self.snapfigure.create_axis(i, SnapshotCalAxis, self.settings.snap_samples, self.snapshots[i])
+            #self.specfigure.create_axis(i, SpectrumAxis, self.settings.snap_samples/2, 
+            #    self.settings.bw, self.snapshots[i] + str(" spec"))
             
 
     def perform_calibrations(self):
@@ -35,7 +37,12 @@ class Adc5gCalibrator(Experiment):
         config file.
         """
         # pre calibrations plot
-        if plot
+        if self.settings.plot_snapshots:
+            self.snapfigure.create_window()
+            uncal_snaps = self.fpga.get_snapshots(self.settings.snap_samples)
+            for axis, uncal_snap in zip(self.snapfigure.axes, uncal_snaps):
+                axis.plot([uncal_snap])
+        plt.pause(1)
 
         if self.settings.do_mmcm:
             self.perform_mmcm_calibration()
@@ -47,6 +54,15 @@ class Adc5gCalibrator(Experiment):
         #    self.load_ogp_calibration()
         #if self.settings.load_inl:
         #    self.load_inl_calibration()
+
+        # post calibrations plot
+        if self.settings.plot_snapshots:
+            cal_snaps = self.fpga.get_snapshots(self.settings.snap_samples)
+            for axis, uncal_snap, cal_snap in zip(self.snapfigure.axes, uncal_snaps, cal_snaps):
+                axis.plot([uncal_snap, cal_snap])
+        
+        plt.pause(1)
+        raw_input("Calibration done. Press any key to close window.")
 
     def perform_mmcm_calibration(self):
         """
@@ -64,4 +80,3 @@ class Adc5gCalibrator(Experiment):
 
             adc5g.unset_test_mode(self.fpga.fpga, snap_data['zdok'])
             print "done"
-

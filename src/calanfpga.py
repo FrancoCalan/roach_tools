@@ -174,17 +174,20 @@ class CalanFpga():
         reg_val = self.fpga.read_uint(reg)
         return reg_val
 
-    def get_snapshots(self):
+    def get_snapshots(self, nsamples=None):
         """
         Get snapshot data from all snapshot blocks specified in the config 
         file (snapshots).
+        :param nsamples: number of samples of the snapshot to return. Usually used
+            to get the desired number of samples for a nice plot.
         :return: list of data arrays in the same order as the snapshot list. Note: the
-        data type is fixed to 8 bits as all of our ADC work at that size. 
+            data type is fixed to 8 bits as all of our ADC work at that size. 
         """
         snap_data_arr = []
         for snapshot in self.settings.snapshots:
             snap_data = np.fromstring(self.fpga.snapshot_get(snapshot, man_trig=True, 
                 man_valid=True)['data'], dtype='>i1')
+            snap_data = snap_data[:nsamples]
             snap_data_arr.append(snap_data)
         
         return snap_data_arr

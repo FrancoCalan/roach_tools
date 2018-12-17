@@ -8,17 +8,19 @@ class CalanFigure():
     """
     Class representing a figure for a generic experiment with roach.
     """
-    def __init__(self, n_plots, create_gui, figure_name='Figure'):
-        self.figure_name = figure_name
+    def __init__(self, n_plots, create_gui):
         self.n_plots = n_plots
+        self.plot_map = {1:'11', 2:'12', 3:'22', 4:'22'}
+        self.axes = []
         # Workaround to Tk.mainloop not closing properly for plt.figure()
         self.create_gui = create_gui
         if self.create_gui:
             self.fig = plt.Figure()
+            self.fig.set_tight_layout(True)
         else:
             self.fig = plt.figure()
-        self.plot_map = {1:'11', 2:'12', 3:'22', 4:'22'}
-        self.axes = []
+            self.fig.set_tight_layout(True)
+            self.fig.show()
 
     def create_axis(self, n_axis, calanaxis_class, *axis_args):
         """
@@ -37,23 +39,17 @@ class CalanFigure():
         """
         Create a Tkinter window with all of the components (plots, toolbar, widgets).
         """
-        self.fig.set_tight_layout(True)
+        # tkinter window
+        self.root = Tk.Tk()
 
-        if self.create_gui:
-            # tkinter window
-            self.root = Tk.Tk()
+        # plot canvas
+        self.canvas = FigureCanvasTkAgg(self.fig, master=self.root)
+        self.canvas.get_tk_widget().pack(side=Tk.TOP, fill=Tk.BOTH, expand=1)
 
-            # plot canvas
-            self.canvas = FigureCanvasTkAgg(self.fig, master=self.root)
-            self.canvas.get_tk_widget().pack(side=Tk.TOP, fill=Tk.BOTH, expand=1)
-
-            # navigation bar
-            toolbar = NavigationToolbar2Tk(self.canvas, self.root)
-            toolbar.update()
-            self.canvas._tkcanvas.pack(side=Tk.TOP, fill=Tk.BOTH, expand=1)        
-
-        else:
-            self.fig.show()
+        # navigation bar
+        toolbar = NavigationToolbar2Tk(self.canvas, self.root)
+        toolbar.update()
+        self.canvas._tkcanvas.pack(side=Tk.TOP, fill=Tk.BOTH, expand=1)        
 
     def plot_axes(self, data_arr):
         """

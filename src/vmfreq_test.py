@@ -60,7 +60,6 @@ class VMFreqTest(Experiment):
 
         # iterates for all the magnitude ratio to test
         print "Starting VMFreq test..."
-        self.figure.create_window()
         for test_magratio in self.tested_magratios:
             raw_input("Set the power ratio ZDOK0/ZDOK1=" + str(test_magratio) + "dB.\n" +
                 "Press enter to continue.")

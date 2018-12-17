@@ -19,10 +19,8 @@ class DummyFpga():
             self.regs.append({'name' : reg, 'val' : 0})
 
         # add snapshots
-        self.snapshots = []
         try:
-            for snap_data in self.settings.snapshots:
-                self.snapshots += snap_data['names']
+            self.snapshots = self.settings.snapshots
         except:
             pass
 

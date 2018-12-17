@@ -1,8 +1,10 @@
 import adc5g
+import numpy as np
 import matplotlib.pyplot as plt
-from experiment import Experiment
+from experiment import Experiment, linear_to_dBFS
 from calanfigure import CalanFigure
 from axes.snapshot_cal_axis import SnapshotCalAxis
+from axes.spectrum_cal_axis import SpectrumCalAxis
 
 class Adc5gCalibrator(Experiment):
     """
@@ -19,16 +21,16 @@ class Adc5gCalibrator(Experiment):
     def __init__(self, calanfpga):
         Experiment.__init__(self, calanfpga)
         self.snapshots = self.settings.snapshots
+        self.nbins = len(self.fpga.get_snapshots()[0]) / 2
 
         # figures
         self.snapfigure = CalanFigure(n_plots=len(self.snapshots), create_gui=False)
-        self.specfigure = CalanFigure(n_plots=len(self.snapshots), create_gui=True)
+        self.specfigure = CalanFigure(n_plots=len(self.snapshots), create_gui=False)
 
         # figure axes
         for i in range(len(self.snapshots)):
             self.snapfigure.create_axis(i, SnapshotCalAxis, self.settings.snap_samples, self.snapshots[i])
-            #self.specfigure.create_axis(i, SpectrumAxis, self.settings.snap_samples/2, 
-            #    self.settings.bw, self.snapshots[i] + str(" spec"))
+            self.specfigure.create_axis(i, SpectrumCalAxis, self.nbins, self.settings.bw, self.snapshots[i] + str(" spec"))
             
 
     def perform_calibrations(self):
@@ -36,12 +38,21 @@ class Adc5gCalibrator(Experiment):
         Perform MMCM, OGP or/and INL calibrations as indicated in the
         config file.
         """
-        # pre calibrations plot
+        # pre calibrations snapshot plots
         if self.settings.plot_snapshots:
-            self.snapfigure.create_window()
             uncal_snaps = self.fpga.get_snapshots(self.settings.snap_samples)
             for axis, uncal_snap in zip(self.snapfigure.axes, uncal_snaps):
                 axis.plot([uncal_snap])
+        
+        # pre calibration spectrum plots
+        if self.settings.plot_spectra:
+            dummy_spec_info = {'bram_name' : 'bram', 'addr_width' : int(np.log2(self.nbins))} # used for linear_to_dBFS funct
+            uncal_snaps_full = self.fpga.get_snapshots()
+            for axis, uncal_snap in zip(self.specfigure.axes, uncal_snaps_full):
+                uncal_spec = np.square(np.abs(np.fft.rfft(uncal_snap)[:-1]) / self.nbins)
+                uncal_spec = linear_to_dBFS(uncal_spec, dummy_spec_info)
+                axis.plot([uncal_spec])
+
         plt.pause(1)
 
         if self.settings.do_mmcm:
@@ -55,14 +66,23 @@ class Adc5gCalibrator(Experiment):
         #if self.settings.load_inl:
         #    self.load_inl_calibration()
 
-        # post calibrations plot
+        # post calibrations snaspshots plot
         if self.settings.plot_snapshots:
             cal_snaps = self.fpga.get_snapshots(self.settings.snap_samples)
             for axis, uncal_snap, cal_snap in zip(self.snapfigure.axes, uncal_snaps, cal_snaps):
                 axis.plot([uncal_snap, cal_snap])
+
+        # post calibration spectrum plots
+        if self.settings.plot_spectra:
+            cal_snaps_full = self.fpga.get_snapshots()
+            for axis, uncal_snap, cal_snap in zip(self.specfigure.axes, uncal_snaps_full, cal_snaps_full):
+                uncal_spec = np.square(np.abs(np.fft.rfft(uncal_snap)[:-1]) / self.nbins)
+                uncal_spec = linear_to_dBFS(uncal_spec, dummy_spec_info)
+                cal_spec = np.square(np.abs(np.fft.rfft(cal_snap)[:-1]) / self.nbins)
+                cal_spec = linear_to_dBFS(cal_spec, dummy_spec_info)
+                axis.plot([uncal_spec, cal_spec])
         
-        plt.pause(1)
-        raw_input("Calibration done. Press any key to close window.")
+        plt.show()
 
     def perform_mmcm_calibration(self):
         """

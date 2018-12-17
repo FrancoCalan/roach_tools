@@ -10,7 +10,6 @@ reset_regs = []
 bw         = 1000
 
 # Snapshot settings
-snapshots    = [{'zdok' : 0, 'names' : ['adcsnap0']}, 
-                {'zdok' : 1, 'names' : ['adcsnap1']}]
+snapshots    = ['adcsnap0', 'adcsnap1']
 snap_samples = 256
 cal_adcs     = False

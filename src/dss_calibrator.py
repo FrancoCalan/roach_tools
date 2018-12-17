@@ -57,11 +57,6 @@ class DssCalibrator(Experiment):
         self.srrfigure.create_axis(2, SrrAxis, self.nchannels, self.settings.bw, 'SRR USB')
         self.srrfigure.create_axis(3, SrrAxis, self.nchannels, self.settings.bw, 'SRR LSB')
 
-        # create figure
-        self.calfigure_lsb.create_window()
-        self.calfigure_usb.create_window()
-        self.srrfigure.create_window()
-
         # data save attributes
         self.datadir = self.settings.datadir + '_' + datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
         os.mkdir(self.datadir)

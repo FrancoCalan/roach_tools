@@ -34,9 +34,6 @@ class AdcSynchronator(Experiment):
         snapshot information, and computing phase difference using
         single frequency DFT.
         """
-        # start plot
-        self.figure.create_window()
-
         # turn source on and set default freq and power
         self.source.set_freq_mhz() 
         self.source.set_power_dbm()

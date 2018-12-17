@@ -45,7 +45,7 @@ def get_nchannels(bram_info):
     :return: number of channels of the spectral data.
     """
     if 'bram_name' in bram_info.keys(): # case one bram spectrometer
-        n_bram = 1
+        n_brams = 1
     elif 'bram_list' in bram_info.keys(): # case multi-bram spectrometer
         n_brams = len(bram_info['bram_list']) 
     elif 'bram_list2d' in bram_info.keys(): # case multiple spectrometer in single model

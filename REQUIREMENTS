@@ -2,13 +2,14 @@ construct==2.5.3
 katcp==0.5.5
 h5py
 numpy
+scipy
 matplotlib
 numexpr
 pyserial
 pyvisa
-pivisa-py
+pyvisa-py
 setuptools
 git+https://github.com/ska-sa/PySPEAD.git
 git+https://github.com/ska-sa/corr.git
-git+https://github.com/jack-h/adc_tests.git@disentangle#version_subpkg\&subdirectory=adc5g
+git+https://github.com/sma-wideband/adc_tests.git
 git+https://github.com/nrao/ValonSynth.git

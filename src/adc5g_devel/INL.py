@@ -14,7 +14,7 @@ class INL:
         self.dir = dir
         self.test = test
 
-        self.roach_name = roach_name if roach_name is not None else "noroach" 
+        self.roach_name = roach_name if roach_name is not None else "" 
 
         self.spi = spi
 

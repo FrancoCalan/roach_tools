@@ -1,11 +1,15 @@
 import adc5g
-import datetime
+import datetime, os
 import numpy as np
 import matplotlib.pyplot as plt
 from experiment import Experiment, linear_to_dBFS
 from calanfigure import CalanFigure
 from axes.snapshot_cal_axis import SnapshotCalAxis
 from axes.spectrum_cal_axis import SpectrumCalAxis
+from adc5g_devel.AdcSnapshot import AdcSnapshot
+from adc5g_devel.SPI import SPI
+from adc5g_devel.OGP import OGP
+from adc5g_devel.INL import INL
 
 class Adc5gCalibrator(Experiment):
     """
@@ -14,9 +18,9 @@ class Adc5gCalibrator(Experiment):
     The implmented calibrations are:
     - Mixed Mode Clock Manager (MMCM) calibration,
         using Rurik Primiani implmentation: https://github.com/sma-wideband/adc_tests
-    - TODO Offset, Gain, Phase (OGP) calibration,
+    - Offset, Gain, Phase (OGP) calibration,
         borrowing scripts from NRAO's repo: https://github.com/nrao/adc5g_devel
-    - TODO Integral Non-Linearity (INL) calibration,
+    - Integral Non-Linearity (INL) calibration,
         borrowing scripts from NRAO's repo: https://github.com/nrao/adc5g_devel
     """
     def __init__(self, calanfpga):
@@ -24,6 +28,10 @@ class Adc5gCalibrator(Experiment):
         self.snapshots = self.settings.snapshots
         self.nbins = len(self.fpga.get_snapshots()[0]) / 2
         self.now = datetime.datetime.now()
+        self.caldir = self.settings.caldir + '_' + self.now.strftime('%Y-%m-%d %H:%M:%S')
+        # create directory for calibration data
+        if self.settings.do_ogp or self.settings.do_inl:
+            os.mkdir(self.caldir)
 
         # figures
         self.snapfigure = CalanFigure(n_plots=len(self.snapshots), create_gui=False)
@@ -33,13 +41,21 @@ class Adc5gCalibrator(Experiment):
         for i in range(len(self.snapshots)):
             self.snapfigure.create_axis(i, SnapshotCalAxis, self.settings.snap_samples, self.snapshots[i])
             self.specfigure.create_axis(i, SpectrumCalAxis, self.nbins, self.settings.bw, self.snapshots[i] + str(" spec"))
-            
+
+         # calibration source
+         self.source = self.create_instrument(self.settings.cal_source)
+         self.test_freq = self.setting.cal_source['def_freq']
 
     def perform_calibrations(self):
         """
         Perform MMCM, OGP or/and INL calibrations as indicated in the
         config file.
         """
+        # turn source on and set default freq and power
+        self.source.set_freq_mhz()
+        self.source.set_power_dbm()
+        self.source.turn_output_on()
+
         # pre calibrations snapshot plots
         if self.settings.plot_snapshots:
             uncal_snaps = self.fpga.get_snapshots(self.settings.snap_samples)
@@ -56,19 +72,23 @@ class Adc5gCalibrator(Experiment):
                 axis.plot([uncal_spec])
 
         plt.pause(1)
-
+        
+        # perform calibrations indicated in configuration file
         if self.settings.do_mmcm:
             self.perform_mmcm_calibration()
         if self.settings.do_ogp:
             self.perform_ogp_calibration()
         if self.settings.do_inl:
             self.perform_inl_calibration()
-        #if self.settings.load_ogp:
-        #    self.load_ogp_calibration()
-        #if self.settings.load_inl:
-        #    self.load_inl_calibration()
 
-        # post calibrations snaspshots plot
+        # load calibrations, not necessary if you already calibrated
+        if not self.settings.do_ogp and not self.settings.do_inl:
+            if self.settings.load_ogp:
+                self.load_ogp_calibration()
+            if self.settings.load_inl:
+                self.load_inl_calibration()
+
+        # post calibrations snapshots plot
         if self.settings.plot_snapshots:
             cal_snaps = self.fpga.get_snapshots(self.settings.snap_samples)
             for axis, uncal_snap, cal_snap in zip(self.snapfigure.axes, uncal_snaps, cal_snaps):
@@ -84,6 +104,7 @@ class Adc5gCalibrator(Experiment):
                 cal_spec = linear_to_dBFS(cal_spec, dummy_spec_info)
                 axis.plot([uncal_spec, cal_spec])
         
+        self.source.turn_outout_off()
         print("Done with all calibrations. Close plots to finish.")
         plt.show()
 
@@ -108,29 +129,58 @@ class Adc5gCalibrator(Experiment):
         Perform OGP calibration using scraped code from adc5g_devel
         (https://github.com/nrao/adc5g_devel).
         """
-        from adc5g_devel.AdcSnapshot import AdcSnapshot
-        from adc5g_devel.SPI import SPI
-        from adc5g_devel.OGP import OGP
-
         for zdok_info in self.settings.snapshots_info:
-            adcsnapshot = AdcSnapshot(self.fpga.fpga, zdok_info['zdok'], zdok_info['names'][0],
-                clockrate=self.settings.bw)
-            spi = SPI(zdok_info['zdok'], self.fpga.fpga)
-            ogp = OGP(zdok_info['zdok'], self.settings.caldir, None, spi, adcsnapshot, self.now, 
-                clockrate=self.settings.bw)
-            
-            ogp.do_ogp(zdok_info['zdok'], self.settings.test_freq, 10)
+            ogp = self.create_ogp_object(zdok_info['zdok'], zdok_info['names'][0])
+            ogp.do_ogp(zdok_info['zdok'], self.test_freq, 10)
 
     def perform_inl_calibration(self):
         """
         Perform INL calibration using scraped code from adc5g_devel
         (https://github.com/nrao/adc5g_devel).
         """
-        from adc5g_devel.SPI import SPI
-        from adc5g_devel.INL import INL
 
         for zdok_info in self.settings.snapshots_info:
-            spi = SPI(zdok_info['zdok'], self.fpga.fpga)
-            inl = INL(zdok_info['zdok'], self.settings.caldir, spi, self.now) 
-
+            inl = self.create_inl_object(zdok_info['zdok'])
             inl.do_inl(zdok_info['zdok'])
+
+    def load_ogp_calibration(self):
+        """
+        Load previously saved OGP calibration to ADC.
+        """
+        for zdok_info in self.settings.snapshots_info:
+            ogp = self.create_ogp_object(zdok_info['zdok'], zdok_info['names'][0])
+            ogp.load_from_file(self.settings.loaddir, zdok_info['zdok'])
+
+    def load_inl_calibration(self):
+        """
+        Load previously saved INL calibration to ADC.
+        """
+        for zdok_info in self.settings.snapshots_info:
+            inl = self.create_inl_object(zdok_info['zdok'])
+            inl.load_from_file(self.settings.loaddir, zdok_info['zdok'])
+
+    def create_ogp_object(self, zdok, snapshot):
+        """
+        Create the appropate OGP object with the parameters from 
+        the config file, and personal deafaults to perform calibration 
+        and data loading.
+        :param zdok: ZDOK port number of the ADC (0 or 1).
+        :param snapshot: snapshot block name from where extraxt the data.
+        :return: adc5g_devel OGP object.
+        """
+        adcsnapshot = AdcSnapshot(self.fpga.fpga, zdok, snapshot, clockrate=self.settings.bw)
+        spi = SPI(zdok, self.fpga.fpga)
+        ogp = OGP(zdok, self.caldir, None, spi, adcsnapshot, self.now, clockrate=self.settings.bw)
+        return ogp
+    
+    def create_inl_object(self, zdok):
+        """
+        Create the appropate INL object with the parameters from 
+        the config file, and personal deafaults to perform calibration 
+        and data loading.
+        :param zdok: ZDOK port number of the ADC (0 or 1).
+        :return: adc5g_devel INL object.
+        """
+        spi = SPI(zdok, self.fpga.fpga)
+        inl = INL(zdok, self.caldir, spi, self.now) 
+        return inl

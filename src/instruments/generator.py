@@ -1,4 +1,4 @@
-import pyvisa
+import pyvisa, socket
 
 class Generator():
     """
@@ -45,7 +45,12 @@ def create_generator(rm, instr_info):
     from visa_generator import VisaGenerator
     from anritsu_generator import AnritsuGenerator
     
-    instr = rm.open_resource(instr_info['connection'])
+    try:
+        instr = rm.open_resource(instr_info['connection'])
+    except socket.error:
+        print("Unable to connect to instrument " + instr_info['connection'])
+        exit()
+
     if instr_info['type'] == 'visa':
         return VisaGenerator(instr, instr_info)
     elif instr_info['type'] == 'anritsu':

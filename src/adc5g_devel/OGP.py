@@ -13,7 +13,7 @@ class OGP:
 
         self.dir = dir
         self.test = test
-        self.roach_name = roach_name if roach_name is not None else "" 
+        self.roach_name = roach_name if roach_name is not None else "noroach" 
         self.set_clockrate(clockrate)
 
         self.gpib = gpib

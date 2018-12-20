@@ -1,4 +1,3 @@
-import visa
 import numpy as np
 from instruments.generator import create_generator
 
@@ -11,7 +10,6 @@ class Experiment():
     def __init__(self, calanfpga):
         self.fpga = calanfpga
         self.settings = self.fpga.settings
-        self.rm = visa.ResourceManager('@py')
 
     def create_instrument(self, instr_info):
         """
@@ -21,7 +19,7 @@ class Experiment():
             instrument to communcate with.
         :return: instrument object.
         """
-        return create_generator(self.rm, instr_info)
+        return create_generator(instr_info)
 
 def linear_to_dBFS(data, bram_info, nbits=8):
     """

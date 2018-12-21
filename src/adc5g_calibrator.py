@@ -45,16 +45,23 @@ class Adc5gCalibrator(Experiment):
         Perform MMCM, OGP or/and INL calibrations as indicated in the
         config file.
         """
-        # turn source on and set default freq and power
-        self.source.set_freq_mhz()
-        self.source.set_power_dbm()
-        self.source.turn_output_on()
+
+        # if doing ogp or inl calibrations...
+        if self.settings.do_ogp or self.settings.do_inl:
+            # create directory for calibration data
+            os.mkdir(self.caldir)
+            
+            # turn source on and set default freq and power
+            self.source.set_freq_mhz()
+            self.source.set_power_dbm()
+            self.source.turn_output_on()
 
         # pre calibrations snapshot plots
         if self.settings.plot_snapshots:
             uncal_snaps = self.fpga.get_snapshots(self.settings.snap_samples)
             for axis, uncal_snap in zip(self.snapfigure.axes, uncal_snaps):
                 axis.plot([uncal_snap])
+            plt.pause(1)
         
         # pre calibration spectrum plots
         if self.settings.plot_spectra:
@@ -64,13 +71,8 @@ class Adc5gCalibrator(Experiment):
                 uncal_spec = np.square(np.abs(np.fft.rfft(uncal_snap)[:-1] / np.sqrt(self.nbins))) # the sqrt(nbins) is a workaround for nice plots
                 uncal_spec = linear_to_dBFS(uncal_spec, dummy_spec_info)
                 axis.plot([uncal_spec])
+            plt.pause(1)
 
-        plt.pause(1)
-        
-        # create directory for calibration data
-        if self.settings.do_ogp or self.settings.do_inl:
-            os.mkdir(self.caldir)
-            
         # perform calibrations indicated in configuration file
         if self.settings.do_mmcm:
             self.perform_mmcm_calibration()
@@ -95,6 +97,7 @@ class Adc5gCalibrator(Experiment):
             cal_snaps = self.fpga.get_snapshots(self.settings.snap_samples)
             for axis, uncal_snap, cal_snap in zip(self.snapfigure.axes, uncal_snaps, cal_snaps):
                 axis.plot([uncal_snap, cal_snap])
+            plt.pause(1)
 
         # post calibration spectrum plots
         if self.settings.plot_spectra:
@@ -105,10 +108,17 @@ class Adc5gCalibrator(Experiment):
                 cal_spec = np.square(np.abs(np.fft.rfft(cal_snap)[:-1] / np.sqrt(self.nbins))) # the sqrt(nbins) is a workaround for nice plots
                 cal_spec = linear_to_dBFS(cal_spec, dummy_spec_info)
                 axis.plot([uncal_spec, cal_spec])
+            plt.pause(1)
         
-        self.source.turn_output_off()
-        print("Done with all calibrations. Close plots to finish.")
-        plt.show()
+        # if doing ogp or inl calibrations...
+        if self.settings.do_ogp or self.settings.do_inl:
+            self.source.turn_output_off()
+        
+        print("Done with all calibrations.") 
+        
+        if self.settings.plot_snapshots or self.settings.plot_spectra:
+            print("Close plots to finish.")
+            plt.show()
 
     def perform_mmcm_calibration(self):
         """

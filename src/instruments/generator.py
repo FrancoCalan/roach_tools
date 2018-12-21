@@ -1,6 +1,4 @@
 import visa, socket
-from visa_generator import VisaGenerator
-from anritsu_generator import AnritsuGenerator
 
 class Generator():
     """
@@ -43,8 +41,11 @@ def create_generator(instr_info):
     :param print_msgs: True: print command messages. False: do not.
     :return: Generator object.
     """
+    from visa_generator import VisaGenerator
+    from anritsu_generator import AnritsuGenerator
+    
     # check if instrument is proper or simulated
-    if instr_info['connection'] = None
+    if instr_info['type'] == 'sim':
         rm = visa.ResourceManager('@sim')
     else:
         rm = visa.ResourceManager('@py')
@@ -61,3 +62,6 @@ def create_generator(instr_info):
         return VisaGenerator(instr, instr_info)
     elif instr_info['type'] == 'anritsu':
         return AnritsuGenerator(instr, instr_info)
+    else: # default to visa
+        return VisaGenerator(instr, instr_info)
+        

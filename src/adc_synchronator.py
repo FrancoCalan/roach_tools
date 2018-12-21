@@ -4,7 +4,6 @@ from experiment import Experiment
 from calanfigure import CalanFigure
 from axes.snapshot_axis import SnapshotAxis
 from instruments.generator import create_generator
-from dummies.dummy_generator import DummyGenerator
 from dummies.dummy_generator import gen_time_arr
 
 class AdcSynchronator(Experiment):
@@ -21,7 +20,7 @@ class AdcSynchronator(Experiment):
                 self.settings.snap_samples, self.snapshots[i])
 
         self.Ts = 1.0/(2*self.settings.bw)
-        self.source = self.create_instrument(self.settings.sync_source)
+        self.source = create_generator(self.settings.sync_source)
 
         self.sync_freq = self.settings.sync_source['def_freq']
         self.synced_counter = 0

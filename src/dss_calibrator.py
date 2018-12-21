@@ -6,6 +6,7 @@ from experiment import Experiment
 from plotter import Plotter
 from experiment import linear_to_dBFS, get_nchannels
 from calanfigure import CalanFigure
+from instruments.generator import create_generator
 from spectra_animator import scale_spec_data_arr
 from axes.spectrum_axis import SpectrumAxis
 from axes.mag_ratio_axis import MagRatioAxis
@@ -28,8 +29,8 @@ class DssCalibrator(Experiment):
         self.consts_bin_pt = self.settings.const_bin_pt
 
         # sources (RF and LOs)
-        self.rf_source = self.create_instrument(self.settings.rf_source)
-        self.lo_sources = [self.create_instrument(lo_source) for lo_source in self.settings.lo_sources]
+        self.rf_source = create_generator(self.settings.rf_source)
+        self.lo_sources = [create_generator(lo_source) for lo_source in self.settings.lo_sources]
         
         # test channels array
         self.sync_channels = range(1, 101, 10)

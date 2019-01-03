@@ -3,6 +3,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 from experiment import Experiment, get_nchannels
 from calanfigure import CalanFigure
+from instruments.generator import create_generator
 from spectra_animator import scale_spec_data
 from axes.spectrum_axis import SpectrumAxis
 
@@ -17,7 +18,7 @@ class TransferFunction(Experiment):
         self.nchannels = get_nchannels(self.settings.spec_info)
         self.freqs = np.linspace(0, self.settings.bw, self.nchannels, endpoint=False)
 
-        self.source = self.create_instrument(self.settings.test_source)
+        self.source = create_generator(self.settings.test_source)
         self.test_channels = range(1, self.nchannels, self.settings.chnl_step)
 
         self.figure = CalanFigure(n_plots=2, create_gui=False)

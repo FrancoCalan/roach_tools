@@ -4,6 +4,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 from experiment import Experiment, linear_to_dBFS
 from calanfigure import CalanFigure
+from instruments.generator import create_generator
 from axes.snapshot_cal_axis import SnapshotCalAxis
 from axes.spectrum_cal_axis import SpectrumCalAxis
 from adc5g_devel.ADCCalibrate import ADCCalibrate
@@ -37,7 +38,7 @@ class Adc5gCalibrator(Experiment):
             self.specfigure.create_axis(i, SpectrumCalAxis, self.nbins, self.settings.bw, self.snapshots[i] + str(" spec"))
 
         # calibration source
-        self.source = self.create_instrument(self.settings.cal_source)
+        self.source = create_generator(self.settings.cal_source)
         self.test_freq = self.settings.cal_source['def_freq']
 
     def perform_calibrations(self):

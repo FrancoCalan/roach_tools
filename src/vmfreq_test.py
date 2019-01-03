@@ -3,6 +3,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 from experiment import Experiment, get_nchannels, get_channel_from_freq
 from calanfigure import CalanFigure
+from instruments.generator import create_generator
 from spectra_animator import scale_spec_data
 from axes.spectrum_axis import SpectrumAxis
 from axes.vmfreq_magratio_axis import VMFreqMagRatioAxis
@@ -23,7 +24,7 @@ class VMFreqTest(Experiment):
 
         self.nchannels = get_nchannels(self.settings.spec_info)
 
-        self.source = self.create_instrument(self.settings.test_source)
+        self.source = create_generator(self.settings.test_source)
         self.nsamples = self.settings.nsamples
         self.tested_magratios = self.settings.tested_magratios
         self.test_freq = self.settings.test_source['def_freq']

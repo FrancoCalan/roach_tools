@@ -1,13 +1,13 @@
-from plotter import Plotter
+from animator import Animator
 from calanfigure import CalanFigure
 from axes.snapshot_axis import SnapshotAxis
 
-class SnapshotAnimator(Plotter):
+class SnapshotAnimator(Animator):
     """
     Class responsable for drawing snapshot plots.
     """
     def __init__(self, calanfpga):
-        Plotter.__init__(self, calanfpga)
+        Animator.__init__(self, calanfpga)
         self.snapshots = self.settings.snapshots
         self.figure = CalanFigure(n_plots=len(self.settings.snapshots), create_gui=True)
         

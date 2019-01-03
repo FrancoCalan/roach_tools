@@ -1,5 +1,4 @@
 import json
-import matplotlib.animation as animation
 import Tkinter as Tk
 from experiment import Experiment
 from datetime import datetime
@@ -10,6 +9,7 @@ class Plotter(Experiment):
     """
     def __init__(self, calanfpga):
         Experiment.__init__(self, calanfpga)
+        self.entries = [] # reference to additional GUI entries to modify registers in FPGA 
 
     def create_figure_window(self):
         """

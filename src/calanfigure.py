@@ -10,7 +10,7 @@ class CalanFigure():
     """
     def __init__(self, n_plots, create_gui):
         self.n_plots = n_plots
-        self.plot_map = {1:'11', 2:'12', 3:'22', 4:'22'}
+        self.plot_map = {1:'11', 2:'12', 3:'22', 4:'22', 16:'44'}
         self.axes = []
         # Workaround to Tk.mainloop not closing properly for plt.figure()
         self.create_gui = create_gui

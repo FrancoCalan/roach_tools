@@ -174,6 +174,18 @@ class CalanFpga():
         reg_val = self.fpga.read_uint(reg)
         return reg_val
 
+    def get_reg_list_data(self, reg_names_list):
+        """
+        Get the register value of a list of register names.
+        :param reg_list: list of register names.
+        :return: list of register values in unsigned 32 bit format.
+        """
+        reg_val_list = []
+        for reg_name in reg_name_list:
+            reg_val_list.append(self.read_reg(reg_name))
+
+        return reg_val_list
+
     def get_snapshots(self, nsamples=None):
         """
         Get snapshot data from all snapshot blocks specified in the config 

@@ -19,14 +19,7 @@ class KestfiltAnimator(SpectraAnimator):
         SpectraAnimator.add_figure_widgets(self)
         
         # filter_on button
-        self.filter_on_button = Tk.Button(self.button_frame, command=self.toggle_filter)
-        self.filter_on_button.pack(side=Tk.LEFT)
-        if self.fpga.read_reg('filter_on') == 0:
-            self.filter_on_button.config(relief=Tk.RAISED)
-            self.filter_on_button.config(text="RFI Filter Off")
-        else:
-            self.filter_on_button.config(relief=Tk.SUNKEN)
-            self.filter_on_button.config(text="RFI Filter On")
+        self.add_push_button('filter_on', 'RFI Filter Off', 'RFI Filter On')
 
         # plot conv button
         self.plot_conv_button = Tk.Button(self.button_frame, text='Plot conv', command=self.plot_convergence)
@@ -56,28 +49,13 @@ class KestfiltAnimator(SpectraAnimator):
 
         return save_data
 
-    def toggle_filter(self):
-        """
-        Activate and deactivate kesteven filter at button press.
-        """
-        if self.fpga.read_reg('filter_on') == 1:
-            self.filter_on_button.config(relief=Tk.RAISED)
-            self.filter_on_button.config(text="RFI Filter Off")
-            self.fpga.set_reg('filter_on', 0)
-            print('Filter is off')
-        else:
-            self.filter_on_button.config(relief=Tk.SUNKEN)
-            self.filter_on_button.config(text="RFI Filter On")
-            self.fpga.set_reg('filter_on', 1)
-            print('Filter is on')
-
     def add_channel_entry(self, chnl_reg):
         """
         Add the channel reg entry with the extra label indicating the
         corresponding frequency for that channel.
         """
         frame = SpectraAnimator.add_reg_entry(self, chnl_reg)
-        chnl_entry = self.entries[-1]
+        chnl_entry = self.reg_entries[-1]
         chnl_value = self.fpga.read_reg(chnl_reg)
         chnl_freq = get_freq_from_channel(self.settings.bw, chnl_value, self.settings.spec_info)
         freq_label = Tk.Label(frame, text= str(chnl_freq) + " MHz")

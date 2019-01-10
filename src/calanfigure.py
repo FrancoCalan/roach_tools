@@ -12,15 +12,8 @@ class CalanFigure():
         self.n_plots = n_plots
         self.plot_map = {1:'11', 2:'12', 3:'22', 4:'22', 16:'44'}
         self.axes = []
-        # Workaround to Tk.mainloop not closing properly for plt.figure()
-        self.create_gui = create_gui
-        if self.create_gui:
-            self.fig = plt.Figure()
-            self.fig.set_tight_layout(True)
-        else:
-            self.fig = plt.figure()
-            self.fig.set_tight_layout(True)
-            self.fig.show()
+        self.fig = plt.figure()
+        self.fig.set_tight_layout(True)
 
     def create_axis(self, n_axis, calanaxis_class, *axis_args):
         """
@@ -41,6 +34,7 @@ class CalanFigure():
         """
         # tkinter window
         self.root = Tk.Tk()
+        self.root.protocol("WM_DELETE_WINDOW", lambda: exit())
 
         # plot canvas
         self.canvas = FigureCanvasTkAgg(self.fig, master=self.root)

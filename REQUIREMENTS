@@ -3,7 +3,7 @@ katcp==0.5.5
 h5py
 numpy
 scipy
-matplotlib
+matplotlib==2.2.3
 numexpr
 pyserial
 pyvisa

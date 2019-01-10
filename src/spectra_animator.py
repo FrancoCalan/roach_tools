@@ -34,7 +34,7 @@ class SpectraAnimator(Animator):
         Get spectra data for saving.
         :return: spectra data in dictionary format.
         """
-        save_data = Plotter.get_save_data(self)
+        save_data = Animator.get_save_data(self)
         save_data.update(self.figure.axes[0].gen_xdata_dict())
         save_data['acc_len'] = self.fpga.read_reg('acc_len')
 

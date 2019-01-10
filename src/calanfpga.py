@@ -204,7 +204,7 @@ class CalanFpga():
         
         return snap_data_arr
 
-    def get_snapshots_sync(self):
+    def get_snapshots_sync(self, nsamples=None):
         """
         Same as get_snapshots() but it uses a 'snapshot trigger' register to sync
         the snapshot recording, i.e., all snapshot start recording at the same clock cycle.
@@ -225,6 +225,7 @@ class CalanFpga():
         snap_data_arr = []
         for snapshot in self.settings.snapshots:
             snap_data = np.fromstring(self.fpga.snapshot_get(snapshot, arm=False)['data'], dtype='>i1')
+            snap_data = snap_data[:nsamples]
             snap_data_arr.append(snap_data)
         
         return snap_data_arr

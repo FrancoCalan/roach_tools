@@ -130,7 +130,7 @@ class Adc5gCalibrator(Experiment):
         adc5g.sync_adc(self.fpga.fpga)
 
         for snap_data in self.settings.snapshots_info:
-            print "Calibrating ADC5G ZDOK" + str(snap_data['zdok']) + "..."
+            print "Performing ADC5G MMCM calibration, ZDOK" + str(snap_data['zdok']) + "..."
             opt, glitches = adc5g.calibrate_mmcm_phase(self.fpga.fpga, \
                 snap_data['zdok'], snap_data['names'])
 

@@ -1,5 +1,6 @@
 import sys, time
 import numpy as np
+import matplotlib.pyplot as plt
 from experiment import Experiment
 from calanfigure import CalanFigure
 from axes.snapshot_axis import SnapshotAxis
@@ -15,9 +16,8 @@ class AdcSynchronator(Experiment):
         self.snapshots = self.settings.snapshots
         self.figure = CalanFigure(n_plots=2, create_gui=False)
         
-        for i in range(self.figure.n_plots):
-            self.figure.create_axis(i, SnapshotAxis, 
-                self.settings.snap_samples, self.snapshots[i])
+        self.figure.create_axis(0, SnapshotAxis, self.settings.snap_samples, self.snapshots[0])
+        self.figure.create_axis(1, SnapshotAxis, self.settings.snap_samples, self.snapshots[1])
 
         self.Ts = 1.0/(2*self.settings.bw)
         self.source = create_generator(self.settings.sync_source)
@@ -40,8 +40,10 @@ class AdcSynchronator(Experiment):
 
         while True:
             [snap_adc0, snap_adc1] = self.fpga.get_snapshots_sync()
-            self.figure.draw_axes([snap_adc0[:self.settings.snap_samples], snap_adc1[:self.settings.snap_samples]])
-            time.sleep(1)
+            self.figure.axes[0].plot(snap_adc0[:self.settings.snap_samples])
+            self.figure.axes[1].plot(snap_adc1[:self.settings.snap_samples])
+            plt.pause(1)
+            
             snap0_phasor = self.estimate_phasor(self.sync_freq, snap_adc0)
             snap1_phasor = self.estimate_phasor(self.sync_freq, snap_adc1)
             phasor_div = self.compute_phasor_div(snap0_phasor, snap1_phasor)

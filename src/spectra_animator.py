@@ -2,8 +2,8 @@ import numpy as np
 import Tkinter as Tk
 from animator import Animator
 from calanfigure import CalanFigure
-from experiment import linear_to_dBFS, get_nchannels
 from axes.spectrum_axis import SpectrumAxis
+from experiment import linear_to_dBFS, get_nchannels
 
 class SpectraAnimator(Animator):
     """

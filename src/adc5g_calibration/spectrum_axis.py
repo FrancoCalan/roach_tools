@@ -1,7 +1,7 @@
 import numpy as np
-from multi_line_axis import MultiLineAxis
+from ..axes.multi_line_axis import MultiLineAxis
 
-class SpectrumCalAxis(MultiLineAxis):
+class SpectrumAxis(MultiLineAxis):
     """
     Class representing an axis from a spectrum plot, intendend to plot two spectra
     in the same axis. Used to test calibration results.

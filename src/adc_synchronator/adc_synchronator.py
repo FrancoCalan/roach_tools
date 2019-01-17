@@ -1,11 +1,11 @@
 import sys, time
 import numpy as np
 import matplotlib.pyplot as plt
-from experiment import Experiment
-from calanfigure import CalanFigure
-from axes.snapshot_axis import SnapshotAxis
-from instruments.generator import create_generator
-from dummies.dummy_generator import gen_time_arr
+from ..experiment import Experiment
+from ..calanfigure import CalanFigure
+from ..axes.snapshot_axis import SnapshotAxis
+from ..instruments.generator import create_generator
+from ..dummies.dummy_generator import gen_time_arr
 
 class AdcSynchronator(Experiment):
     """

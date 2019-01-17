@@ -34,7 +34,7 @@ class CalanFigure():
         """
         # tkinter window
         self.root = Tk.Tk()
-        self.root.protocol("WM_DELETE_WINDOW", lambda: exit())
+        self.root.protocol("WM_DELETE_WINDOW", exit)
 
         # plot canvas
         self.canvas = FigureCanvasTkAgg(self.fig, master=self.root)

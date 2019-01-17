@@ -1,11 +1,11 @@
 import sys, os
 sys.path.append(os.getcwd())
 import numpy as np
-from plotter import Plotter
-from experiment import get_spec_time_arr
-from calanfigure import CalanFigure
-from axes.mag_ratio_time_axis import MagRatioTimeAxis
-from axes.angle_diff_time_axis import AngleDiffTimeAxis
+from ..plotter import Plotter
+from ..experiment import get_spec_time_arr
+from ..calanfigure import CalanFigure
+from mag_ratio_axis import MagRatioAxis
+from angle_diff_axis import AngleDiffAxis
 
 class StabilityPlotter(Plotter):
     """
@@ -20,8 +20,8 @@ class StabilityPlotter(Plotter):
         n_specs = 2**self.settings.inst_chnl_info['addr_width']
         self.time_arr = get_spec_time_arr(self.settings.bw, n_specs, self.settings.spec_info)
         
-        self.figure.create_axis(0, MagRatioTimeAxis, self.time_arr)
-        self.figure.create_axis(1, AngleDiffTimeAxis, self.time_arr)
+        self.figure.create_axis(0, MagRatioAxis, self.time_arr)
+        self.figure.create_axis(1, AngleDiffAxis, self.time_arr)
 
     def add_figure_widgets(self):
         """

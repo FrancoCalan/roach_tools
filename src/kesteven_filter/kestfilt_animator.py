@@ -1,7 +1,7 @@
 import numpy as np
 import Tkinter as Tk
-from spectra_animator import SpectraAnimator
-from experiment import get_freq_from_channel
+from ..spectra_animator import SpectraAnimator
+from ..experiment import get_freq_from_channel
 from convergence_plotter import ConvergencePlotter
 from stability_plotter import StabilityPlotter
 

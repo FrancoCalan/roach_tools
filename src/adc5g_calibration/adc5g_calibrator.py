@@ -2,12 +2,12 @@ import adc5g
 import datetime, os
 import numpy as np
 import matplotlib.pyplot as plt
-from experiment import Experiment, linear_to_dBFS
-from calanfigure import CalanFigure
-from instruments.generator import create_generator
-from axes.snapshot_cal_axis import SnapshotCalAxis
-from axes.spectrum_cal_axis import SpectrumCalAxis
-from adc5g_devel.ADCCalibrate import ADCCalibrate
+from ..experiment import Experiment, linear_to_dBFS
+from ..calanfigure import CalanFigure
+from ..instruments.generator import create_generator
+from snapshot_axis import SnapshotAxis
+from spectrum_axis import SpectrumAxis
+from ADCCalibrate import ADCCalibrate
 
 class Adc5gCalibrator(Experiment):
     """
@@ -34,8 +34,8 @@ class Adc5gCalibrator(Experiment):
 
         # figure axes
         for i in range(len(self.snapshots)):
-            self.snapfigure.create_axis(i, SnapshotCalAxis, self.settings.snap_samples, self.snapshots[i])
-            self.specfigure.create_axis(i, SpectrumCalAxis, self.nbins, self.settings.bw, self.snapshots[i] + str(" spec"))
+            self.snapfigure.create_axis(i, SnapshotAxis, self.settings.snap_samples, self.snapshots[i])
+            self.specfigure.create_axis(i, SpectrumAxis, self.nbins, self.settings.bw, self.snapshots[i] + str(" spec"))
 
         # calibration source
         self.source = create_generator(self.settings.cal_source)

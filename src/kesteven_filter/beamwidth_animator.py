@@ -2,7 +2,7 @@ import os, json
 import numpy as np
 import Tkinter as Tk
 from kestfilt_animator import KestfiltAnimator
-from axes.kestfilt_beamwidth_axis import KestfiltBeamwidthAxis
+from beamwidth_axis import BeamwidthAxis
 
 class BeamwidthAnimator(KestfiltAnimator):
     """
@@ -12,7 +12,7 @@ class BeamwidthAnimator(KestfiltAnimator):
         KestfiltAnimator.__init__(self, calanfpga)
         
         # add beamwidth axis
-        self.figure.create_axis(3, KestfiltBeamwidthAxis, [], 'Beamwidth')
+        self.figure.create_axis(3, BeamwidthAxis, [], 'Beamwidth')
 
     def add_figure_widgets(self):
         """

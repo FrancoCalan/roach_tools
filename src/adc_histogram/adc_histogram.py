@@ -1,26 +1,26 @@
 import numpy as np
-from experiment import Experiment
-from snapshot_animator import get_snapshot_data
-from calanfigure import CalanFigure
-from axes.snapshot_axis import SnapshotAxis
-from axes.bar_axis import BarAxis
+from ..animator import Animator
+from ..snapshot_animator import get_snapshot_data
+from ..calanfigure import CalanFigure
+from ..axes.snapshot_axis import SnapshotAxis
+from histogram_axis import HistogramAxis
 
-class AdcHistogram(Experiment):
+class AdcHistogram(Animator):
     """
     Class responsible of making histogram from ADC snapshot data.
     Useful to find 'missing codes' and debug the ADC.
     """
     def __init__(self, calanfpga):
-        Experiment.__init__(self, calanfpga)
+        Animator.__init__(self, calanfpga)
         self.figure = CalanFigure(n_plots=2*len(self.settings.snapshots), create_gui=True)
         
         for i in range(self.figure.n_plots/2):
             self.figure.create_axis(i, SnapshotAxis, 
-                self.settings.snap_samples, self.snapshots[i])
+                self.settings.snap_samples, self.settings.snapshots[i])
 
         for i in range(self.figure.n_plots/2, self.figure.n_plots):
-            self.figure.create_axis(i, BarAxis,
-                range(-2**7, 2**7), self.snapshots[(i-1)/2]) # Hardcoded 8-bit ADC
+            self.figure.create_axis(i, HistogramAxis,
+                range(-2**7, 2**7), self.settings.snapshots[(i-1)/2]) # Hardcoded 8-bit ADC
 
         self.n_hists = self.figure.n_plots / 2
         self.abs_hists = self.n_hists * [np.zeros(2**8)] # Hardcoded 8-bit ADC

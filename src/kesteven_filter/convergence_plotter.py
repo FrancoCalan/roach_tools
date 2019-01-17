@@ -1,9 +1,9 @@
 import sys, os
 sys.path.append(os.getcwd())
-from experiment import linear_to_dBFS, get_spec_time_arr
-from plotter import Plotter
-from calanfigure import CalanFigure
-from axes.convergence_axis import ConvergenceAxis
+from ..experiment import linear_to_dBFS, get_spec_time_arr
+from ..plotter import Plotter
+from ..calanfigure import CalanFigure
+from convergence_axis import ConvergenceAxis
 
 class ConvergencePlotter(Plotter):
     """

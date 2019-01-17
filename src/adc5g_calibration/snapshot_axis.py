@@ -1,6 +1,6 @@
-from multi_line_axis import MultiLineAxis
+from ..axes.multi_line_axis import MultiLineAxis
 
-class SnapshotCalAxis(MultiLineAxis):
+class SnapshotAxis(MultiLineAxis):
     """
     Class representing an axis from a snapshot plot, intendend to plot two snapshot
     in the same axis. Used to test calibration results.

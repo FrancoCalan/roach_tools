@@ -1,11 +1,11 @@
 import time, datetime, json
 import numpy as np
 import matplotlib.pyplot as plt
-from experiment import Experiment, get_nchannels
-from calanfigure import CalanFigure
-from instruments.generator import create_generator
-from spectra_animator import scale_spec_data
-from axes.spectrum_axis import SpectrumAxis
+from ..experiment import Experiment, get_nchannels
+from ..calanfigure import CalanFigure
+from ..instruments.generator import create_generator
+from ..spectra_animator import scale_spec_data
+from ..axes.spectrum_axis import SpectrumAxis
 
 class TransferFunction(Experiment):
     """

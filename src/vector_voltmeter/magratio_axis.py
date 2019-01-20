@@ -1,6 +1,6 @@
-from single_line_axis import SingleLineAxis
+from ..axes.single_line_axis import SingleLineAxis
 
-class VMFreqMagRatioAxis(SingleLineAxis):
+class MagRatioAxis(SingleLineAxis):
     """
     Class representing an axis from a magnitude ratio v/s test number.
     """

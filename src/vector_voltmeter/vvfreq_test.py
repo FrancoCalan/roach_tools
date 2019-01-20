@@ -1,18 +1,18 @@
 import time, datetime, json
 import numpy as np
 import matplotlib.pyplot as plt
-from experiment import Experiment, get_nchannels, get_channel_from_freq
-from calanfigure import CalanFigure
-from instruments.generator import create_generator
-from spectra_animator import scale_spec_data
-from axes.spectrum_axis import SpectrumAxis
-from axes.vmfreq_magratio_axis import VMFreqMagRatioAxis
-from axes.vmfreq_anglediff_axis import VMFreqAngleDiffAxis
+from ..experiment import Experiment, get_nchannels, get_channel_from_freq
+from ..calanfigure import CalanFigure
+from ..instruments.generator import create_generator
+from ..spectra_animator import scale_spec_data
+from ..axes.spectrum_axis import SpectrumAxis
+from magratio_axis import MagRatioAxis
+from anglediff_axis import AngleDiffAxis
 
-class VMFreqTest(Experiment):
+class VVFreqTest(Experiment):
     """
-    Class used to test the vector multimeter. A vector
-    multimeter has two sinewaves with the same frequency as
+    Class used to test the vector voltmeter. A vector
+    voltmeter has two sinewaves with the same frequency as
     input an outputs the magnitude ratio and the angle
     difference of the inputs. The test consists in comparing
     the output for two equivalent sinewaves with different
@@ -34,8 +34,8 @@ class VMFreqTest(Experiment):
         self.figure = CalanFigure(n_plots=4, create_gui=False)
         self.figure.create_axis(0, SpectrumAxis, self.nchannels, self.settings.bw, "ZDOK0")
         self.figure.create_axis(1, SpectrumAxis, self.nchannels, self.settings.bw, "ZDOK1")
-        self.figure.create_axis(2, VMFreqMagRatioAxis, range(self.nsamples), "Power Ratio")
-        self.figure.create_axis(3, VMFreqAngleDiffAxis, range(self.nsamples), "Angle Difference")
+        self.figure.create_axis(2, MagRatioAxis, range(self.nsamples), "Power Ratio")
+        self.figure.create_axis(3, AngleDiffAxis, range(self.nsamples), "Angle Difference")
 
         self.datadir = self.settings.datadir + '_' + datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
         self.testinfo = {'bw'               : self.settings.bw,

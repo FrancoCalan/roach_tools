@@ -1,7 +1,7 @@
 import numpy as np
-from calanaxis import CalanAxis
+from ..axes.calanaxis import CalanAxis
 
-class FullpowerBarAxis(CalanAxis):
+class FullpowerAxis(CalanAxis):
     """
     Class representing an axis from a plot with a bar plot.
     """

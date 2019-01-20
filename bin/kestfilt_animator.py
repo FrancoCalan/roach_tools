@@ -3,7 +3,7 @@
 import sys, os
 sys.path.append(os.getcwd())
 from roach_tools.calanfpga import CalanFpga
-from roach_tools.kesteven_filter.kestfilt_animator import KestfiltAnimator
+from roach_tools.kestfilt_animator import KestfiltAnimator
 
 fpga = CalanFpga()
 fpga.initialize()

@@ -1,6 +1,6 @@
-from single_line_axis import SingleLineAxis
+from ..axes.single_line_axis import SingleLineAxis
 
-class VMFreqAngleDiffAxis(SingleLineAxis):
+class AngleDiffAxis(SingleLineAxis):
     """
     Class representing an axis from an angle difference v/s test number.
     """

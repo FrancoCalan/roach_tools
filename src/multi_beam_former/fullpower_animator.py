@@ -1,4 +1,4 @@
-from axes.fullpower_bar_axis import FullPowerBarAxis
+from fullpower_axis import FullPowerBarAxis
 
 class FullpowerAnimator(Plotter):
     """

@@ -1,5 +1,5 @@
 import numpy as np
-from single_line_axis import SingleLineAxis
+from ..axes.single_line_axis import SingleLineAxis
 
 class MagRatioAxis(SingleLineAxis):
     """

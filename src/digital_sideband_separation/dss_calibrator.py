@@ -2,17 +2,16 @@ import os, time, datetime, itertools, json, tarfile, shutil
 import numpy as np
 import scipy.stats
 import matplotlib.pyplot as plt
-from experiment import Experiment
-from plotter import Plotter
-from experiment import linear_to_dBFS, get_nchannels
-from calanfigure import CalanFigure
-from instruments.generator import create_generator
-from spectra_animator import scale_spec_data_arr
-from axes.spectrum_axis import SpectrumAxis
-from axes.mag_ratio_axis import MagRatioAxis
-from axes.angle_diff_axis import AngleDiffAxis
-from axes.srr_axis import SrrAxis
-from instruments.generator import Generator
+from ..experiment import Experiment
+from ..plotter import Plotter
+from ..experiment import linear_to_dBFS, get_nchannels
+from ..calanfigure import CalanFigure
+from ..instruments.generator import Generator, create_generator
+from ..spectra_animator import scale_spec_data_arr
+from ..axes.spectrum_axis import SpectrumAxis
+from mag_ratio_axis import MagRatioAxis
+from angle_diff_axis import AngleDiffAxis
+from srr_axis import SrrAxis
 
 class DssCalibrator(Experiment):
     """

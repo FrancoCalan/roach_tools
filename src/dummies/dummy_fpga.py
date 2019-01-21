@@ -115,8 +115,8 @@ class DummyFpga():
         if bram in self.spec_brams:
             # Returns spectra of generator signal accumulated acc_len times.
             acc_len = self.read_uint('acc_len')
-            spec_len = get_ndata(nbytes, self.settings.spec_info['data_width'])
-            spec_dtype = '>' + self.settings.spec_info['sign_type'] + str(self.settings.spec_info['data_width']/8)
+            spec_len = get_ndata(nbytes, self.settings.spec_info['data_type'])
+            spec_dtype = self.settings.spec_info['data_type']
             spec = np.zeros(spec_len, dtype=spec_dtype)
 
             for _ in range(acc_len):
@@ -129,9 +129,9 @@ class DummyFpga():
         else: 
             raise Exception("BRAM " + bram + " not defined in config file.")
 
-def get_ndata(nbytes, data_width):
+def get_ndata(nbytes, data_type):
     """
     Computes the number of data values given the total number of
-    bytes in the data array, and data width in bits.
+    bytes in the data array, and the expected data type of the bram.
     """
-    return 8 * nbytes / data_width
+    return nbytes / np.dtype(data_type).alignment

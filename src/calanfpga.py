@@ -237,17 +237,18 @@ class CalanFpga():
             The bram_info dictionary format is:
             {'addr_width'  : width of bram address in bits.
              'data_width'  : width of bram data (word) in bits.
-             'sign_type'   : 'u': unsigned, 'i': signed
+             'data_type'   : Numpy datatype object or string of the of the resulting data.
+                 See https://docs.scipy.org/doc/numpy/reference/arrays.dtypes.html
              'bram_name'   : bram name in the model
             }
         :return: numpy array with the bram data.
         """
         width = bram_info['data_width']
         depth = 2**bram_info['addr_width']
-        sign  = bram_info['sign_type'] 
+        dtype = bram_info['data_type'] 
         bram  = bram_info['bram_name']
 
-        bram_data = np.frombuffer(self.fpga.read(bram, depth*width/8, 0), dtype='>'+sign+str(width/8))
+        bram_data = np.frombuffer(self.fpga.read(bram, depth*width/8, 0), dtype=dtype)
         return bram_data
 
     def get_bram_list_data(self, bram_info):
@@ -258,7 +259,7 @@ class CalanFpga():
             The bram_info dictionary format is:
             {'addr_width'  : width of brams addresses in bits.
              'data_width'  : width of brams data (word) in bits.
-             'sign_type'   : 'u': unsigned, 'i': signed
+             'data_type'   : Numpy datatype object or string of the of the resulting data.
              'bram_list'   : list of bram names in the model
             }
         :return: list of numpy arrays with the data of every bram in the same order.
@@ -281,7 +282,7 @@ class CalanFpga():
             The bram_info dictionary format is:
             {'addr_width'  : width of brams addresses in bits.
              'data_width'  : width of brams data (word) in bits.
-             'sign_type'   : 'u': unsigned, 'i': signed
+             'data_type'   : Numpy datatype object or string of the of the resulting data.
              'bram_list2d' : list of lists of bram names in the model
             }
         :return: list of lists of numpy arrays with the data of every bram in the 
@@ -306,9 +307,8 @@ class CalanFpga():
         :return: numpy array with the data of the brams interlieved using the order of the
             bram_list.
         """
-        width = bram_info['data_width']
         bram_data_arr = self.get_bram_list_data(bram_info)
-        interleaved_data = np.fromiter(chain(*zip(*bram_data_arr)), dtype='>'+bram_info['sign_type']+str(width/8))
+        interleaved_data = np.fromiter(chain(*zip(*bram_data_arr)), dtype=bram_info['data_type'])
         return interleaved_data
 
     def get_bram_list_interleaved_data(self, bram_info):
@@ -357,13 +357,25 @@ class CalanFpga():
             same as for get_bram_data().
         :param data: array to write on the bram.
         """
+        width = bram_info['data_width']
+        depth = 2**bram_info['addr_width']
+        dtype = bram_info['data_type'] 
         bram  = bram_info['bram_name']
-        bram_dtype = np.dtype('>'+bram_info['sign_type']+str(bram_info['data_width']/8))
-
-        if bram_dtype != data.dtype:
+        
+        # check for bram-data datatype compatibility
+        if dtype != data.dtype:
             print "WARNING! data types between write bram and data don't match."
-            print "bram dtype: " + str(bram_dtype)
+            print "bram dtype: " + str(dtype)
             print "data dtype: " + str(data.dtype)
+            print "Attempting to write in bram anyway."
+
+        # check for bytesize compatibility
+        bram_bytes = width * depth / 8
+        data_bytes = len(data) * data.dtype.alignment
+        if bram_bytes != data_bytes:
+            print "WARNING! number of bytes between write bram and data don't match."
+            print "bram bytes: " + str(bram_bytes)
+            print "data bytes: " + str(data_byes)
             print "Attempting to write in bram anyway."
         
         self.fpga.write(bram, data.tobytes())

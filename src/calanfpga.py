@@ -236,14 +236,14 @@ class CalanFpga():
         :param bram_info: dictionary with the info from the bram.
             The bram_info dictionary format is:
             {'addr_width'  : width of bram address in bits.
-             'data_width'  : width of bram data (word) in bits.
+             'word_width'  : width of bram word in bits.
              'data_type'   : Numpy datatype object or string of the of the resulting data.
                  See https://docs.scipy.org/doc/numpy/reference/arrays.dtypes.html
              'bram_name'   : bram name in the model
             }
         :return: numpy array with the bram data.
         """
-        width = bram_info['data_width']
+        width = bram_info['word_width']
         depth = 2**bram_info['addr_width']
         dtype = bram_info['data_type'] 
         bram  = bram_info['bram_name']
@@ -258,7 +258,7 @@ class CalanFpga():
         :param bram_info: dictionary with the info of the brams. 
             The bram_info dictionary format is:
             {'addr_width'  : width of brams addresses in bits.
-             'data_width'  : width of brams data (word) in bits.
+             'word_width'  : width of brams word in bits.
              'data_type'   : Numpy datatype object or string of the of the resulting data.
              'bram_list'   : list of bram names in the model
             }
@@ -281,7 +281,7 @@ class CalanFpga():
         :param bram_info: dictionary with the info of the brams. 
             The bram_info dictionary format is:
             {'addr_width'  : width of brams addresses in bits.
-             'data_width'  : width of brams data (word) in bits.
+             'word_width'  : width of brams word in bits.
              'data_type'   : Numpy datatype object or string of the of the resulting data.
              'bram_list2d' : list of lists of bram names in the model
             }
@@ -357,7 +357,7 @@ class CalanFpga():
             same as for get_bram_data().
         :param data: array to write on the bram.
         """
-        width = bram_info['data_width']
+        width = bram_info['word_width']
         depth = 2**bram_info['addr_width']
         dtype = bram_info['data_type'] 
         bram  = bram_info['bram_name']
@@ -444,3 +444,24 @@ class CalanFpga():
             current_bram_info = bram_info.copy()
             current_bram_info['bram_list'] = bram_list
             self.write_bram_interleaved_data(current_bram_info, data)
+
+    def get_dram_data(self, dram_info):
+        """
+        Retreive and unpack data from ROACH's DRAM using data information form dram_info.
+        :param dram_info: dictionary with the info from the dram.
+            The dram_info dictionary format is:
+            {'addr_width'  : width of dram address in bits.
+             'word_width'  : width of dram word in bits.
+             'data_type'   : Numpy datatype object or string of the of the resulting data.
+                 See https://docs.scipy.org/doc/numpy/reference/arrays.dtypes.html
+             'dram_name'   : dram name in the model
+            }
+        :return: numpy array with the dram data.
+        """
+        width = dram_info['word_width']
+        depth = 2**dram_info['addr_width']
+        dtype = dram_info['data_type'] 
+        dram  = dram_info['dram_name']
+
+        dram_data = np.frombuffer(self.fpga.read_dram(dram, depth*width/8, 0), dtype=dtype)
+        return dram_data

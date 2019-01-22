@@ -24,7 +24,7 @@ class DssCalibrator(Experiment):
         self.lo_combinations = self.get_lo_combinations()
         
         # const dtype info
-        self.consts_nbits = self.settings.const_brams_info['data_width']
+        self.consts_nbits = np.dtype(self.settings.const_brams_info['data_type']).alignment * 8
         self.consts_bin_pt = self.settings.const_bin_pt
 
         # sources (RF and LOs)

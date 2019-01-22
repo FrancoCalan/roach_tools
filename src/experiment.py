@@ -38,7 +38,8 @@ def get_nchannels(bram_info):
     elif 'bram_list2d' in bram_info.keys(): # case multiple spectrometer in single model
         n_brams = len(bram_info['bram_list2d'][0]) # assumes all spectrometers have the same number of brams 
 
-    return n_brams * 2**bram_info['addr_width'] 
+    data_per_word =  bram_info['word_width']/8 / np.dtype(bram_info['data_type']).alignment
+    return n_brams * 2**bram_info['addr_width'] * data_per_word
 
 def get_freq_from_channel(bw, channel, bram_info):
     """

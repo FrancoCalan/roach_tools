@@ -94,20 +94,3 @@ class Plotter(Experiment):
         plot_data = self.get_data()
         self.figure.plot_axes(plot_data)
         Tk.mainloop()
-
-    def start_animation(self):
-        """
-        Add the basic parameters to the plot and starts an animation.
-        """
-        self.create_figure_window()
-        anim = animation.FuncAnimation(self.figure.fig, animate, fargs=(self,), blit=True)
-        Tk.mainloop()
-
-def animate(_, self):
-    """
-    It's call on every frame of the animation. Updates the data.
-    """
-    animation_data = self.get_data()
-    self.figure.plot_axes(animation_data)
-
-    return []

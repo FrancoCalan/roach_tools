@@ -1,3 +1,5 @@
+import matplotlib.pyplot as plt
+
 class MatrixAxis():
     """
     Class for plotting matrices (using imshow).
@@ -10,4 +12,4 @@ class MatrixAxis():
         """
         Plot matrix data using imshow.
         """
-        ax.imshow(plot_data)
+        self.ax.imshow(plot_data, origin='lower')

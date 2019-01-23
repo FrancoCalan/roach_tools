@@ -10,9 +10,9 @@ class DramSpectrogramPlotter(Plotter):
     """
     def __init__(self, calanfpga):
         Plotter.__init__(self, calanfpga)
+        self.nchannels = self.settings.specgram_info['n_channels']
         self.figure = CalanFigure(n_plots=1, create_gui=False)
-        #self.figure.create_axis(0, SpectrogramAxis, self.nchannels, self.bw, 'DRAM Spectrogram')
-        self.figure.create_axis(0, SpectrogramAxis, 'DRAM Spectrogram')
+        self.figure.create_axis(0, SpectrogramAxis, self.nchannels, self.settings.bw, 'DRAM Spectrogram')
 
     def get_data(self):
         """
@@ -32,10 +32,10 @@ def get_dram_spectrogram_data(fpga, specgram_info):
     """
     nchnls = specgram_info['n_channels']
     specgram_arr = fpga.get_dram_data(specgram_info)
-    specgram_mat = specgram.reshape(nchnls, len(specgram_arr)/nchnls) # convert spectrogram data into a time x freq matrix
-    specgram_mat = np.rot90(specgram_mat) # rotate matrix to have freq in y axis, and time in x axis
-    specgram_mat = 10*np.log10(specgram_mat) # convert data to dB
+    specgram_mat = specgram_arr.reshape(nchnls, len(specgram_arr)/nchnls) # convert spectrogram data into a time x freq matrix
+    specgram_mat = np.transpose(specgram_mat) # rotate matrix to have freq in y axis, and time in x axis
+    specgram_mat = 10*np.log10(specgram_mat+1) # convert data to dB
     
-    return specgram_mat
+    return [specgram_mat]
 
             

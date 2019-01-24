@@ -17,5 +17,5 @@ class SpectrogramAxis(MatrixAxis):
         """
         Plot spectrogram using imshow. Uses
         """
-        self.ax.imshow(specgram_data, origin='lower', aspect='auto', interpolation='gaussian',
+        MatrixAxis.plot(specgram_data, 
             extent=[0, self.spec_time*specgram_data.shape[1], 0, self.bw])

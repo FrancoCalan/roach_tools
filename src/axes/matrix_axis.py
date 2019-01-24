@@ -1,15 +1,15 @@
-import matplotlib.pyplot as plt
+from calanaxis import CalanAxis
 
-class MatrixAxis():
+class MatrixAxis(CalanAxis):
     """
     Class for plotting matrices (using imshow).
     """
     def __init__(self, ax, title=""):
-        self.ax = ax
-        self.ax.set_title(title)
+        self.CalanAxis.__init__(ax, title)
 
-    def plot(self, plot_data):
+    def plot(self, plot_data, extent=None):
         """
         Plot matrix data using imshow.
         """
-        self.ax.imshow(plot_data, origin='lower')
+        self.ax.imshow(plot_data, origin='lower', aspect='auto',
+            interpolation='gaussian', extent=extent)

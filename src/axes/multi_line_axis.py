@@ -1,11 +1,12 @@
-from calanaxis import CalanAxis
+from line_axis import LineAxis
+from calanaxis import format_key
 
-class MultiLineAxis(CalanAxis):
+class MultiLineAxis(LineAxis):
     """
     Class representing an axis from a plot with multiple lines plot.
     """
     def __init__(self, ax, xdata, legends, title=""):
-        CalanAxis.__init__(self, ax, xdata, title)
+        LineAxis.__init__(self, ax, xdata, title)
         self.lines = []
         self.legends = legends
         for legend in self.legends:
@@ -26,14 +27,16 @@ class MultiLineAxis(CalanAxis):
         for line, ydata in zip(self.lines[:len(ydata_arr)], ydata_arr):
             line.set_data(self.xdata, ydata)
 
-    def gen_ydata_dict(self):
+    def gen_data_dict(self):
         """
-        Generate a dictionary with the plotted data in the axis. The
-        key assigned to the data is 'axis label' + 'line legend'
+        Generate a dictionary with the data of the axis. The
+        key assigned to the y-data is 'axis label' + 'line legend'
+        :return: dictionary with axis data.
         """
-        axis_dict = {}
-        for line, legend in zip(self.lines, self.legends):
-            key = self.format_key(self.ax.get_title() + ' ' + legend)
-            axis_dict[key] = line.get_ydata().tolist()
+        data_dict = LineAxis.gen_data_dict(self)
 
-        return axis_dict
+        for line, legend in zip(self.lines, self.legends):
+            key = format_key(self.ax.get_ylabel() + ' ' + legend)
+            data_dict[key] = line.get_ydata().tolist()
+
+        return data_dict

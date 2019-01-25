@@ -11,8 +11,8 @@ class DramSpectrogramPlotter(Plotter):
     def __init__(self, calanfpga):
         Plotter.__init__(self, calanfpga)
         self.nchannels = self.settings.specgram_info['n_channels']
-        self.figure = CalanFigure(n_plots=1, create_gui=False)
-        self.figure.create_axis(0, SpectrogramAxis, self.nchannels, self.settings.bw, 'DRAM Spectrogram')
+        self.figure = CalanFigure(n_plots=1, create_gui=True)
+        self.figure.create_axis(0, SpectrogramAxis, self.nchannels, self.settings.bw, self.figure.fig, 'DRAM Spectrogram')
 
     def get_data(self):
         """

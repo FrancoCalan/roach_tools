@@ -463,14 +463,15 @@ class CalanFpga():
         dtype = dram_info['data_type'] 
         dram  = dram_info['dram_name']
         
-        # read dram data in blocks of 2**19 words (2**23 bytes) to avoid read timeouts
+        # read dram data in blocks of 2**18 words (2**22 bytes) to avoid read timeouts
+        block_bytes = 2**22
         dram_bytes = depth*width/8
-        n_blocks = dram_bytes / 2**23
+        n_blocks = int(np.ceil(float(dram_bytes) / block_bytes))
         dram_data = np.array([])
         print "Reading DRAM data..."
         for i in range(n_blocks):
-            block_bytes = min(2**23, dram_bytes-i*2**23)
-            block_data = np.frombuffer(self.fpga.read_dram(block_bytes), dtype=dtype)
+            curr_block_bytes = min(block_bytes, dram_bytes-i*block_bytes)
+            block_data = np.frombuffer(self.fpga.read_dram(curr_block_bytes, i*block_bytes), dtype=dtype)
             dram_data = np.hstack((dram_data, block_data))
         print "done"
 

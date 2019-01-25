@@ -18,7 +18,7 @@ cal_adcs     = False
 # Spectrometer Settings
 plot_titles = ['ZDOK0', 'ZDOK1']
 spec_info   = {'addr_width'   : 9,
-               'data_width'   : 64,
+               'word_width'   : 64,
                'data_type'    : '>u8',
                'acc_len_reg'  : 'acc_len',
                'bram_list2d'  :

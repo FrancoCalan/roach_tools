@@ -35,7 +35,6 @@ class StabilityPlotter(Plotter):
         :returns: stability data in dictionary format.
         """
         save_data = Plotter.get_save_data(self)
-        save_data.update(self.figure.axes[0].gen_xdata_dict())
         save_data['channel'] = self.fpga.read_reg('channel')
 
         return save_data

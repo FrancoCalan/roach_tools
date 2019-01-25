@@ -9,7 +9,6 @@ class Plotter(Experiment):
     """
     def __init__(self, calanfpga):
         Experiment.__init__(self, calanfpga)
-        self.entries = [] # reference to additional GUI entries to modify registers in FPGA 
 
     def create_figure_window(self):
         """
@@ -70,11 +69,11 @@ class Plotter(Experiment):
         
     def get_save_data(self):
         """
-        Get experiment data for saving.
-        :return: experiment data in dictionary format. By 
-            default only the y-data of the plots is saved.
+        Get potter data for saving.
+        :return: plotter data in dictionary format. The exact data
+            to save depends on the figure axes.
         """
-        return self.figure.get_ydata()
+        return self.figure.get_save_data()
 
     def save_fig(self):
         """

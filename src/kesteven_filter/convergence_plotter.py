@@ -32,7 +32,6 @@ class ConvergencePlotter(Plotter):
         :return: convergence data in dictionary format.
         """
         save_data = Plotter.get_save_data(self)
-        save_data.update(self.figure.axes[0].gen_xdata_dict())
         save_data['filter_gain'] = self.fpga.read_reg('filter_gain')
         save_data['filter_acc'] = self.fpga.read_reg('filter_acc')
         save_data['channel'] = self.fpga.read_reg('channel')

@@ -4,8 +4,8 @@ class SpectrogramAxis(MatrixAxis):
     """
     Class for plotting spectrograms as matrices.
     """
-    def __init__(self, ax, n_channels, bw, title=""):
-        MatrixAxis.__init__(self, ax, title)
+    def __init__(self, ax, n_channels, bw, fig, title=""):
+        MatrixAxis.__init__(self, ax, fig, title)
         self.n_channels = n_channels
         self.bw = bw
         self.spec_time = 1/(2*self.bw) * self.n_channels / 1000 # ms
@@ -15,7 +15,8 @@ class SpectrogramAxis(MatrixAxis):
 
     def plot(self, specgram_data):
         """
-        Plot spectrogram using imshow. Uses
+        Plot spectrogram using imshow.
         """
-        MatrixAxis.plot(specgram_data, 
-            extent=[0, self.spec_time*specgram_data.shape[1], 0, self.bw])
+        MatrixAxis.plot(self, specgram_data, 
+            extent=[0, self.spec_time*specgram_data.shape[1], 0, self.bw], 
+            cbar_label='Power [dB]')

@@ -12,7 +12,12 @@ class CalanFigure():
         self.n_plots = n_plots
         self.plot_map = {1:'11', 2:'12', 3:'22', 4:'22', 16:'44'}
         self.axes = []
-        self.fig = plt.figure()
+        # Figure() needed in order for Tkinter GUI elements to work properly
+        if create_gui:
+            self.fig = plt.Figure()
+        # figure() needed to use pyplot default backend and for fine-tunning plots updates
+        else:
+            self.fig = plt.figure()
         self.fig.set_tight_layout(True)
 
     def create_axis(self, n_axis, calanaxis_class, *axis_args):
@@ -34,7 +39,6 @@ class CalanFigure():
         """
         # tkinter window
         self.root = Tk.Tk()
-        self.root.protocol("WM_DELETE_WINDOW", exit)
 
         # plot canvas
         self.canvas = FigureCanvasTkAgg(self.fig, master=self.root)
@@ -55,25 +59,22 @@ class CalanFigure():
         for axis, data in zip(self.axes, data_arr):
             axis.plot(data)
 
-    def draw_axes(self, data_arr):
+    def get_save_data(self):
         """
-        Uses plot_axes() to draw the data on axes. Used for experiments
-        that have to updates plots in controlled way, for examples in calibrations.
-        Use with create_gui=False figures.
-        :param data_arr: Array containing the data elements for
-            every axes.
-        """
-        self.plot_axes(data_arr)
-        self.fig.canvas.draw()
-
-    def get_ydata(self):
-        """
-        Get the y-data from axes.
-        :return: dictionary with the y-data from every axes.
+        Get a dictionary of the data in the figure axes. Used to
+        save the plotted data in text format (e.g. JSON).
+        NOTE: depending on the axes implementation of gen_data_dict(),
+        different axes can produce dictionaries with the same key, 
+        in this case the data gets overwritten. This could be good to
+        avoid data duplication for figures with the same data (for example,
+        parallel spectrometers with the same frequency axis), but 
+        but the developer should be careful in the implementation
+        of the specific gen_data_dict() to avoid data loss.
+        :return: dictionary with the data from every axes.
         """
         data_dict = {}
         for axis in self.axes:
-            axis_data_dict = axis.gen_ydata_dict()
+            axis_data_dict = axis.gen_data_dict()
             data_dict.update(axis_data_dict)
 
         return data_dict

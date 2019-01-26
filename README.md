@@ -32,7 +32,7 @@ set_regs   = [{'name' : 'reg_name', 'val' : 1}] # Registers to set at startup
 reset_regs = ['reg_name'] # Registers to reset (->1->0) at startup
 bw         = 1000         # Bandwidth used for plotting/simulation purposes (in MHz)
 ```
-For more complete examples check [here](https://github.com/FrancoCalan/roach_tools/tree/master/bin/config_files). For a full description of all possible parameters in a config file check [here](https://github.com/FrancoCalan/roach_tools/wiki/Config-File-Parameters).
+For more complete examples check [here](https://github.com/FrancoCalan/roach_tools/tree/master/examples/config_files). For a full description of all possible parameters in a config file check [here](https://github.com/FrancoCalan/roach_tools/wiki/Config-File-Parameters).
 
 ### CalanFpga
 

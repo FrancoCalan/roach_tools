@@ -7,9 +7,9 @@ from ..instruments.generator import create_generator
 from ..spectra_animator import scale_spec_data
 from ..axes.spectrum_axis import SpectrumAxis
 
-class TransferFunction(Experiment):
+class FrequencyResponse(Experiment):
     """
-    Class to perform a transfer function experiment, that is,
+    Class to perform a frequency response experiment, that is,
     compute the gain v/s frequency of a device under test.
     """
     def __init__(self, calanfpga):
@@ -23,7 +23,7 @@ class TransferFunction(Experiment):
 
         self.figure = CalanFigure(n_plots=2, create_gui=False)
         self.figure.create_axis(0, SpectrumAxis, self.nchannels, self.settings.bw, "Current Spectrum")
-        self.figure.create_axis(1, SpectrumAxis, self.nchannels, self.settings.bw, "Transfer Function")
+        self.figure.create_axis(1, SpectrumAxis, self.nchannels, self.settings.bw, "Frequency Response")
 
         self.datadir = self.settings.datadir + '_' + datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
         self.testinfo = {'bw'           : self.settings.bw,
@@ -31,18 +31,18 @@ class TransferFunction(Experiment):
                          'acc_len'      : self.fpga.read_reg(self.settings.spec_info['acc_len_reg']),
                          'source_power' : self.settings.test_source['def_power']}
 
-    def run_transfer_function_test(self):
+    def run_frequency_response_test(self):
         """
-        Performs a transfer funcion test. Sweeps tone in the input and computes
+        Performs a frequency response test. Sweeps tone in the input and computes
         the power at the output.
         """
-        Hf_arr = [] # transfer function array
+        Hf_arr = [] # frequency response array
 
         # set source power
         self.source.set_power_dbm()
         self.source.turn_output_on()
 
-        print "Computing transfer function..."
+        print "Computing frequency response..."
         for i, chnl in enumerate(self.test_channels):
             # set generator frequency
             self.source.set_freq_mhz(self.freqs[chnl])
@@ -52,10 +52,10 @@ class TransferFunction(Experiment):
             spec_data = self.fpga.get_bram_list_interleaved_data(self.settings.spec_info)[0]
             spec_data_dbfs = scale_spec_data(self.fpga, spec_data, self.settings.spec_info)
 
-            # update transfer function
+            # update frequency response
             Hf_arr.append(spec_data_dbfs[chnl])
 
-            # plot spectrum and transfer function
+            # plot spectrum and frequency response
             self.figure.axes[0].plot(spec_data_dbfs)
             partial_freqs = self.freqs[self.test_channels[:i+1]]
             self.figure.axes[1].plot(partial_freqs, Hf_arr)
@@ -78,7 +78,7 @@ class TransferFunction(Experiment):
 
         # save data
         print "Saving data..."
-        self.testinfo['transfer_function'] = Hf_arr
+        self.testinfo['frequency_response'] = Hf_arr
         with open(self.datadir+'.json', 'w') as jsonfile:
             json.dump(self.testinfo, jsonfile, indent=4)
         print "done"

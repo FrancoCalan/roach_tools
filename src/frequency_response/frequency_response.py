@@ -49,7 +49,7 @@ class FrequencyResponse(Experiment):
             time.sleep(self.settings.pause_time)
 
             # get spectrum data
-            spec_data = self.fpga.get_bram_list_interleaved_data(self.settings.spec_info)[0]
+            spec_data = self.fpga.get_bram_list_interleaved_data(self.settings.spec_info)[0] # consider only the first spectrum if multiple are defined
             spec_data_dbfs = scale_spec_data(self.fpga, spec_data, self.settings.spec_info)
 
             # update frequency response

@@ -10,10 +10,8 @@ reset_regs = ['cnt_rst']
 bw         = 800.0 # [MHz]
 
 # Snapshot settings
-snapshots    = [{'zdok' : 0, 'names' : ['adcsnap0']}, 
-                {'zdok' : 1, 'names' : ['adcsnap1']}]
+snapshots    = ['adcsnap0', 'adcsnap1']
 snap_samples = 256
-cal_adcs     = False
 
 # Spectrometer Settings
 plot_titles = ['ZDOK0', 'ZDOK1']

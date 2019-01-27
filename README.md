@@ -32,7 +32,7 @@ set_regs   = [{'name' : 'reg_name', 'val' : 1}] # Registers to set at startup
 reset_regs = ['reg_name'] # Registers to reset (->1->0) at startup
 bw         = 1000         # Bandwidth used for plotting/simulation purposes (in MHz)
 ```
-For more complete examples check [here](https://github.com/FrancoCalan/roach_tools/tree/master/examples/config_files). For a full description of all possible parameters in a config file check [here](https://github.com/FrancoCalan/roach_tools/wiki/Config-File-Parameters).
+For more complete examples check [here](https://github.com/FrancoCalan/roach_tools/tree/master/examples/config_files). For a more complete description of all possible parameters in a config file check [here](https://github.com/FrancoCalan/roach_tools/wiki/Config-File-Parameters).
 
 ### CalanFpga
 
@@ -60,7 +60,12 @@ To learn about all the functions of CalanFpga, read them directly form the [code
 
 ### Script Files
 
-The repository also provides script files to easily perform common ROACH tasks out of the box. For a list of all implemented scripts go here(TODO: add link). For an explanation on how to use the scripts look at the [Calan wiki](https://sites.google.com/site/calandigital/home/tutorials/roach_tools-and-calanfpga).
+The repository also provides script files to easily perform common ROACH tasks out of the box. For a list of implemented scripts go here(TODO: add link). For an explanation on how to use the scripts look at the [Calan wiki](https://sites.google.com/site/calandigital/home/tutorials/roach_tools-and-calanfpga).
+
+### External Links
+* [simulink_models](https://github.com/FrancoCalan/simulink_models): Sister repository with simulink models, compiled .bof files, and configuration files for various examples and projects.
+* [Calan Digital Wiki](https://sites.google.com/site/calandigital/): Wiki site with ROACH tutorials and information about our (Milimeter-Wave Laboratory) digital back-end projects.
+* [CASPER Site](https://casper.berkeley.edu/): Oficial CASPER site, the developers of the ROACH and other digital platforms for radioastronomy.
 
 ## TODO
 * Add scripts descriptions

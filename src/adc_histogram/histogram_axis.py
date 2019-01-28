@@ -11,10 +11,3 @@ class HistogramAxis(BarAxis):
         self.ax.set_ylim((0, 0.035)) # Hardcoded 8-bit ADC
         self.ax.set_xlabel('Code')
         self.ax.set_ylabel('Normalized Frequency')
-
-    def plot(self, ydata):
-        """
-        Plot y data in axis.
-        """
-        for rect, ydata_point in zip(self.rects, ydata):
-            rect.set_height(ydata_point)

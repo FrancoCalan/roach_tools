@@ -1,6 +1,6 @@
 from fullpower_axis import FullPowerBarAxis
 
-class FullpowerAnimator(Plotter):
+class FullpowerAnimator(Animator):
     """
     Class used to plot full bandwidth power of ADC signals
     as bar plot. Useful to test the power calibration of 
@@ -9,14 +9,14 @@ class FullpowerAnimator(Plotter):
     def __init__(self, calanfpga):
         Plotter.__init__(self, calanfoga)
         self.figure = CalanFigure(n_plots=1, create_gui=True)
-        self.figure.create_axis(0, FullPowerBarAxis, self.settings.pow_info['reg_list'])
+        self.figure.create_axis(0, FullPowerAxis, self.settings.pow_info['reg_list'])
 
     def add_figure_widgets(self):
         """
         Add widgets to full power figure.
         """
         # save button/entry
-        self.add_save_widgets("spec_data")
+        self.add_save_widgets("fullpower_data")
 
         # acc_len entry
         self.add_reg_entry(self.settings.pow_info['acc_len_reg'])
@@ -26,5 +26,6 @@ class FullpowerAnimator(Plotter):
         Get full power data from FPGA bram memory.
         """
         pow_data_arr = self.fpga.get_reg_list_data(self.settings.pow_info['reg_list'])
-        pow_data_arr = pow_data_arr / float(fpga.read_reg(self.settings.pow_info['acc_len_reg']))
+        pow_data_arr = pow_data_arr / 8.0 # divide by fixed binary point (hardcoded 8-bit ADC)
+        pow_data_arr = pow_data_arr / float(fpga.read_reg(self.settings.pow_info['acc_len_reg'])) # divide by accumulation
         return pow_data

@@ -3,8 +3,8 @@
 import sys, os
 sys.path.append(os.getcwd())
 from roach_tools.calanfpga import CalanFpga
-from roach_tools.transfer_function.transfer_function import TransferFunction
+from roach_tools.frequency_response.frequency_response import FrequencyResponse
 
 fpga = CalanFpga()
 fpga.initialize()
-TransferFunction(fpga).run_transfer_function_test()
+FrequencyResponse(fpga).run_frequency_response_test()

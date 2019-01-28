@@ -12,4 +12,3 @@ bw         = 1000
 # Snapshot settings
 snapshots    = ['adcsnap0', 'adcsnap1']
 snap_samples = 256
-cal_adcs     = False

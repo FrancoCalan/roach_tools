@@ -56,7 +56,8 @@ def get_spec_data(fpga, spec_info):
     """
     Gets spectra data given a CalanFpga object and spec_info dict.
     :param fpga: CalanFpga object.
-    :param spec_info: dictionary with info of the spectra memory in the FPGA.
+    :param spec_info: dictionary with info of the memory with 
+        the spectral data in the FPGA.
     :return: spectral data in dBFS.
     """
     spec_data_arr = fpga.get_bram_list_interleaved_data(spec_info)
@@ -72,8 +73,8 @@ def scale_spec_data(fpga, spec_data, spec_info):
     :param fpga: CalanFpga object.
     :param spec_data: spectral data in linear scale, as read with CalanFpga's
         get_bram_data() (or equivalent).
-    :param spec_info: dictionary with info of the spectra memory in the FPGA.
-        Used to read the accumulation register.
+    :param spec_info: dictionary with info of the memory with 
+        the spectral data in the FPGA.
     :return: spectral data in dBFS.
     """
     spec_data = spec_data / float(fpga.read_reg(spec_info['acc_len_reg'])) # divide by accumulation

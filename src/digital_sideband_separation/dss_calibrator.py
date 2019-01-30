@@ -7,7 +7,7 @@ from ..plotter import Plotter
 from ..experiment import linear_to_dBFS, get_nchannels
 from ..calanfigure import CalanFigure
 from ..instruments.generator import Generator, create_generator
-from ..spectra_animator import scale_spec_data_arr
+from ..spectra_animator import scale_dbfs_spec_data_arr
 from ..axes.spectrum_axis import SpectrumAxis
 from mag_ratio_axis import MagRatioAxis
 from angle_diff_axis import AngleDiffAxis
@@ -109,18 +109,18 @@ class DssCalibrator(Experiment):
                 plt.pause(self.settings.pause_time) 
 
                 # get power-crosspower data
-                cal_a2, cal_b2 = self.fpga.get_bram_list_interleaved_data(self.settings.cal_pow_info)
-                cal_ab_re, cal_ab_im = self.fpga.get_bram_list_interleaved_data(self.settings.cal_crosspow_info)
+                cal_a2, cal_b2 = self.fpga.get_bram_list_data_interleave(self.settings.cal_pow_info)
+                cal_ab_re, cal_ab_im = self.fpga.get_bram_list_data_interleave(self.settings.cal_crosspow_info)
 
                 # compute constant
                 ab = cal_ab_re[chnl] + 1j*cal_ab_im[chnl]
                 sb_ratios.append(np.conj(ab) / cal_a2[chnl]) # (ab*)* / aa* = a*b / aa* = b/a = LSB/USB
 
                 # plot spec data
-                [cal_a2_scaled, cal_b2_scaled] = \
-                    scale_spec_data_arr(self.fpga, [cal_a2, cal_b2], self.settings.cal_pow_info)
-                self.calfigure_usb.axes[0].plot(cal_a2_scaled)
-                self.calfigure_usb.axes[1].plot(cal_b2_scaled)
+                [cal_a2_plot, cal_b2_plot] = \
+                    scale_dbfs_spec_data_arr(self.fpga, [cal_a2, cal_b2], self.settings.cal_pow_info)
+                self.calfigure_usb.axes[0].plot(cal_a2_plot)
+                self.calfigure_usb.axes[1].plot(cal_b2_plot)
 
                 partial_freqs = self.freqs[self.sync_channels[:i+1]]
                 # plot magnitude ratio
@@ -238,24 +238,24 @@ class DssCalibrator(Experiment):
         """
         # make the receiver cold
         self.chopper.move_90cw()
-        a2_cold, b2_cold = self.fpga.get_bram_list_interleaved_data(self.settings.cal_pow_info)
+        a2_cold, b2_cold = self.fpga.get_bram_list_data_interleave(self.settings.cal_pow_info)
                 
         # plot spec data
-        [a2_cold_scaled, b2_cold_scaled] = \
-            scale_spec_data_arr(self.fpga, [a2_cold, b2_cold], self.settings.cal_pow_info)
-        self.calfigure_usb.axes[0].plot(a2_cold_scaled)
-        self.calfigure_usb.axes[1].plot(b2_cold_scaled)
+        [a2_cold_plot, b2_cold_plot] = \
+            scale_dbfs_spec_data_arr(self.fpga, [a2_cold, b2_cold], self.settings.cal_pow_info)
+        self.calfigure_usb.axes[0].plot(a2_cold_plot)
+        self.calfigure_usb.axes[1].plot(b2_cold_plot)
         plt.pause(self.settings.pause_time) 
 
         # make the receiver hot
         self.chopper.move_90ccw()
-        a2_hot, b2_hot = self.fpga.get_bram_list_interleaved_data(self.settings.cal_pow_info)
+        a2_hot, b2_hot = self.fpga.get_bram_list_data_interleave(self.settings.cal_pow_info)
 
         # plot spec data
-        [a2_hot_scaled, b2_hot_scaled] = \
-            scale_spec_data_arr(self.fpga, [a2_hot, b2_hot], self.settings.cal_pow_info)
-        self.calfigure_usb.axes[0].plot(a2_hot_scaled)
-        self.calfigure_usb.axes[1].plot(b2_hot_scaled)
+        [a2_hot_plot, b2_hot_plot] = \
+            scale_dbfs_spec_data_arr(self.fpga, [a2_hot, b2_hot], self.settings.cal_pow_info)
+        self.calfigure_usb.axes[0].plot(a2_hot_plot)
+        self.calfigure_usb.axes[1].plot(b2_hot_plot)
         plt.pause(self.settings.pause_time) 
 
         # Compute Kerr's parameter.
@@ -293,8 +293,8 @@ class DssCalibrator(Experiment):
             plt.pause(self.settings.pause_time) 
 
             # get power-crosspower data
-            cal_a2, cal_b2 = self.fpga.get_bram_list_interleaved_data(self.settings.cal_pow_info)
-            cal_ab_re, cal_ab_im = self.fpga.get_bram_list_interleaved_data(self.settings.cal_crosspow_info)
+            cal_a2, cal_b2 = self.fpga.get_bram_list_data_interleave(self.settings.cal_pow_info)
+            cal_ab_re, cal_ab_im = self.fpga.get_bram_list_data_interleave(self.settings.cal_crosspow_info)
 
             # save cal rawdata
             np.savez(cal_datadir + '/usb_chnl_' + str(chnl), 
@@ -305,10 +305,10 @@ class DssCalibrator(Experiment):
             sb_ratios.append(np.conj(ab) / cal_a2[chnl]) # (ab*)* / aa* = a*b / aa* = b/a = LSB/USB
 
             # plot spec data
-            [cal_a2_scaled, cal_b2_scaled] = \
-                scale_spec_data_arr(self.fpga, [cal_a2, cal_b2], self.settings.cal_pow_info)
-            self.calfigure_usb.axes[0].plot(cal_a2_scaled)
-            self.calfigure_usb.axes[1].plot(cal_b2_scaled)
+            [cal_a2_plot, cal_b2_plot] = \
+                scale_dbfs_spec_data_arr(self.fpga, [cal_a2, cal_b2], self.settings.cal_pow_info)
+            self.calfigure_usb.axes[0].plot(cal_a2_plot)
+            self.calfigure_usb.axes[1].plot(cal_b2_plot)
             
             partial_freqs = self.freqs[self.cal_channels[:i+1]]
             # plot magnitude ratio
@@ -348,8 +348,8 @@ class DssCalibrator(Experiment):
             plt.pause(self.settings.pause_time) 
 
             # get power-crosspower data
-            cal_a2, cal_b2 = self.fpga.get_bram_list_interleaved_data(self.settings.cal_pow_info)
-            cal_ab_re, cal_ab_im = self.fpga.get_bram_list_interleaved_data(self.settings.cal_crosspow_info)
+            cal_a2, cal_b2 = self.fpga.get_bram_list_data_interleave(self.settings.cal_pow_info)
+            cal_ab_re, cal_ab_im = self.fpga.get_bram_list_data_interleave(self.settings.cal_crosspow_info)
 
             # save cal rawdata
             np.savez(cal_datadir + '/lsb_chnl_' + str(chnl), 
@@ -360,10 +360,10 @@ class DssCalibrator(Experiment):
             sb_ratios.append(ab / cal_b2[chnl]) # ab* / bb* = a/b = USB/LSB.
 
             # plot spec data
-            [cal_a2_scaled, cal_b2_scaled] = \
-                scale_spec_data_arr(self.fpga, [cal_a2, cal_b2], self.settings.cal_pow_info)
-            self.calfigure_lsb.axes[0].plot(cal_a2_scaled)
-            self.calfigure_lsb.axes[1].plot(cal_b2_scaled)
+            [cal_a2_plot, cal_b2_plot] = \
+                scale_dbfs_spec_data_arr(self.fpga, [cal_a2, cal_b2], self.settings.cal_pow_info)
+            self.calfigure_lsb.axes[0].plot(cal_a2_plot)
+            self.calfigure_lsb.axes[1].plot(cal_b2_plot)
             
             partial_freqs = self.freqs[self.cal_channels[:i+1]]
             # plot magnitude ratio
@@ -405,13 +405,13 @@ class DssCalibrator(Experiment):
             plt.pause(self.settings.pause_time) 
             
             # get USB and LSB power data
-            a2_tone_usb, b2_tone_usb = self.fpga.get_bram_list_interleaved_data(self.settings.synth_info)
+            a2_tone_usb, b2_tone_usb = self.fpga.get_bram_list_data_interleave(self.settings.synth_info)
 
             # plot spec data
-            [a2_tone_usb_scaled, b2_tone_usb_scaled] = \
-                scale_spec_data_arr(self.fpga, [a2_tone_usb, b2_tone_usb], self.settings.synth_info)
-            self.srrfigure.axes[0].plot(a2_tone_usb_scaled)
-            self.srrfigure.axes[1].plot(b2_tone_usb_scaled)
+            [a2_tone_usb_plot, b2_tone_usb_plot] = \
+                scale_dbfs_spec_data_arr(self.fpga, [a2_tone_usb, b2_tone_usb], self.settings.synth_info)
+            self.srrfigure.axes[0].plot(a2_tone_usb_plot)
+            self.srrfigure.axes[1].plot(b2_tone_usb_plot)
 
             # set generator at LSB frequency
             self.rf_source.set_freq_mhz(rf_freqs_lsb[chnl])
@@ -419,17 +419,17 @@ class DssCalibrator(Experiment):
             plt.pause(self.settings.pause_time) 
             
             # get USB and LSB power data
-            a2_tone_lsb, b2_tone_lsb = self.fpga.get_bram_list_interleaved_data(self.settings.synth_info)
+            a2_tone_lsb, b2_tone_lsb = self.fpga.get_bram_list_data_interleave(self.settings.synth_info)
 
             # save syn rawdata
             np.savez(syn_datadir+'/chnl_'+str(chnl), a2_tone_usb=a2_tone_usb, b2_tone_usb=b2_tone_usb, 
                 a2_tone_lsb=a2_tone_lsb, b2_tone_lsb=b2_tone_lsb)
 
             # plot spec data
-            [a2_tone_lsb_scaled, b2_tone_lsb_scaled] = \
-                scale_spec_data_arr(self.fpga, [a2_tone_lsb, b2_tone_lsb], self.settings.synth_info)
-            self.srrfigure.axes[0].plot(a2_tone_lsb_scaled)
-            self.srrfigure.axes[1].plot(b2_tone_lsb_scaled)
+            [a2_tone_lsb_plot, b2_tone_lsb_plot] = \
+                scale_dbfs_spec_data_arr(self.fpga, [a2_tone_lsb, b2_tone_lsb], self.settings.synth_info)
+            self.srrfigure.axes[0].plot(a2_tone_lsb_plot)
+            self.srrfigure.axes[1].plot(b2_tone_lsb_plot)
 
             # Compute sideband ratios
             ratio_usb = np.divide(a2_tone_usb[chnl], b2_tone_usb[chnl], dtype=np.float64)

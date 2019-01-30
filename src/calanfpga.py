@@ -9,7 +9,7 @@ class CalanFpga():
     Wrapper around corr's FpgaClient in order to add common functions used in 
     Calan Lab (Millimeter Wave Laboratory, Univerity of Chile). Examples of the
     funtions added are: roach initialization, regiter setting/reseting, easy data
-    grab from multiple snapshots, bram arrays, interleaved bram arrays, etc.
+    grab from multiple snapshots, bram arrays, interleave bram arrays, etc.
     """
     def __init__(self):
         """
@@ -298,7 +298,7 @@ class CalanFpga():
 
         return bram_data_arr2d
 
-    def get_bram_interleaved_data(self, bram_info):
+    def get_bram_data_interleave(self, bram_info):
         """
         Get data using get_bram_list_data and then interleave the data. Useful for easily 
         getting data from a spectrometer that uses multi-channel FFT.
@@ -311,7 +311,7 @@ class CalanFpga():
         interleaved_data = np.fromiter(chain(*zip(*bram_data_arr)), dtype=bram_info['data_type'])
         return interleaved_data
 
-    def get_bram_list_interleaved_data(self, bram_info):
+    def get_bram_list_data_interleave(self, bram_info):
         """
         Get data using get_bram_list2d_data and then interleave the data from 
         the inner lists. Useful to easily get data from multiple spectrometers implemented
@@ -411,10 +411,10 @@ class CalanFpga():
 
     def write_bram_interleaved_data(self, bram_info, data):
         """
-        Interleave data to fit a list of brams, so that the first data goes to the first
-        address of the first bram, the second data goes to the first address of the second
-        bram, etc. Useful to load calibration constants to a spectrometer that uses 
-        multi-channel FFT.
+        Write interleaved data into a list of brams, so that the first data goes to the
+        first address of the first bram, the second data goes to the first address of 
+        the second bram, etc. Useful to load calibration constants to a spectrometer 
+        that uses multi-channel FFT.
         :param bram_info: dictionary with the info of the brams. The format is the same
             as for write_bram_list_data().
         :param data: numpy array with the data to load into the brams.
@@ -433,7 +433,7 @@ class CalanFpga():
     def write_bram_list_interleaved_data(self, bram_info, data_list):
         """
         Write data into a list of list of brams by using write_bram_interleaved_data().
-        This means that the data gets interleaved in the inner bram lists.
+        This means that the interleaved data gets written in the inner bram lists.
         :param bram_info: dictionary with the info of the brams. The format is the same
             as for write_bram_list2d_data().
         :param data_list: list of numpy arrays with the data to load into the brams of the 

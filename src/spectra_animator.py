@@ -50,22 +50,11 @@ class SpectraAnimator(Animator):
         Gets the spectra data from the spectrometer model.
         :return: spectral data.
         """
-        return get_spec_data(self.fpga, self.settings.spec_info)
+        spec_data_arr = self.fpga.get_bram_list_data_interleave(self.settings.spec_info)
+        spec_plot_arr = scale_dbfs_spec_data_arr(self.fpga, spec_data_arr, self.settings, spec_info)
+        return spec_plot_data
 
-def get_spec_data(fpga, spec_info):
-    """
-    Gets spectra data given a CalanFpga object and spec_info dict.
-    :param fpga: CalanFpga object.
-    :param spec_info: dictionary with info of the memory with 
-        the spectral data in the FPGA.
-    :return: spectral data in dBFS.
-    """
-    spec_data_arr = fpga.get_bram_list_interleaved_data(spec_info)
-    spec_plot_arr = scale_spec_data_arr(fpga, spec_data_arr, spec_info)
-
-    return spec_plot_arr
-    
-def scale_spec_data(fpga, spec_data, spec_info):
+def scale_dbfs_spec_data(fpga, spec_data, spec_info):
     """
     Scale spectral data by the accumulation length given by the
     accumulation reg in the spec_info dictionary, and convert
@@ -81,9 +70,9 @@ def scale_spec_data(fpga, spec_data, spec_info):
     spec_data = linear_to_dBFS(spec_data, spec_info)
     return spec_data
 
-def scale_spec_data_arr(fpga, spec_data_arr, spec_info):
+def scale_dbfs_spec_data_arr(fpga, spec_data_arr, spec_info):
     """
-    Same as scale_spec_data() but for an array of spectral data.
+    Same as scale_dbfs_spec_data() but for an array of spectral data.
     """
-    scaled_spec_data = [scale_spec_data(fpga, spec_data, spec_info) for spec_data in spec_data_arr]
-    return scaled_spec_data
+    scaled_dbfs_spec_data = [scale_dbfs_spec_data(fpga, spec_data, spec_info) for spec_data in spec_data_arr]
+    return scaled_dbfs_spec_data

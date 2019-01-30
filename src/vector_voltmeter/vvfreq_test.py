@@ -4,7 +4,7 @@ import matplotlib.pyplot as plt
 from ..experiment import Experiment, get_nchannels, get_channel_from_freq
 from ..calanfigure import CalanFigure
 from ..instruments.generator import create_generator
-from ..spectra_animator import scale_spec_data
+from ..spectra_animator import scale_dbfs_spec_data
 from ..axes.spectrum_axis import SpectrumAxis
 from magratio_axis import MagRatioAxis
 from anglediff_axis import AngleDiffAxis
@@ -69,8 +69,8 @@ class VVFreqTest(Experiment):
             # compute power ratio and angle diff nsamples times
             for i in range(self.nsamples):
                 # get power-crosspower data
-                a2, b2 = self.fpga.get_bram_list_interleaved_data(self.settings.spec_info)
-                ab_re, ab_im = self.fpga.get_bram_list_interleaved_data(self.settings.crosspow_info)
+                a2, b2 = self.fpga.get_bram_list_data_interleave(self.settings.spec_info)
+                ab_re, ab_im = self.fpga.get_bram_list_data_interleave(self.settings.crosspow_info)
 
                 # compute complex ratios
                 ab = ab_re[self.test_chnl] + 1j*ab_im[self.test_chnl]
@@ -78,9 +78,9 @@ class VVFreqTest(Experiment):
                 comp_ratios.append(np.conj(ab) / a2[self.test_chnl]) # (ab*)* / bb* = b/a = LSB/USB.
 
                 # plot spec data
-                a2_dbfs = scale_spec_data(self.fpga, a2, self.settings.spec_info)
+                a2_dbfs = scale_dbfs_spec_data(self.fpga, a2, self.settings.spec_info)
                 self.figure.axes[0].plot(a2_dbfs)
-                b2_dbfs = scale_spec_data(self.fpga, b2, self.settings.spec_info)
+                b2_dbfs = scale_dbfs_spec_data(self.fpga, b2, self.settings.spec_info)
                 self.figure.axes[1].plot(b2_dbfs)
 
                 # plot power ratio

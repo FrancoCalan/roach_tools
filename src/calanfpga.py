@@ -326,7 +326,7 @@ class CalanFpga():
             # make a new bram info only with current bram_list
             current_bram_info = bram_info.copy()
             current_bram_info['bram_list'] = bram_list
-            interleaved_data = self.get_bram_interleaved_data(current_bram_info)
+            interleaved_data = self.get_bram_data_interleave(current_bram_info)
             interleaved_data_arr.append(interleaved_data)
 
         return interleaved_data_arr

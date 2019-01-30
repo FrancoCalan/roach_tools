@@ -51,8 +51,8 @@ class SpectraAnimator(Animator):
         :return: spectral data.
         """
         spec_data_arr = self.fpga.get_bram_list_data_interleave(self.settings.spec_info)
-        spec_plot_arr = scale_dbfs_spec_data_arr(self.fpga, spec_data_arr, self.settings, spec_info)
-        return spec_plot_data
+        spec_plot_arr = scale_dbfs_spec_data_arr(self.fpga, spec_data_arr, self.settings.spec_info)
+        return spec_plot_arr
 
 def scale_dbfs_spec_data(fpga, spec_data, spec_info):
     """

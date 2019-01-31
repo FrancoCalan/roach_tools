@@ -253,7 +253,7 @@ class CalanFpga():
 
     def get_bram_list_data(self, bram_info):
         """
-        Similar to get_bram_data but it gets the data from a list of bram with the 
+        Similar to get_bram_data but it gets the data from a list of brams with the 
         same parameters. In this case 'bram_name' is 'bram_list', a list of bram names.
         :param bram_info: dictionary with the info of the brams. 
             The bram_info dictionary format is:
@@ -331,9 +331,47 @@ class CalanFpga():
 
         return interleaved_data_arr
 
-    def get_bram_sync_data(self, bram_info, read_funct, req_reg, readok_reg):
+    def get_bram_interleaved_data(self, bram_info):
         """
-        Get bram data but issuing a request to FPGA and waiting for the data
+        Get bram data that is interleaved in a bram memory of the FPGA.
+        The interleave_factor indicate the number of data set interleaved
+        in the bram. For example an interleave factor of 4 undicates that
+        data at index 0, 4, 8, etc... correspond to one set of data,
+        data at index 1, 5, 9, etc... another set of data and so on. It is
+        assumed that the interleave factor is a multple of the data length.
+        :param bram_info: dictionary with the info from the bram. Similar for the
+            one in get_bram_data but with the added key 'interleave_factor'.
+        :return: list of numpy arrays with the de-interleaved data.
+        """
+        ifactor = bram_info['interleave_factor']
+        bram_data = self.get_bram_data(bram_info)
+        
+        # de-interleave process
+        bram_data_arr = np.reshape(bram_data, (len(bram_data)/factor, ifactor))
+        bram_data_arr = np.transpose(bram_data_arr)
+        bram_data_arr = list(bram_data_arr)
+
+        return bram_data_arr
+
+    def get_bram_list_interleaved_data(self, bram_info):
+        """
+        Similar to get_bram_interleaved_data it gets the data from a list
+        of brams with the same parameters. The result is a one dimensional 
+        list with the de-interleaved data from all the brams.
+        """
+        bram_data_arr = []
+        for bram in bram_info['bram_list']:
+            # make a new bram info only with current bram
+            current_bram_info = bram_info.copy()
+            current_bram_info['bram_name'] = bram
+            bram_data = self.get_bram_interleaved_data(current_bram_info)
+            bram_data_arr = bram_data_arr + bram_data
+
+        return bram_data_arr
+
+    def get_bram_sync_data(self, bram_info, read_funct, req_reg, read_count_reg):
+        """
+        Get bram data by issuing a request to FPGA and waiting for the data
         to be ready to read. Useful when need to get spectral data with an
         specific input condition controlled by a script.
         :param bram_info: dictionary with the info of the brams. The bram format
@@ -343,12 +381,48 @@ class CalanFpga():
         :param req_reg: register used for data request.
             is set 0->1 to request new data.
             is set 1->0 to inform that data read finished.
-        :param readok_reg: register is set by the FPGA when the data is ready to read.
+        :param read_count_reg: register is increased by 1 by the FPGA when the data 
+            is ready to read.
             When 0 data not ready to read.
             When 1 data is ready to read.
-            This register should be reset by the FPGA when req_reg 1->0.
+        :return: data on FPGA brams. The exact format is given by the return description
+            of read_funct.
         """
-        pass # not required for the moment
+        # read the current value of the count reg to check later
+        count_val = self.fpga.read_reg(read_count_reg)
+
+        # request data
+        self.fpga.write_reg(req_reg, 0)
+        self.fpga.write_reg(req_reg, 1)
+
+        # wait until data if ready to read
+        while True:
+            if np.uint32(self.fpga.read_reg(read_count_reg) - count_val) == 1: # np.uint32 is to deal with overfolw in 32-bit registers
+                break
+
+        return read_funct(self, bram_info)
+
+    # This is an alternative specification for the get_bram_sync_data. I think is
+    # simpler, but for now we'll stay with the protocol implemented by Roberto
+    # (see mbf_16beams.slx or mini spectrometer models).
+    #def get_bram_sync_data(self, bram_info, read_funct, req_reg, readok_reg):
+    #    """
+    #    Get bram data by issuing a request to FPGA and waiting for the data
+    #    to be ready to read. Useful when need to get spectral data with an
+    #    specific input condition controlled by a script.
+    #    :param bram_info: dictionary with the info of the brams. The bram format
+    #        must be valid for the read_funct.
+    #    :param read_funct: read function to read the data from brams (ex. get_bram_data,
+    #        get_bram_list_data)
+    #    :param req_reg: register used for data request.
+    #        is set 0->1 to request new data.
+    #        is set 1->0 to inform that data read finished.
+    #    :param readok_reg: register is set by the FPGA when the data is ready to read.
+    #        When 0 data not ready to read.
+    #        When 1 data is ready to read.
+    #        This register should be reset by the FPGA when req_reg 1->0.
+    #    """
+    #    pass
 
     def write_bram_data(self, bram_info, data):
         """

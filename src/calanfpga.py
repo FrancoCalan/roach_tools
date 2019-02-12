@@ -402,27 +402,28 @@ class CalanFpga():
 
         return read_funct(self, bram_info)
 
-    # This is an alternative specification for the get_bram_sync_data. I think is
-    # simpler, but for now we'll stay with the protocol implemented by Roberto
-    # (see mbf_16beams.slx or mini spectrometer models).
+    """
+    This is an alternative specification for the get_bram_sync_data. I think is
+    simpler, but for now we'll stay with the protocol implemented by Roberto
+    (see mbf_16beams.slx or mini spectrometer models).
+    """
     #def get_bram_sync_data(self, bram_info, read_funct, req_reg, readok_reg):
-    #    """
-    #    Get bram data by issuing a request to FPGA and waiting for the data
-    #    to be ready to read. Useful when need to get spectral data with an
-    #    specific input condition controlled by a script.
-    #    :param bram_info: dictionary with the info of the brams. The bram format
-    #        must be valid for the read_funct.
-    #    :param read_funct: read function to read the data from brams (ex. get_bram_data,
-    #        get_bram_list_data)
-    #    :param req_reg: register used for data request.
-    #        is set 0->1 to request new data.
-    #        is set 1->0 to inform that data read finished.
-    #    :param readok_reg: register is set by the FPGA when the data is ready to read.
-    #        When 0 data not ready to read.
-    #        When 1 data is ready to read.
-    #        This register should be reset by the FPGA when req_reg 1->0.
-    #    """
-    #    pass
+        """
+        Get bram data by issuing a request to FPGA and waiting for the data
+        to be ready to read. Useful when need to get spectral data with an
+        specific input condition controlled by a script.
+        :param bram_info: dictionary with the info of the brams. The bram format
+            must be valid for the read_funct.
+        :param read_funct: read function to read the data from brams (ex. get_bram_data,
+            get_bram_list_data)
+        :param req_reg: register used for data request.
+            is set 0->1 to request new data.
+            is set 1->0 to inform that data read finished.
+        :param readok_reg: register is set by the FPGA when the data is ready to read.
+            When 0 data not ready to read.
+            When 1 data is ready to read.
+            This register should be reset by the FPGA when req_reg 1->0.
+        """
 
     def write_bram_data(self, bram_info, data):
         """
@@ -502,7 +503,6 @@ class CalanFpga():
             current_bram_info = bram_info.copy()
             current_bram_info['bram_name'] = bram
             self.write_bram_data(current_bram_info, datarow)
-
 
     def write_bram_list_interleaved_data(self, bram_info, data_list):
         """

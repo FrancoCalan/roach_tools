@@ -60,15 +60,12 @@ To learn about all the functions of CalanFpga, read them directly form the [code
 
 ### Script Files
 
-The repository also provides script files to easily perform common ROACH tasks out of the box. For a list of implemented scripts go here(TODO: add link). For an explanation on how to use the scripts look at the [Calan wiki](https://sites.google.com/site/calandigital/home/tutorials/roach_tools-and-calanfpga).
+The repository also provides script files to easily perform common ROACH tasks out of the box. For a list of implemented scripts see [the Wiki sidebar](https://github.com/FrancoCalan/roach_tools/wiki). For an explanation on how to use the scripts look at the [Calan wiki](https://sites.google.com/site/calandigital/home/tutorials/roach_tools-and-calanfpga).
 
 ## External Links
 * [simulink_models](https://github.com/FrancoCalan/simulink_models): Sister repository with simulink models, compiled .bof files, and configuration files for various examples and projects.
 * [Calan Digital Wiki](https://sites.google.com/site/calandigital/): Wiki site with ROACH tutorials and information about our (Milimeter-Wave Laboratory) digital back-end projects.
 * [CASPER Site](https://casper.berkeley.edu/): Oficial CASPER site, the developers of the ROACH and other digital platforms for radioastronomy.
-
-## TODO
-* Add scripts descriptions
 
 ## Author
 Franco Curotto

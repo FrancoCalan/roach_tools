@@ -408,22 +408,22 @@ class CalanFpga():
     (see mbf_16beams.slx or mini spectrometer models).
     """
     #def get_bram_sync_data(self, bram_info, read_funct, req_reg, readok_reg):
-        """
-        Get bram data by issuing a request to FPGA and waiting for the data
-        to be ready to read. Useful when need to get spectral data with an
-        specific input condition controlled by a script.
-        :param bram_info: dictionary with the info of the brams. The bram format
-            must be valid for the read_funct.
-        :param read_funct: read function to read the data from brams (ex. get_bram_data,
-            get_bram_list_data)
-        :param req_reg: register used for data request.
-            is set 0->1 to request new data.
-            is set 1->0 to inform that data read finished.
-        :param readok_reg: register is set by the FPGA when the data is ready to read.
-            When 0 data not ready to read.
-            When 1 data is ready to read.
-            This register should be reset by the FPGA when req_reg 1->0.
-        """
+    """
+    Get bram data by issuing a request to FPGA and waiting for the data
+    to be ready to read. Useful when need to get spectral data with an
+    specific input condition controlled by a script.
+    :param bram_info: dictionary with the info of the brams. The bram format
+        must be valid for the read_funct.
+    :param read_funct: read function to read the data from brams (ex. get_bram_data,
+        get_bram_list_data)
+    :param req_reg: register used for data request.
+        is set 0->1 to request new data.
+        is set 1->0 to inform that data read finished.
+    :param readok_reg: register is set by the FPGA when the data is ready to read.
+        When 0 data not ready to read.
+        When 1 data is ready to read.
+        This register should be reset by the FPGA when req_reg 1->0.
+    """
 
     def write_bram_data(self, bram_info, data):
         """
@@ -528,14 +528,12 @@ class CalanFpga():
              'word_width'  : width of dram word in bits.
              'data_type'   : Numpy datatype object or string of the of the resulting data.
                  See https://docs.scipy.org/doc/numpy/reference/arrays.dtypes.html
-             'dram_name'   : dram name in the model
             }
         :return: numpy array with the dram data.
         """
         width = dram_info['word_width']
         depth = 2**dram_info['addr_width']
         dtype = dram_info['data_type'] 
-        dram  = dram_info['dram_name']
         
         # read dram data in blocks of 2**18 words (2**22 bytes) to avoid read timeouts
         block_bytes = 2**22

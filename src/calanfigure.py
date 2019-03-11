@@ -10,7 +10,7 @@ class CalanFigure():
     """
     def __init__(self, n_plots, create_gui):
         self.n_plots = n_plots
-        self.plot_map = {1:'11', 2:'12', 3:'22', 4:'22', 16:'44'}
+        self.plot_map = {1: [1,1], 2: [1,2], 3: [2,2], 4: [2,2], 16: [4,4]}
         self.axes = []
         # Figure() needed in order for Tkinter GUI elements to work properly
         if create_gui:
@@ -29,7 +29,8 @@ class CalanFigure():
             snapshot_axis, etc.)
         :param axis_args: arguments for the calanaxis instansiation.
         """
-        matplotlib_axis = self.fig.add_subplot(self.plot_map[self.n_plots]+str(n_axis+1))
+        nrows, ncols = self.plot_map[self.n_plots]
+        matplotlib_axis = self.fig.add_subplot(nrows, ncols, n_axis+1)
         calanaxis = calanaxis_class(matplotlib_axis, *axis_args)
         self.axes.append(calanaxis)
 

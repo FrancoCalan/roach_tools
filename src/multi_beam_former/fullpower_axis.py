@@ -1,5 +1,5 @@
 import numpy as np
-from ..axes.baraxis import BarAxis
+from ..axes.bar_axis import BarAxis
 
 class FullpowerAxis(BarAxis):
     """
@@ -7,10 +7,15 @@ class FullpowerAxis(BarAxis):
     read by multiple ADCs.
     """
     def __init__(self, ax, pow_names, title=""):
-        xdata = range(len(pow_names))
         BarAxis.__init__(self, ax, pow_names, title)
+        xdata = range(len(pow_names))
 
+        self.ax.grid()
         self.ax.set_xlim((xdata[0], xdata[-1]))
-        self.ax.set_ylim((0, -10*log10((2**(8-1))**2+1))) # Hardcoded 8-bit ADC
-        self.ax.set_xlabel('ADC')
+        self.ax.set_ylim((5, -80)) # Hardcoded 8-bit ADC
+        #self.ax.set_xlabel('ADC')
         self.ax.set_ylabel('Full Bandwidth Power [dBFS]')
+        
+        # rotate ticks labels for readability
+        for tick in self.ax.get_xticklabels():
+            tick.set_rotation(90)

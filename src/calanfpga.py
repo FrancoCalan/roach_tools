@@ -174,17 +174,17 @@ class CalanFpga():
         reg_val = self.fpga.read_uint(reg)
         return reg_val
 
-    def get_reg_list_data(self, reg_names_list):
+    def get_reg_list_data(self, reg_name_list):
         """
         Get the register value of a list of register names.
-        :param reg_list: list of register names.
+        :param reg_name_list: list of register names.
         :return: list of register values in unsigned 32 bit format.
         """
         reg_val_list = []
         for reg_name in reg_name_list:
             reg_val_list.append(self.read_reg(reg_name))
 
-        return reg_val_list
+        return np.array(reg_val_list)
 
     def get_snapshots(self, nsamples=None):
         """
@@ -335,7 +335,7 @@ class CalanFpga():
         """
         Get bram data that is interleaved in a bram memory of the FPGA.
         The interleave_factor indicate the number of data set interleaved
-        in the bram. For example an interleave factor of 4 undicates that
+        in the bram. For example an interleave factor of 4 indicates that
         data at index 0, 4, 8, etc... correspond to one set of data,
         data at index 1, 5, 9, etc... another set of data and so on. It is
         assumed that the interleave factor is a multple of the data length.
@@ -347,7 +347,7 @@ class CalanFpga():
         bram_data = self.get_bram_data(bram_info)
         
         # de-interleave process
-        bram_data_arr = np.reshape(bram_data, (len(bram_data)/factor, ifactor))
+        bram_data_arr = np.reshape(bram_data, (len(bram_data)/ifactor, ifactor))
         bram_data_arr = np.transpose(bram_data_arr)
         bram_data_arr = list(bram_data_arr)
 

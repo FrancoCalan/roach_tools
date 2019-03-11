@@ -5,8 +5,8 @@ class BarAxis(CalanAxis):
     Class representing an axis from a plot with a bar plot.
     """
     def __init__(self, ax, xdata, title=""):
-        CalanAxis.__init__(self, ax, xdata, title)
-        self.rects = self.ax.bar(xdata, len(self.xdata)*[0], align='center', width=1)
+        CalanAxis.__init__(self, ax, title)
+        self.rects = self.ax.bar(xdata, len(xdata)*[0], align='center', width=1)
 
     def plot(self, ydata):
         """

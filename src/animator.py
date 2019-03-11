@@ -9,7 +9,8 @@ class Animator(Plotter):
     """
     def __init__(self, calanfpga):
         Plotter.__init__(self, calanfpga)
-        self.reg_entries = [] # reference to additional GUI entries to modify registers in FPGA 
+        self.reg_entries = [] # reference to additional GUI entries to modify registers in FPGA
+        self.labels      = [] # reference to additional GUI labels that can later be updated
 
     def start_animation(self):
         """
@@ -96,6 +97,18 @@ class Animator(Plotter):
             push_button.config(relief=Tk.SUNKEN)
             push_button.config(text=button_text_sunken)
             self.fpga.set_reg(reg_name, 1)
+
+    def add_label(self, label_text):
+        """
+        Add a label in a new frame in the GUI. The label can
+        be eventually updated to show data in real-time.
+        :param label_text: (initial) text of the label.
+        """
+        frame = Tk.Frame(master=self.figure.root)
+        frame.pack(side = Tk.TOP, anchor="w")
+        label = Tk.Label(frame, text=label_text)
+        label.pack(side=Tk.LEFT)
+        self.labels.append(label)
 
 def animate(_, self):
     """

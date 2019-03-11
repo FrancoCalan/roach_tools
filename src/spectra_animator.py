@@ -27,10 +27,7 @@ class SpectraAnimator(Animator):
         # reset button
         self.add_reset_button('cnt_rst', 'Reset')
         # acc_len entry
-        #self.add_reg_entry(self.settings.spec_info['acc_len_reg'])
-        # I may regret this in the future
-        for reg in self.settings.set_regs:
-            self.add_reg_entry(reg['name'])
+        self.add_reg_entry(self.settings.spec_info['acc_len_reg'])
 
     def get_save_data(self):
         """

@@ -244,12 +244,13 @@ class CalanFpga():
         :return: numpy array with the bram data (if single bram name), 
             or list of numpy arrays following the same structure as the 'bram_names' list.
         """
-        width = bram_info['word_width']
-        depth = 2**bram_info['addr_width']
-        dtype = bram_info['data_type'] 
         brams = bram_info['bram_names']
 
         if isinstance(brams, str): # case single bram 
+            width = bram_info['word_width']
+            depth = 2**bram_info['addr_width']
+            dtype = bram_info['data_type'] 
+            
             return np.frombuffer(self.fpga.read(brams, depth*width/8, 0), dtype=dtype)
         
         elif isinstance(brams, list): # case bram list
@@ -323,92 +324,36 @@ class CalanFpga():
             same as for get_bram_data().
         :param data: array to write on the bram.
         """
-        width = bram_info['word_width']
-        depth = 2**bram_info['addr_width']
-        dtype = bram_info['data_type'] 
-        bram  = bram_info['bram_name']
+        brams = bram_info['bram_names']
         
-        # check for bram-data datatype compatibility
-        if dtype != data.dtype:
-            print "WARNING! data types between write bram and data don't match."
-            print "bram dtype: " + str(dtype)
-            print "data dtype: " + str(data.dtype)
-            print "Attempting to write in bram anyway."
+        if isinstance(brams, str): # case single bram
+            width = bram_info['word_width']
+            depth = 2**bram_info['addr_width']
+            dtype = bram_info['data_type'] 
+            # check for bram-data datatype compatibility
+            if dtype != data.dtype:
+                print "WARNING! data types between write bram and data don't match."
+                print "bram dtype: " + str(dtype)
+                print "data dtype: " + str(data.dtype)
+                print "Attempting to write in bram anyway."
 
-        # check for bytesize compatibility
-        bram_bytes = width * depth / 8
-        data_bytes = len(data) * data.dtype.alignment
-        if bram_bytes != data_bytes:
-            print "WARNING! number of bytes between write bram and data don't match."
-            print "bram bytes: " + str(bram_bytes)
-            print "data bytes: " + str(data_byes)
-            print "Attempting to write in bram anyway."
-        
-        self.fpga.write(bram, data.tobytes())
+            # check for bytesize compatibility
+            bram_bytes = width * depth / 8
+            data_bytes = len(data) * data.dtype.alignment
+            if bram_bytes != data_bytes:
+                print "WARNING! number of bytes between write bram and data don't match."
+                print "bram bytes: " + str(bram_bytes)
+                print "data bytes: " + str(data_byes)
+                print "Attempting to write in bram anyway."
+            
+            self.fpga.write(bram, data.tobytes())
+            return
 
-    def write_bram_list_data(self, bram_info, data_list):
-        """
-        Similar to write_bram_data but it receives a list of data arrays, and write it into 
-        a list of brams. In this case 'bram_name' is 'bram_list', a list of bram names.
-        :param bram_info: dictionary with the info of the brams. The dictionary format is the
-            same as for get_bram_list_data().
-        :param data_list: list of data array to write on the brams.
-        """
-        for bram, data in zip(bram_info['bram_list'], data_list):
-            # make a new bram info only with current bram
-            current_bram_info = bram_info.copy()
-            current_bram_info['bram_name'] = bram
-            self.write_bram_data(current_bram_info, data)
-
-    def write_bram_list2d_data(self, bram_info, data_list2d):
-        """
-        Similar to write_bram_list2d_data but it receives a list of list of data arrays, 
-        and write them into a list of list of brams. In this case 'bram_list' is 'bram_list2d', 
-        a 2d list of bram names.
-        :param bram_info: dictionary with the info of the brams. The dictionary format is the
-            same as for get_bram_list2d_data().
-        :param data_list2d: list of list data array to write on the brams.
-        """
-        for bram_list, data_list in zip(bram_info['bram_list2d'], data_list2d):
-            # make a new bram info only with current bram_list
-            current_bram_info = bram_info.copy()
-            current_bram_info['bram_list'] = bram_list
-            self.write_bram_list_data(current_bram_info, data_list)
-
-    def write_bram_interleaved_data(self, bram_info, data):
-        """
-        Write interleaved data into a list of brams, so that the first data goes to the
-        first address of the first bram, the second data goes to the first address of 
-        the second bram, etc. Useful to load calibration constants to a spectrometer 
-        that uses multi-channel FFT.
-        :param bram_info: dictionary with the info of the brams. The format is the same
-            as for write_bram_list_data().
-        :param data: numpy array with the data to load into the brams.
-        """
-        nbrams = len(bram_info['bram_list'])
-        brams_size = 2**bram_info['addr_width']
-        # reshape the data into a matrix so that a row has the individual bram data
-        reshaped_data = np.transpose(np.reshape(data, (brams_size, nbrams)))
-        for bram, datarow in zip(bram_info['bram_list'], reshaped_data):
-            # make a new bram info only with current bram
-            current_bram_info = bram_info.copy()
-            current_bram_info['bram_name'] = bram
-            self.write_bram_data(current_bram_info, datarow)
-
-    def write_bram_list_interleaved_data(self, bram_info, data_list):
-        """
-        Write data into a list of list of brams by using write_bram_interleaved_data().
-        This means that the interleaved data gets written in the inner bram lists.
-        :param bram_info: dictionary with the info of the brams. The format is the same
-            as for write_bram_list2d_data().
-        :param data_list: list of numpy arrays with the data to load into the brams of the 
-            inner lists.
-        """
-        for bram_list, data in zip(bram_info['bram_list2d'], data_list):
-            # make a new bram info only with current bram_list
-            current_bram_info = bram_info.copy()
-            current_bram_info['bram_list'] = bram_list
-            self.write_bram_interleaved_data(current_bram_info, data)
+        elif isinstance(brams, list): # case bram list
+            for bram_name, data_item in zip(bram_info['bram_names'], data):
+                new_bram_info = bram_info.copy()
+                new_bram_info['bram_names'] = bram_name
+                self.write_bram_data(new_bram_info, data_item)
 
     def get_dram_data(self, dram_info):
         """

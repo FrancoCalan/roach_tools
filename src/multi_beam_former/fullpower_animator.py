@@ -30,7 +30,7 @@ class FullpowerAnimator(Animator):
         Get full power data from FPGA bram memory.
         """
         pow_data_arr = self.fpga.get_reg_list_data(self.settings.pow_info['reg_list'])
-        pow_data_arr = pow_data_arr / 2.0**16 # divide by fixed binary point constant *2 (*2 beacause of squaring)  (hardcoded 8-bit ADC)
         pow_data_arr = pow_data_arr / float(self.fpga.read_reg(self.settings.pow_info['acc_len_reg'])) # divide by accumulation
         pow_data_arr = 10*np.log10(pow_data_arr) # convert to db
+        pow_data_arr = pow_data_arr - (6.02*8 + 1.76) # convert to dBFS (Hardcoded 8-bit ADC) 
         return [pow_data_arr]

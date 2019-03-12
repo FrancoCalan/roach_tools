@@ -28,6 +28,10 @@ class FRBDetector(SpectraAnimator):
 
     def get_data(self):
         """
+        Gets the spectra data from FRB detector model, this includes the dispersed signal,
+        the dedisperded signal, and th desispersed freezed signal. Also, manage the labels
+        to show the current total power in the freezed data, and if an FRB was detected.
+        :return: spectral data.
         """
         spec_data_arr = self.fpga.get_bram_list_data_interleave(self.settings.spec_info)
         

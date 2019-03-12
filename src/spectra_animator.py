@@ -39,12 +39,6 @@ class SpectraAnimator(Animator):
 
         return save_data
 
-    def reset_spec(self):
-        """
-        Reset spectra counters and accumulators.
-        """
-        self.fpga.reset_reg('cnt_rst')
-
     def get_data(self):
         """
         Gets the spectra data from the spectrometer model.
@@ -52,6 +46,7 @@ class SpectraAnimator(Animator):
         """
         spec_data_arr = self.fpga.get_bram_list_data_interleave(self.settings.spec_info)
         spec_plot_arr = scale_dbfs_spec_data_arr(self.fpga, spec_data_arr, self.settings.spec_info)
+        
         return spec_plot_arr
 
 def scale_dbfs_spec_data(fpga, spec_data, spec_info):

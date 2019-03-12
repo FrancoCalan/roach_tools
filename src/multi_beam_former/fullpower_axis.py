@@ -13,7 +13,6 @@ class FullpowerAxis(BarAxis):
         self.ax.grid()
         self.ax.set_xlim((xdata[0], xdata[-1]))
         self.ax.set_ylim((5, -80)) # Hardcoded 8-bit ADC
-        #self.ax.set_xlabel('ADC')
         self.ax.set_ylabel('Full Bandwidth Power [dBFS]')
         
         # rotate ticks labels for readability

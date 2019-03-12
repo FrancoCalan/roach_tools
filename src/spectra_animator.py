@@ -3,7 +3,7 @@ import Tkinter as Tk
 from animator import Animator
 from calanfigure import CalanFigure
 from axes.spectrum_axis import SpectrumAxis
-from experiment import linear_to_dBFS, get_nchannels
+from experiment import interleave_array_list, linear_to_dBFS, get_nchannels
 
 class SpectraAnimator(Animator):
     """
@@ -44,10 +44,13 @@ class SpectraAnimator(Animator):
         Gets the spectra data from the spectrometer model.
         :return: spectral data.
         """
-        spec_data_arr = self.fpga.get_bram_list_data_interleave(self.settings.spec_info)
-        spec_plot_arr = scale_dbfs_spec_data_arr(self.fpga, spec_data_arr, self.settings.spec_info)
+        spec_info = self.settings.spec_info
+        spec_data = self.fpga.get_bram_data(spec_info)
+        if 'interleave' in spec_info and spec_info['interleave']==True:
+            spec_data = interleave_inner_lists(spec_data)
+        spec_data = scale_dbfs_spec_data(self.fpga, spec_data, spec_info)
         
-        return spec_plot_arr
+        return spec_data
 
 def scale_dbfs_spec_data(fpga, spec_data, spec_info):
     """
@@ -56,18 +59,17 @@ def scale_dbfs_spec_data(fpga, spec_data, spec_info):
     the data to dBFS. Used for plotting spectra.
     :param fpga: CalanFpga object.
     :param spec_data: spectral data in linear scale, as read with CalanFpga's
-        get_bram_data() (or equivalent).
+        get_bram_data(). Can be a numpy array or a list (with possible more 
+        inner lists) of numpy arrays.
     :param spec_info: dictionary with info of the memory with 
         the spectral data in the FPGA.
     :return: spectral data in dBFS.
     """
-    spec_data = spec_data / float(fpga.read_reg(spec_info['acc_len_reg'])) # divide by accumulation
-    spec_data = linear_to_dBFS(spec_data, spec_info)
-    return spec_data
-
-def scale_dbfs_spec_data_arr(fpga, spec_data_arr, spec_info):
-    """
-    Same as scale_dbfs_spec_data() but for an array of spectral data.
-    """
-    scaled_dbfs_spec_data = [scale_dbfs_spec_data(fpga, spec_data, spec_info) for spec_data in spec_data_arr]
-    return scaled_dbfs_spec_data
+    if isinstance(spec_data, np.ndarray): 
+        spec_data = spec_data / float(fpga.read_reg(spec_info['acc_len_reg'])) # divide by accumulation
+        spec_data = linear_to_dBFS(spec_data, spec_info)
+        return spec_data
+        
+    else: # spec_data is list
+        spec_data = [scale_dbfs_spec_data(fpga, spec_data_item, spec_info) for spec_data_item in spec_data]
+        return spec_data

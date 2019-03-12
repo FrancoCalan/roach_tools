@@ -1,4 +1,5 @@
 import numpy as np
+from itertools import chain
 
 class Experiment():
     """
@@ -9,6 +10,33 @@ class Experiment():
     def __init__(self, calanfpga):
         self.fpga = calanfpga
         self.settings = self.fpga.settings
+
+def interleave_array_list(array_list):
+    """
+    Receivers a list of unknown depth with the final elements
+    being numpy arrays. Interleave the arrays in the inner most
+    lists. I assumes that all the sub lists are of the same depth.
+    Examples (parenthesis signifies numpy array):
+
+    - [(1,2,3,4),(10,20,30,40)] -> (1,10,2,20,3,30,4,40)
+    
+    - [[(1,2,3,4),(5,6,7,8)] , [(10,20,30,40),(50,60,70,80)]]
+        -> [(1,5,2,6,3,7,4,8), (10,50,20,60,30,70,40,80)]
+
+    :param array_list: list to interleave.
+    :return: new list with with inner most list interleaved.
+    """
+
+    if isinstance(array_list[0], np.ndarray):
+        return np.fromiter(chain(*zip(array_list)))
+    
+    elif isinstance(array_list[0], list):
+        interleaved_list = []
+        for inner_list in array_list:
+            interleaved_inner_list = interleave_array_list(inner_list)
+            interleaved_list.append(interleaved_inner_list)
+
+        return interleaved_list
 
 def linear_to_dBFS(data, bram_info, nbits=8):
     """
@@ -31,12 +59,12 @@ def get_nchannels(bram_info):
         brams used to save spectral data.
     :return: number of channels of the spectral data.
     """
-    if 'bram_name' in bram_info.keys(): # case one bram spectrometer
+    if isinstance(bram_info['bram_names'], str): # case one bram spectrometer
         n_brams = 1
-    elif 'bram_list' in bram_info.keys(): # case multi-bram spectrometer
-        n_brams = len(bram_info['bram_list']) 
-    elif 'bram_list2d' in bram_info.keys(): # case multiple spectrometer in single model
-        n_brams = len(bram_info['bram_list2d'][0]) # assumes all spectrometers have the same number of brams 
+    elif isinstance(bram_info['bram_names'][0], str): # case multi-bram spectrometer
+        n_brams = len(bram_info['bram_names']) 
+    elif isinstance(bram_info['bram_names'][0][0], str): # case multiple spectrometer in single model
+        n_brams = len(bram_info['bram_names'][0]) # assumes all spectrometers have the same number of brams 
 
     data_per_word =  bram_info['word_width']/8 / np.dtype(bram_info['data_type']).alignment
     return n_brams * 2**bram_info['addr_width'] * data_per_word

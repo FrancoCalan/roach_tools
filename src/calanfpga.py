@@ -239,145 +239,36 @@ class CalanFpga():
              'word_width'  : width of bram word in bits.
              'data_type'   : Numpy datatype object or string of the of the resulting data.
                  See https://docs.scipy.org/doc/numpy/reference/arrays.dtypes.html
-             'bram_name'   : bram name in the model
+             'bram_names'  : bram name of bram names in the model
             }
-        :return: numpy array with the bram data.
+        :return: numpy array with the bram data (if single bram name), 
+            or list of numpy arrays following the same structure as the 'bram_names' list.
         """
         width = bram_info['word_width']
         depth = 2**bram_info['addr_width']
         dtype = bram_info['data_type'] 
-        bram  = bram_info['bram_name']
+        brams = bram_info['bram_names']
 
-        bram_data = np.frombuffer(self.fpga.read(bram, depth*width/8, 0), dtype=dtype)
-        return bram_data
-
-    def get_bram_list_data(self, bram_info):
-        """
-        Similar to get_bram_data but it gets the data from a list of brams with the 
-        same parameters. In this case 'bram_name' is 'bram_list', a list of bram names.
-        :param bram_info: dictionary with the info of the brams. 
-            The bram_info dictionary format is:
-            {'addr_width'  : width of brams addresses in bits.
-             'word_width'  : width of brams word in bits.
-             'data_type'   : Numpy datatype object or string of the of the resulting data.
-             'bram_list'   : list of bram names in the model
-            }
-        :return: list of numpy arrays with the data of every bram in the same order.
-        """
-        bram_data_arr = []
-        for bram in bram_info['bram_list']:
-            # make a new bram info only with current bram
-            current_bram_info = bram_info.copy()
-            current_bram_info['bram_name'] = bram
-            bram_data = self.get_bram_data(current_bram_info)
-            bram_data_arr.append(bram_data)
-
-        return bram_data_arr
-
-    def get_bram_list2d_data(self, bram_info):
-        """
-        Similar to get_bram_list_data but it gets the data from a list of lists of brams.
-        In this case 'bram_list' is 'bram_list2d', a 2d list of bram names.
-        :param bram_info: dictionary with the info of the brams. 
-            The bram_info dictionary format is:
-            {'addr_width'  : width of brams addresses in bits.
-             'word_width'  : width of brams word in bits.
-             'data_type'   : Numpy datatype object or string of the of the resulting data.
-             'bram_list2d' : list of lists of bram names in the model
-            }
-        :return: list of lists of numpy arrays with the data of every bram in the 
-            same order.
-        """
-        bram_data_arr2d = []
-        for bram_list in bram_info['bram_list2d']:
-            # make a new bram info only with current bram_list
-            current_bram_info = bram_info.copy()
-            current_bram_info['bram_list'] = bram_list
-            bram_data_arr = self.get_bram_list_data(current_bram_info)
-            bram_data_arr2d.append(bram_data_arr)
-
-        return bram_data_arr2d
-
-    def get_bram_data_interleave(self, bram_info):
-        """
-        Get data using get_bram_list_data and then interleave the data. Useful for easily 
-        getting data from a spectrometer that uses multi-channel FFT.
-        :param bram_info: dictionary with the info of the brams. The format is the same
-            as for get_bram_list_data().
-        :return: numpy array with the data of the brams interlieved using the order of the
-            bram_list.
-        """
-        bram_data_arr = self.get_bram_list_data(bram_info)
-        interleaved_data = np.fromiter(chain(*zip(*bram_data_arr)), dtype=bram_info['data_type'])
-        return interleaved_data
-
-    def get_bram_list_data_interleave(self, bram_info):
-        """
-        Get data using get_bram_list2d_data and then interleave the data from 
-        the inner lists. Useful to easily get data from multiple spectrometers implemented
-        in the same FPGA, and with the same data type.
-        :param bram_info: dictionary with the info of the brams. The format is the same
-            as for get_bram_list2d_data().
-        :return: list of numpy arrays with the data of the brams of the inner lists
-            interlieved.
-        """
-        interleaved_data_arr = []
-        for bram_list in bram_info['bram_list2d']:
-            # make a new bram info only with current bram_list
-            current_bram_info = bram_info.copy()
-            current_bram_info['bram_list'] = bram_list
-            interleaved_data = self.get_bram_data_interleave(current_bram_info)
-            interleaved_data_arr.append(interleaved_data)
-
-        return interleaved_data_arr
-
-    def get_bram_interleaved_data(self, bram_info):
-        """
-        Get bram data that is interleaved in a bram memory of the FPGA.
-        The interleave_factor indicate the number of data set interleaved
-        in the bram. For example an interleave factor of 4 indicates that
-        data at index 0, 4, 8, etc... correspond to one set of data,
-        data at index 1, 5, 9, etc... another set of data and so on. It is
-        assumed that the interleave factor is a multple of the data length.
-        :param bram_info: dictionary with the info from the bram. Similar for the
-            one in get_bram_data but with the added key 'interleave_factor'.
-        :return: list of numpy arrays with the de-interleaved data.
-        """
-        ifactor = bram_info['interleave_factor']
-        bram_data = self.get_bram_data(bram_info)
+        if isinstance(brams, str): # case single bram 
+            return np.frombuffer(self.fpga.read(brams, depth*width/8, 0), dtype=dtype)
         
-        # de-interleave process
-        bram_data_arr = np.reshape(bram_data, (len(bram_data)/ifactor, ifactor))
-        bram_data_arr = np.transpose(bram_data_arr)
-        bram_data_arr = list(bram_data_arr)
+        elif isinstance(brams, list): # case bram list
+            bram_data_list = []
+            for bram_name in bram_info['bram_names']:
+                new_bram_info = bram_info.copy()
+                new_bram_info['bram_names'] = bram_name
+                new_bram_data = self.get_bram_data(new_bram_info)
+                bram_data_list.append(new_bram_data)
 
-        return bram_data_arr
+            return bram_data_list
 
-    def get_bram_list_interleaved_data(self, bram_info):
-        """
-        Similar to get_bram_interleaved_data it gets the data from a list
-        of brams with the same parameters. The result is a one dimensional 
-        list with the de-interleaved data from all the brams.
-        """
-        bram_data_arr = []
-        for bram in bram_info['bram_list']:
-            # make a new bram info only with current bram
-            current_bram_info = bram_info.copy()
-            current_bram_info['bram_name'] = bram
-            bram_data = self.get_bram_interleaved_data(current_bram_info)
-            bram_data_arr = bram_data_arr + bram_data
-
-        return bram_data_arr
-
-    def get_bram_sync_data(self, bram_info, read_funct, req_reg, read_count_reg):
+    def get_bram_sync_data(self, bram_info, req_reg, read_count_reg):
         """
         Get bram data by issuing a request to FPGA and waiting for the data
         to be ready to read. Useful when need to get spectral data with an
         specific input condition controlled by a script.
         :param bram_info: dictionary with the info of the brams. The bram format
             must be valid for the read_funct.
-        :param read_funct: read function to read the data from brams (ex. get_bram_data,
-            get_bram_list_data)
         :param req_reg: register used for data request.
             is set 0->1 to request new data.
             is set 1->0 to inform that data read finished.
@@ -400,7 +291,7 @@ class CalanFpga():
             if np.uint32(self.fpga.read_reg(read_count_reg) - count_val) == 1: # np.uint32 is to deal with overfolw in 32-bit registers
                 break
 
-        return read_funct(self, bram_info)
+        return self.get_bram_data(bram_info)
 
     """
     This is an alternative specification for the get_bram_sync_data. I think is

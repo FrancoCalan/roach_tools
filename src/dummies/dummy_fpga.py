@@ -25,9 +25,11 @@ class DummyFpga():
             pass
 
         # add spectrometers brams
-        try:
-            self.spec_brams = list(chain.from_iterable(self.settings.spec_info['bram_list2d'])) # flatten list
-        except:
+        if isinstance(self.settings.spec_info['bram_names'], str):
+            self.spec_brams = self.settings.spec_info['bram_names']
+        elif isinstance(self.settings.spec_info['bram_names'], list):
+            self.spec_brams = list(chain.from_iterable(self.settings.spec_info['bram_names'])) # flatten list
+        else:
             self.spec_brams = []
 
     def is_connected(self):

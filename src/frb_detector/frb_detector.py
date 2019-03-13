@@ -1,7 +1,7 @@
 import numpy as np
 import Tkinter as Tk
 from decimal import Decimal
-from ..spectra_animator import SpectraAnimator, scale_dbfs_spec_data_arr
+from ..spectra_animator import SpectraAnimator, scale_dbfs_spec_data
 from ..experiment import get_freq_from_channel
 
 class FRBDetector(SpectraAnimator):
@@ -33,14 +33,14 @@ class FRBDetector(SpectraAnimator):
         to show the current total power in the freezed data, and if an FRB was detected.
         :return: spectral data.
         """
-        spec_data_arr = self.fpga.get_bram_list_data_interleave(self.settings.spec_info)
+        spec_data = self.fpga.get_bram_data_interleave(self.settings.spec_info)
         
-        self.labels[0]['text'] = 'Total power = ' + "{:.3E}".format(np.sum(spec_data_arr[2]))
+        self.labels[0]['text'] = 'Total power = ' + "{:.3E}".format(np.sum(spec_data[2]))
         
         if self.fpga.read_reg('frb_detector') == 1:
             self.labels[1]['text'] = 'FRB detected! :D'
         else:
             self.label[1]['text'] = 'No FRB detected :('
 
-        spec_plot_arr = scale_dbfs_spec_data_arr(self.fpga, spec_data_arr, self.settings.spec_info)
-        return spec_plot_arr
+        spec_data = scale_dbfs_spec_data(self.fpga, spec_data, self.settings.spec_info)
+        return spec_data

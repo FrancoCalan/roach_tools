@@ -11,61 +11,6 @@ class Experiment():
         self.fpga = calanfpga
         self.settings = self.fpga.settings
 
-def interleave_array_list(array_list, dtype):
-    """
-    Receivers a list of unknown depth with the final elements
-    being numpy arrays. Interleave the arrays in the inner most
-    lists. It assumes that all the sub lists are of the same depth.
-    Useful to combine spectral data separated in diferent brams.
-    Examples (parenthesis signifies numpy array):
-
-    - [(1,2,3,4),(10,20,30,40)] -> (1,10,2,20,3,30,4,40)
-    
-    - [[(1,2,3,4),(5,6,7,8)] , [(10,20,30,40),(50,60,70,80)]]
-        -> [(1,5,2,6,3,7,4,8), (10,50,20,60,30,70,40,80)]
-
-    :param array_list: list to interleave.
-    :param dtype: numpy data type of arrays.
-    :return: new list with with inner most list interleaved.
-    """
-
-    if isinstance(array_list[0], np.ndarray): # case list of arrays
-        return np.fromiter(chain(*zip(*array_list)), dtype=dtype)
-    
-    elif isinstance(array_list[0], list): # case deeper list
-        interleaved_list = []
-        for inner_list in array_list:
-            interleaved_inner_list = interleave_array_list(inner_list, dtype)
-            interleaved_list.append(interleaved_inner_list)
-        return interleaved_list
-
-def deinterleave_array_list(array_list, ifactor):
-    """
-    Receivers a list of unknown depth with the final elements
-    being numpy arrays. For every array, separate the array in a
-    list of ifactor arrays so that the original array is the interleaved 
-    version of the produced arrays. This is the inverse function of
-    interleave_array_list(). Useful when independent spectral data is
-    saved in the same bram in an interleaved manner.
-    :param array_list: array or list to deinterleave.
-    :param ifactor: interleave factor, number of arrays in which to separate
-        the original array.
-    :return: list with the deinterleaved arrays.
-    """
-
-    if isinstance(array_list, np.ndarray): # case array
-        deinterleaved_list = np.reshape(array_list, (len(array_list)/ifactor, ifactor))
-        deinterleaved_list = np.transpose(deinterleaved_list)
-        deinterleaved_list = list(deinterleaved_list)
-        return deinterleaved_list
-
-    if isinstance(array_list, list): # case list
-        deinterleaved_list = []
-        for inner_list in array_list:
-            deinterleaved_inner_list = deinterleave_array_list(inner_list, ifactor)
-            deinterleaved_list.append(deinterleaved_inner_list)
-        return deinterleaved_list
-
 def linear_to_dBFS(data, bram_info, nbits=8):
     """
     Turn data in linear scale to dBFS scale.
@@ -88,26 +33,25 @@ def get_nchannels(bram_info):
     :return: number of channels of the spectral data.
     """
     data_per_word =  bram_info['word_width']/8 / np.dtype(bram_info['data_type']).alignment
-    n_brams = len(list(chain.from_iterable(bram_info['bram_names']))) # flatten list
-    n_channels = n_brams * 2**bram_info['addr_width'] * data_per_word
+    data_per_bram = 2**bram_info['addr_width'] * data_per_word
     
     # correct for interleaved data
     if 'deinterleave_by' in bram_info:
-        n_channels = n_channels / bram_info['deinterleave_by']
+        n_channels = data_per_bram / bram_info['deinterleave_by']
 
     # correct for deinterleaved data
     if 'interleave' in bram_info and bram_info['interleave']==True:
         # hacky function to get the number of deinterleaved brams
         def get_nbrams(bram_names):
-            if isinstance(bram_names[0], np.ndarray):
+            if isinstance(bram_names[0], str):
                 return len(bram_names)
             else: # bram_names = list
                 return get_nbrams(bram_names[0])
 
         n_deinterleaved_brams = get_nbrams(bram_info['bram_names'])
-        n_channels = n_channels * n_deinterleaved_brams
+        n_channels = data_per_bram * n_deinterleaved_brams
 
-    return nchannels
+    return n_channels
 
 def get_freq_from_channel(bw, channel, bram_info):
     """

@@ -45,7 +45,7 @@ class ConvergencePlotter(Plotter):
         :return: convergence data array.
         """
         # single channel
-        [chnl_data_real, chnl_data_imag] = self.fpga.get_bram_list_data(self.settings.conv_info_chnl)
+        [chnl_data_real, chnl_data_imag] = self.fpga.get_bram_data(self.settings.conv_info_chnl)
         chnl_data = chnl_data_real**2 + chnl_data_imag**2 # compute power
         chnl_data = linear_to_dBFS(chnl_data, self.settings.spec_info)
         

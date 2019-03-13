@@ -4,7 +4,7 @@ from itertools import chain
 from animator import Animator
 from calanfigure import CalanFigure
 from axes.spectrum_axis import SpectrumAxis
-from experiment import interleave_array_list,deinterleave_array_list, linear_to_dBFS, get_nchannels
+from experiment import linear_to_dBFS, get_nchannels
 
 class SpectraAnimator(Animator):
     """
@@ -46,15 +46,7 @@ class SpectraAnimator(Animator):
         :return: spectral data.
         """
         spec_info = self.settings.spec_info
-        spec_data = self.fpga.get_bram_data(spec_info)
-        
-        # manage interleave/deinterleave data
-        if 'interleave' in spec_info and spec_info['interleave']==True:
-            spec_data = interleave_array_list(spec_data, spec_info['data_type'])
-        elif 'deinterleave_by' in spec_info:
-            spec_data = deinterleave_array_list(spec_data, spec_info['deinterleave_by'])
-            spec_data = list(chain.from_iterable(spec_data)) # flatten list
-
+        spec_data = self.fpga.get_bram_data_interleave(spec_info)
         spec_data = scale_dbfs_spec_data(self.fpga, spec_data, spec_info)
         
         return spec_data

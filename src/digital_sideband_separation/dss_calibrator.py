@@ -109,8 +109,8 @@ class DssCalibrator(Experiment):
                 plt.pause(self.settings.pause_time) 
 
                 # get power-crosspower data
-                cal_a2, cal_b2 = self.fpga.get_bram_list_data_interleave(self.settings.cal_pow_info)
-                cal_ab_re, cal_ab_im = self.fpga.get_bram_list_data_interleave(self.settings.cal_crosspow_info)
+                cal_a2, cal_b2 = self.fpga.get_bram_data_interleave(self.settings.cal_pow_info)
+                cal_ab_re, cal_ab_im = self.fpga.get_bram_data_interleave(self.settings.cal_crosspow_info)
 
                 # compute constant
                 ab = cal_ab_re[chnl] + 1j*cal_ab_im[chnl]
@@ -238,7 +238,7 @@ class DssCalibrator(Experiment):
         """
         # make the receiver cold
         self.chopper.move_90cw()
-        a2_cold, b2_cold = self.fpga.get_bram_list_data_interleave(self.settings.cal_pow_info)
+        a2_cold, b2_cold = self.fpga.get_bram_data_interleave(self.settings.cal_pow_info)
                 
         # plot spec data
         [a2_cold_plot, b2_cold_plot] = \
@@ -249,7 +249,7 @@ class DssCalibrator(Experiment):
 
         # make the receiver hot
         self.chopper.move_90ccw()
-        a2_hot, b2_hot = self.fpga.get_bram_list_data_interleave(self.settings.cal_pow_info)
+        a2_hot, b2_hot = self.fpga.get_bram_data_interleave(self.settings.cal_pow_info)
 
         # plot spec data
         [a2_hot_plot, b2_hot_plot] = \
@@ -293,8 +293,8 @@ class DssCalibrator(Experiment):
             plt.pause(self.settings.pause_time) 
 
             # get power-crosspower data
-            cal_a2, cal_b2 = self.fpga.get_bram_list_data_interleave(self.settings.cal_pow_info)
-            cal_ab_re, cal_ab_im = self.fpga.get_bram_list_data_interleave(self.settings.cal_crosspow_info)
+            cal_a2, cal_b2 = self.fpga.get_bram_data_interleave(self.settings.cal_pow_info)
+            cal_ab_re, cal_ab_im = self.fpga.get_bram_data_interleave(self.settings.cal_crosspow_info)
 
             # save cal rawdata
             np.savez(cal_datadir + '/usb_chnl_' + str(chnl), 
@@ -348,8 +348,8 @@ class DssCalibrator(Experiment):
             plt.pause(self.settings.pause_time) 
 
             # get power-crosspower data
-            cal_a2, cal_b2 = self.fpga.get_bram_list_data_interleave(self.settings.cal_pow_info)
-            cal_ab_re, cal_ab_im = self.fpga.get_bram_list_data_interleave(self.settings.cal_crosspow_info)
+            cal_a2, cal_b2 = self.fpga.get_bram_data_interleave(self.settings.cal_pow_info)
+            cal_ab_re, cal_ab_im = self.fpga.get_bram_data_interleave(self.settings.cal_crosspow_info)
 
             # save cal rawdata
             np.savez(cal_datadir + '/lsb_chnl_' + str(chnl), 
@@ -405,7 +405,7 @@ class DssCalibrator(Experiment):
             plt.pause(self.settings.pause_time) 
             
             # get USB and LSB power data
-            a2_tone_usb, b2_tone_usb = self.fpga.get_bram_list_data_interleave(self.settings.synth_info)
+            a2_tone_usb, b2_tone_usb = self.fpga.get_bram_data_interleave(self.settings.synth_info)
 
             # plot spec data
             [a2_tone_usb_plot, b2_tone_usb_plot] = \
@@ -419,7 +419,7 @@ class DssCalibrator(Experiment):
             plt.pause(self.settings.pause_time) 
             
             # get USB and LSB power data
-            a2_tone_lsb, b2_tone_lsb = self.fpga.get_bram_list_data_interleave(self.settings.synth_info)
+            a2_tone_lsb, b2_tone_lsb = self.fpga.get_bram_data_interleave(self.settings.synth_info)
 
             # save syn rawdata
             np.savez(syn_datadir+'/chnl_'+str(chnl), a2_tone_usb=a2_tone_usb, b2_tone_usb=b2_tone_usb, 

@@ -46,7 +46,7 @@ class StabilityPlotter(Plotter):
         :return: stability data array.
         """
         [[chnl0_data_real, chnl0_data_imag], [chnl1_data_real, chnl1_data_imag]] =\
-            self.fpga.get_bram_list2d_data(self.settings.inst_chnl_info)
+            self.fpga.get_bram_data(self.settings.inst_chnl_info)
 
         chnl0_data = np.array(chnl0_data_real) + 1j*np.array(chnl0_data_imag)
         chnl1_data = np.array(chnl1_data_real) + 1j*np.array(chnl1_data_imag)

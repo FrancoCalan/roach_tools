@@ -263,6 +263,29 @@ class CalanFpga():
 
             return bram_data_list
 
+    def get_bram_data_interleave(self, bram_info):
+        """
+        Uses get_bram_data to acquire data from bram FPGA, and
+        also handles data that is interleaved or denterleaved in
+        the brams, combinding it, or separating it accordingly. 
+        The interleaved nature of the data is obtained from the bram_info 
+        (checking the 'interleave' and 'deinterleaved_by' keys).
+        :param bram_info: dictionary with the info from the bram. Same as
+            the get_bram_data param.
+        :return: numpy array or list of numpy arrays with the 
+            interleaved/deinterleaved data.
+        """
+        bram_data = self.get_bram_data(bram_info)
+
+        # manage interleave/deinterleave data
+        if 'interleave' in bram_info and bram_info['interleave']==True:
+            bram_data = interleave_array_list(bram_data, bram_info['data_type'])
+        elif 'deinterleave_by' in bram_info:
+            bram_data = deinterleave_array_list(bram_data, bram_info['deinterleave_by'])
+            bram_data = list(chain.from_iterable(bram_data)) # flatten list
+
+        return bram_data
+
     def get_bram_sync_data(self, bram_info, req_reg, read_count_reg):
         """
         Get bram data by issuing a request to FPGA and waiting for the data
@@ -293,29 +316,6 @@ class CalanFpga():
                 break
 
         return self.get_bram_data(bram_info)
-
-    """
-    This is an alternative specification for the get_bram_sync_data. I think is
-    simpler, but for now we'll stay with the protocol implemented by Roberto
-    (see mbf_16beams.slx or mini spectrometer models).
-    """
-    #def get_bram_sync_data(self, bram_info, read_funct, req_reg, readok_reg):
-    """
-    Get bram data by issuing a request to FPGA and waiting for the data
-    to be ready to read. Useful when need to get spectral data with an
-    specific input condition controlled by a script.
-    :param bram_info: dictionary with the info of the brams. The bram format
-        must be valid for the read_funct.
-    :param read_funct: read function to read the data from brams (ex. get_bram_data,
-        get_bram_list_data)
-    :param req_reg: register used for data request.
-        is set 0->1 to request new data.
-        is set 1->0 to inform that data read finished.
-    :param readok_reg: register is set by the FPGA when the data is ready to read.
-        When 0 data not ready to read.
-        When 1 data is ready to read.
-        This register should be reset by the FPGA when req_reg 1->0.
-    """
 
     def write_bram_data(self, bram_info, data):
         """
@@ -384,3 +384,56 @@ class CalanFpga():
         print "done"
 
         return dram_data
+
+def interleave_array_list(array_list, dtype):
+    """
+    Receivers a list of unknown depth with the final elements
+    being numpy arrays. Interleave the arrays in the inner most
+    lists. It assumes that all the sub lists are of the same depth.
+    Useful to combine spectral data separated in diferent brams.
+    Examples (parenthesis signifies numpy array):
+
+    - [(1,2,3,4),(10,20,30,40)] -> (1,10,2,20,3,30,4,40)
+    
+    - [[(1,2,3,4),(5,6,7,8)] , [(10,20,30,40),(50,60,70,80)]]
+        -> [(1,5,2,6,3,7,4,8), (10,50,20,60,30,70,40,80)]
+
+    :param array_list: list to interleave.
+    :param dtype: numpy data type of arrays.
+    :return: new list with with inner most list interleaved.
+    """
+    if isinstance(array_list[0], np.ndarray): # case list of arrays
+        return np.fromiter(chain(*zip(*array_list)), dtype=dtype)
+    
+    elif isinstance(array_list[0], list): # case deeper list
+        interleaved_list = []
+        for inner_list in array_list:
+            interleaved_inner_list = interleave_array_list(inner_list, dtype)
+            interleaved_list.append(interleaved_inner_list)
+        return interleaved_list
+
+def deinterleave_array_list(array_list, ifactor):
+    """
+    Receivers a list of unknown depth with the final elements
+    being numpy arrays. For every array, separate the array in a
+    list of ifactor arrays so that the original array is the interleaved 
+    version of the produced arrays. This is the inverse function of
+    interleave_array_list(). Useful when independent spectral data is
+    saved in the same bram in an interleaved manner.
+    :param array_list: array or list to deinterleave.
+    :param ifactor: interleave factor, number of arrays in which to separate
+        the original array.
+    :return: list with the deinterleaved arrays.
+    """
+    if isinstance(array_list, np.ndarray): # case array
+        deinterleaved_list = np.reshape(array_list, (len(array_list)/ifactor, ifactor))
+        deinterleaved_list = np.transpose(deinterleaved_list)
+        deinterleaved_list = list(deinterleaved_list)
+        return deinterleaved_list
+
+    if isinstance(array_list, list): # case list
+        deinterleaved_list = []
+        for inner_list in array_list:
+            deinterleaved_inner_list = deinterleave_array_list(inner_list, ifactor)
+            deinterleaved_list.append(deinterleaved_inner_list)
+        return deinterleaved_list

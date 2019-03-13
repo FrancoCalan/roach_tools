@@ -87,15 +87,27 @@ def get_nchannels(bram_info):
         brams used to save spectral data.
     :return: number of channels of the spectral data.
     """
-    if isinstance(bram_info['bram_names'], str): # case one bram spectrometer
-        n_brams = 1
-    elif isinstance(bram_info['bram_names'][0], str): # case multi-bram spectrometer
-        n_brams = len(bram_info['bram_names']) 
-    elif isinstance(bram_info['bram_names'][0][0], str): # case multiple spectrometer in single model
-        n_brams = len(bram_info['bram_names'][0]) # assumes all spectrometers have the same number of brams 
-
     data_per_word =  bram_info['word_width']/8 / np.dtype(bram_info['data_type']).alignment
-    return n_brams * 2**bram_info['addr_width'] * data_per_word
+    n_brams = len(list(chain.from_iterable(bram_info['bram_names']))) # flatten list
+    n_channels = n_brams * 2**bram_info['addr_width'] * data_per_word
+    
+    # correct for interleaved data
+    if 'deinterleave_by' in bram_info:
+        n_channels = n_channels / bram_info['deinterleave_by']
+
+    # correct for deinterleaved data
+    if 'interleave' in bram_info and bram_info['interleave']==True:
+        # hacky function to get the number of deinterleaved brams
+        def get_nbrams(bram_names):
+            if isinstance(bram_names[0], np.ndarray):
+                return len(bram_names)
+            else: # bram_names = list
+                return get_nbrams(bram_names[0])
+
+        n_deinterleaved_brams = get_nbrams(bram_info['bram_names'])
+        n_channels = n_channels * n_deinterleaved_brams
+
+    return nchannels
 
 def get_freq_from_channel(bw, channel, bram_info):
     """

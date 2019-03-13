@@ -53,7 +53,7 @@ class SpectraAnimator(Animator):
             spec_data = interleave_array_list(spec_data, spec_info['data_type'])
         elif 'deinterleave_by' in spec_info:
             spec_data = deinterleave_array_list(spec_data, spec_info['deinterleave_by'])
-            spec_data = list(chain.from_iterable(spec_data))
+            spec_data = list(chain.from_iterable(spec_data)) # flatten list
 
         spec_data = scale_dbfs_spec_data(self.fpga, spec_data, spec_info)
         

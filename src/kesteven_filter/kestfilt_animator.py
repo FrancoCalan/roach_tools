@@ -55,7 +55,7 @@ class KestfiltAnimator(SpectraAnimator):
         corresponding frequency for that channel.
         """
         frame = SpectraAnimator.add_reg_entry(self, chnl_reg)
-        chnl_entry = self.reg_entries[-1]
+        chnl_entry = self.reg_entries['channel']
         chnl_value = self.fpga.read_reg(chnl_reg)
         chnl_freq = get_freq_from_channel(self.settings.bw, chnl_value, self.settings.spec_info)
         freq_label = Tk.Label(frame, text= str(chnl_freq) + " MHz")

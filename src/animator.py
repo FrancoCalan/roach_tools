@@ -9,8 +9,8 @@ class Animator(Plotter):
     """
     def __init__(self, calanfpga):
         Plotter.__init__(self, calanfpga)
-        self.reg_entries = [] # reference to additional GUI entries to modify registers in FPGA
-        self.labels      = [] # reference to additional GUI labels that can later be updated
+        self.reg_entries = {} # reference to additional GUI entries to modify registers in FPGA
+        self.labels      = {} # reference to additional GUI labels that can later be updated
 
     def start_animation(self):
         """
@@ -26,6 +26,7 @@ class Animator(Plotter):
         The desired value must be written in the entry textbox,
         and the value is assigned by pressing <Return> with the textbox focused.
         :param reg: name of the register to modify by the entry.
+            Also used as the key for the reg_entries dictionary.
         """
         frame = Tk.Frame(master=self.figure.root)
         frame.pack(side = Tk.TOP, anchor="w")
@@ -35,7 +36,20 @@ class Animator(Plotter):
         entry.insert(Tk.END, self.fpga.read_reg(reg))
         entry.pack(side=Tk.LEFT)
         entry.bind('<Return>', lambda x: self.set_reg_from_entry(reg, entry))
-        self.reg_entries.append(entry)
+        self.reg_entries[reg] = entry
+
+    def add_label(self, label_key, label_text):
+        """
+        Add a label in a new frame in the GUI. The label can
+        be eventually updated to show data in real-time.
+        :param label_key: identifier key in the label dictionary.
+        :param label_text: (initial) text of the label.
+        """
+        frame = Tk.Frame(master=self.figure.root)
+        frame.pack(side = Tk.TOP, anchor="w")
+        label = Tk.Label(frame, text=label_text)
+        label.pack(side=Tk.LEFT)
+        self.labels[label_key](label)
 
     def set_reg_from_entry(self, reg, entry):
         """
@@ -97,18 +111,6 @@ class Animator(Plotter):
             push_button.config(relief=Tk.SUNKEN)
             push_button.config(text=button_text_sunken)
             self.fpga.set_reg(reg_name, 1)
-
-    def add_label(self, label_text):
-        """
-        Add a label in a new frame in the GUI. The label can
-        be eventually updated to show data in real-time.
-        :param label_text: (initial) text of the label.
-        """
-        frame = Tk.Frame(master=self.figure.root)
-        frame.pack(side = Tk.TOP, anchor="w")
-        label = Tk.Label(frame, text=label_text)
-        label.pack(side=Tk.LEFT)
-        self.labels.append(label)
 
 def animate(_, self):
     """

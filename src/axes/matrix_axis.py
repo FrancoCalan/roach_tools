@@ -8,12 +8,12 @@ class MatrixAxis(CalanAxis):
         CalanAxis.__init__(self, ax, title)
         self.fig = fig # needed to set colorbar
 
-    def plot(self, plot_data, extent=None, cbar_label=''):
+    def plot(self, plot_data, origin, aspect, interpolation, extent=None, cbar_label=''):
         """
         Plot matrix data using imshow.
         """
-        cax = self.ax.imshow(plot_data, origin='lower', aspect='auto',
-            interpolation='gaussian', extent=extent)
+        cax = self.ax.imshow(plot_data, origin=origin, aspect=aspect,
+            interpolation=inpterpolation, extent=extent)
         cbar = self.fig.colorbar(cax)
         cbar.set_label(cbar_label)
 

@@ -50,15 +50,19 @@ class CalanFigure():
         toolbar.update()
         self.canvas._tkcanvas.pack(side=Tk.TOP, fill=Tk.BOTH, expand=1)        
 
-    def plot_axes(self, data_arr):
+    def plot_axes(self, data):
         """
         Plot the data in every axes of the figure.
-        :param data_arr: Array containing the data elements for
-            every axes. the exact structure of the data elements
+        :param data: Array or list of arrays containing the data for
+            every axes. the exact structure of the data elements.
             depends on the type of axis.
         """
-        for axis, data in zip(self.axes, data_arr):
-            axis.plot(data)
+        if len(self.axes) == 1: # case single plot
+            axes[0].plot(data)
+            
+        else: # case multiple plots
+            for axis, data in zip(self.axes, data_arr):
+                axis.plot(data)
 
     def get_save_data(self):
         """

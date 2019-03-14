@@ -36,6 +36,6 @@ def get_dram_spectrogram_data(fpga, specgram_info):
     specgram_mat = np.transpose(specgram_mat) # rotate matrix to have freq in y axis, and time in x axis
     specgram_mat = 10*np.log10(specgram_mat+1) # convert data to dB
     
-    return [specgram_mat]
+    return specgram_mat
 
             

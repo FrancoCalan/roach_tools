@@ -17,6 +17,7 @@ class SpectrogramAxis(MatrixAxis):
         """
         Plot spectrogram using imshow.
         """
-        MatrixAxis.plot(self, specgram_data, 
+        MatrixAxis.plot(self, specgram_data, origin='lower', 
+            aspect='auto', inpterpolation='gaussian',
             extent=[0, self.spec_time*specgram_data.shape[1], 0, self.bw], 
             cbar_label='Power [dB]')

@@ -286,36 +286,36 @@ class CalanFpga():
 
         return bram_data
 
-    def get_bram_sync_data(self, bram_info, req_reg, read_count_reg):
+    def get_bram_data_sync(self, bram_info):
         """
         Get bram data by issuing a request to FPGA and waiting for the data
         to be ready to read. Useful when need to get spectral data with an
         specific input condition controlled by a script.
-        :param bram_info: dictionary with the info of the brams. The bram format
-            must be valid for the read_funct.
-        :param req_reg: register used for data request.
-            is set 0->1 to request new data.
-            is set 1->0 to inform that data read finished.
-        :param read_count_reg: register is increased by 1 by the FPGA when the data 
-            is ready to read.
-            When 0 data not ready to read.
-            When 1 data is ready to read.
-        :return: data on FPGA brams. The exact format is given by the return description
-            of read_funct.
+        :param bram_info: dictionary with the info of the brams. 
+            The dictionary format must be the same as for get_bram_data_interleave,
+            with the additional keys 'req_reg and 'read_count_reg' with the name
+            of the register that control the synchronization of data: 
+                - req_reg: register used for data request.
+                    is set 0->1 to request new data.
+                    is set 1->0 to inform that data read finished.
+                - read_count_reg: register is increased by 1 by the FPGA when the data 
+                is ready to read.
+        :return: data on FPGA brams.
         """
         # read the current value of the count reg to check later
-        count_val = self.fpga.read_reg(read_count_reg)
+        count_val = self.fpga.read_reg(bram_info['read_count_reg'])
 
         # request data
-        self.fpga.write_reg(req_reg, 0)
-        self.fpga.write_reg(req_reg, 1)
+        self.fpga.write_reg(bram_info['req_reg'], 0)
+        self.fpga.write_reg(bram_info['req_reg'], 1)
 
         # wait until data if ready to read
         while True:
-            if np.uint32(self.fpga.read_reg(read_count_reg) - count_val) == 1: # np.uint32 is to deal with overfolw in 32-bit registers
+            # np.uint32 is to deal with overfolw in 32-bit registers
+            if np.uint32(self.fpga.read_reg(bram_info['read_count_reg']) - count_val) == 1: 
                 break
 
-        return self.get_bram_data(bram_info)
+        return self.get_bram_data_interleave(bram_info)
 
     def write_bram_data(self, bram_info, data):
         """

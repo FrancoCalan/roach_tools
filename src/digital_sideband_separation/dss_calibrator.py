@@ -3,7 +3,6 @@ import numpy as np
 import scipy.stats
 import matplotlib.pyplot as plt
 from ..experiment import Experiment
-from ..plotter import Plotter
 from ..experiment import linear_to_dBFS, get_nchannels
 from ..calanfigure import CalanFigure
 from ..instruments.generator import Generator, create_generator

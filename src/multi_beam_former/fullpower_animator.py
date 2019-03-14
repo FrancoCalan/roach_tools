@@ -21,7 +21,7 @@ class FullpowerAnimator(Animator):
         # save button/entry
         self.add_save_widgets("fullpower_data")
         # reset button
-        self.add_reset_button('cnt_rst', 'Reset')
+        self.add_reset_button('pow_rst', 'Reset')
         # acc_len entry
         self.add_reg_entry(self.settings.pow_info['acc_len_reg'])
 
@@ -33,4 +33,4 @@ class FullpowerAnimator(Animator):
         pow_data_arr = pow_data_arr / float(self.fpga.read_reg(self.settings.pow_info['acc_len_reg'])) # divide by accumulation
         pow_data_arr = 10*np.log10(pow_data_arr) # convert to db
         pow_data_arr = pow_data_arr - (6.02*8 + 1.76) # convert to dBFS (Hardcoded 8-bit ADC) 
-        return [pow_data_arr]
+        return pow_data_arr

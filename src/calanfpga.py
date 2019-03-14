@@ -128,16 +128,18 @@ class CalanFpga():
 
         print 'Done setting and reseting registers'
 
-    def set_reg(self, reg, val):
+    def set_reg(self, reg, val, verbose=True):
         """
         Set a register.
         :param reg: register name in the FPGA model.
         :param val: value to set the register.
         """
-        print '\tSetting %s to %i... ' %(reg, val)
+        if verbose:
+            print '\tSetting %s to %i... ' %(reg, val)
         self.fpga.write_int(reg, val)
         time.sleep(0.1)
-        print '\tdone'
+        if verbose:
+            print '\tdone'
 
     def reset_reg(self, reg):
         """
@@ -303,16 +305,16 @@ class CalanFpga():
         :return: data on FPGA brams.
         """
         # read the current value of the count reg to check later
-        count_val = self.fpga.read_reg(bram_info['read_count_reg'])
+        count_val = self.read_reg(bram_info['read_count_reg'])
 
         # request data
-        self.fpga.write_reg(bram_info['req_reg'], 0)
-        self.fpga.write_reg(bram_info['req_reg'], 1)
+        self.set_reg(bram_info['req_reg'], 0, verbose=False)
+        self.set_reg(bram_info['req_reg'], 1, verbose=False)
 
         # wait until data if ready to read
         while True:
             # np.uint32 is to deal with overfolw in 32-bit registers
-            if np.uint32(self.fpga.read_reg(bram_info['read_count_reg']) - count_val) == 1: 
+            if np.uint32(self.read_reg(bram_info['read_count_reg']) - count_val) == 1: 
                 break
 
         return self.get_bram_data_interleave(bram_info)

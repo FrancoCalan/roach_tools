@@ -1,5 +1,4 @@
-import glob
-from setuptools import setup, find_packages
+from setuptools import setup, find_packages, findall
 
 setup(name = 'roach_tools',
       version = '0.7',
@@ -36,9 +35,7 @@ setup(name = 'roach_tools',
                      'roach_tools.multi_beam_former' : 'src/multi_beam_former',
                      'roach_tools.frequency_response' : 'src/frequency_response',
                      'roach_tools.vector_voltmeter' : 'src/vector_voltmeter'},
-      scripts = glob.glob('bin/*.py') +
-                glob.glob('bin/general_utils/*.py') +
-                glob.glob('bin/dss_utils/*.py'),
+      scripts = findall('bin/'),
       install_requires = [
             'construct', 
             'corr', 

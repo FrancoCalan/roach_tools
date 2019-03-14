@@ -16,8 +16,9 @@ class MBFSpectrometer(SpectraAnimator):
         # set the cal constants to 1 in startup.
         # Note: no calibration is done here, this is
         # just to test the model with a direct tone in all inputs
+        nspecs =len(self.settings.plot_titles)
         bin_pt = self.settings.cal_phase_info['const_bin_pt']
-        write_phasor_reg_list(self.fpga, 16*[1-2**-bin_pt], range(16), self.settings.cal_phase_info)
+        write_phasor_reg_list(self.fpga, nspecs*[1-2**-bin_pt], range(nspecs), self.settings.cal_phase_info)
 
     def get_data(self):
         """
@@ -29,7 +30,7 @@ class MBFSpectrometer(SpectraAnimator):
         
         return spec_data
 
-def write_phasor_reg(fpga, phasor, addrs, phase_bank_info):
+def write_phasor_reg(fpga, phasor, addrs, phase_bank_info, verbose=True):
     """
     Writes a phasor (complex) constant into a register from a register bank
     in the FPGA. The method to write the phasor is:
@@ -63,21 +64,21 @@ def write_phasor_reg(fpga, phasor, addrs, phase_bank_info):
     bin_pt = phase_bank_info['const_bin_pt']
     phasor_re = float2fixed(nbits, bin_pt, np.real([phasor])) # Assuming 32-bit registers
     phasor_im = float2fixed(nbits, bin_pt, np.imag([phasor])) # Assuming 32-bit registers
-    fpga.set_reg(phase_bank_info['phasor_regs'][0], phasor_re)
-    fpga.set_reg(phase_bank_info['phasor_regs'][1], phasor_im)
+    fpga.set_reg(phase_bank_info['phasor_regs'][0], phasor_re, verbose)
+    fpga.set_reg(phase_bank_info['phasor_regs'][1], phasor_im, verbose)
 
     # 2. write address register(s)
     if isinstance(phase_bank_info['addr_regs'], str): # case one register
-        fpga.set_reg(phase_bank_info['addr_regs'], addrs)
+        fpga.set_reg(phase_bank_info['addr_regs'], addrs, verbose)
     
     else: # case multiple registers
         for addr_reg, addr in zip(self.phase_bank_info['addr_regs'], addrs):
-            fpga.set_reg(addr_reg, addr)
+            fpga.set_reg(addr_reg, addr, verbose)
             
     # 3. posedge in we register
     time.sleep(0.1)
-    fpga.set_reg(phase_bank_info['we_reg'], 1)
-    fpga.set_reg(phase_bank_info['we_reg'], 0)
+    fpga.set_reg(phase_bank_info['we_reg'], 1, verbose)
+    fpga.set_reg(phase_bank_info['we_reg'], 0, verbose)
 
 def write_phasor_reg_list(fpga, phasor_list, addr_list, phase_bank_info):
     """
@@ -88,5 +89,7 @@ def write_phasor_reg_list(fpga, phasor_list, addr_list, phase_bank_info):
     :param phase_bank_info: dictionary with the info of the phase bank.
         The dictionary format is the same as for write_phasor_reg_list.
     """
+    print("Writing phasor registers...")
     for phasor, addr in zip(phasor_list, addr_list):
-        write_phasor_reg(fpga, phasor, addr, phase_bank_info)
+        write_phasor_reg(fpga, phasor, addr, phase_bank_info, verbose=False)
+    print("done")

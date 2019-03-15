@@ -17,8 +17,7 @@ class MBFSpectrometer(SpectraAnimator):
         # Note: no calibration is done here, this is
         # just to test the model with a direct tone in all inputs
         nspecs =len(self.settings.plot_titles)
-        bin_pt = self.settings.cal_phase_info['const_bin_pt']
-        write_phasor_reg_list(self.fpga, nspecs*[1-2**-bin_pt], range(nspecs), self.settings.cal_phase_info)
+        write_phasor_reg_list(self.fpga, nspecs*[1], range(nspecs), self.settings.cal_phase_info)
 
     def get_data(self):
         """

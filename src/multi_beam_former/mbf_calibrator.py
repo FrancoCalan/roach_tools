@@ -20,8 +20,7 @@ class MBFCalibrator(Experiment):
 
         # initialy set all phasors to 1 to measure the imbalances
         self.nports = len(self.settings.plot_titles)
-        self.bin_pt = self.settings.cal_phase_info['const_bin_pt']
-        write_phasor_reg_list(self.fpga, self.nports*[1-2**-self.bin_pt], range(self.nports), self.settings.cal_phase_info)
+        write_phasor_reg_list(self.fpga, self.nports*[1], range(self.nports), self.settings.cal_phase_info)
 
     def calibrate_mbf(self):
         """
@@ -35,25 +34,15 @@ class MBFCalibrator(Experiment):
         print 'done'
         
         # pruduce complex data and compute calibration constants
-        #print "Computing calibrations constants..."
-        #print len(xab_data)
-        #print len(xab_data[0])
+        print "Computing calibrations constants..."
         xab_comp_data = reim2comp(xab_data)
-        #print len(xab_comp_data)
-        #print len(xab_comp_data[0])
-        #print pow_data[0][self.freq_chnl]
-        #print max(pow_data[0][:64])
-        print np.argmax(pow_data[0][:64])
-        #print xab_comp_data[0][self.freq_chnl]
-        #print max(np.abs(xab_comp_data[0][:64]))
-        print np.argmax(np.abs(xab_comp_data[0][:64]))
         cal_ratios = compute_ratios(pow_data, xab_comp_data, self.freq_chnl)
         for i, cal_ratio in enumerate(cal_ratios):
             print "Constant port " + str(i).zfill(2) + ": " + str(cal_ratio)
-        #return
+        print ""
 
         # load correction constants
-        write_phasor_reg_list(self.fpga, cal_ratios-2**-self.bin_pt, range(self.nports), self.settings.cal_phase_info)
+        write_phasor_reg_list(self.fpga, cal_ratios, range(self.nports), self.settings.cal_phase_info)
 
         # test calibration
         time.sleep(0.1)
@@ -62,9 +51,13 @@ class MBFCalibrator(Experiment):
         time.sleep(1)
         xab_data = self.fpga.get_bram_data(self.settings.cal_crosspow_info) 
         xab_comp_data = reim2comp(xab_data)
-        cal_ratios = compute_ratios(pow_data, xab_comp_data, self.freq_chnl)
-        for i, cal_ratio in enumerate(cal_ratios):
-            print "Imbalance port " + str(i).zfill(2) + ": " + str(cal_ratio)
+        cal_ratios_new = compute_ratios(pow_data, xab_comp_data, self.freq_chnl)
+        for i, cal_ratio_new in enumerate(cal_ratios_new):
+            print "Imbalance port " + str(i).zfill(2) + ": " + str(cal_ratio_new)
+        print ""
+
+        print "Original unity error  :\n" + str(np.abs(cal_ratios) - np.ones(self.nports))
+        print "Calibrated unity error:\n" + str(np.abs(cal_ratios_new) - np.ones(self.nports))
             
 def reim2comp(data):
     """

@@ -2,13 +2,13 @@ construct==2.5.3
 katcp==0.5.5
 h5py
 numpy
-scipy
 matplotlib==2.2.3
 numexpr
 pyserial
 pyvisa
 pyvisa-py
 pyvisa-sim
+scipy
 setuptools
 git+https://github.com/ska-sa/PySPEAD.git
 git+https://github.com/ska-sa/corr.git

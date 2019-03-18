@@ -59,25 +59,26 @@ def write_phasor_reg(fpga, phasor, addrs, phase_bank_info, verbose=True):
         }
     """
     # 1. write phasor registers
+    sleep_time = 0.0
     nbits = phase_bank_info['const_nbits']
     bin_pt = phase_bank_info['const_bin_pt']
     phasor_re = float2fixed(nbits, bin_pt, np.real([phasor])) # Assuming 32-bit registers
     phasor_im = float2fixed(nbits, bin_pt, np.imag([phasor])) # Assuming 32-bit registers
-    fpga.set_reg(phase_bank_info['phasor_regs'][0], phasor_re, verbose)
-    fpga.set_reg(phase_bank_info['phasor_regs'][1], phasor_im, verbose)
+    fpga.set_reg(phase_bank_info['phasor_regs'][0], phasor_re, verbose, sleep_time=sleep_time)
+    fpga.set_reg(phase_bank_info['phasor_regs'][1], phasor_im, verbose, sleep_time=sleep_time)
 
     # 2. write address register(s)
     if isinstance(phase_bank_info['addr_regs'], str): # case one register
-        fpga.set_reg(phase_bank_info['addr_regs'], addrs, verbose)
+        fpga.set_reg(phase_bank_info['addr_regs'], addrs, verbose, sleep_time=sleep_time)
     
     else: # case multiple registers
-        for addr_reg, addr in zip(self.phase_bank_info['addr_regs'], addrs):
-            fpga.set_reg(addr_reg, addr, verbose)
+        for addr_reg, addr in zip(phase_bank_info['addr_regs'], addrs):
+            fpga.set_reg(addr_reg, addr, verbose, sleep_time=sleep_time)
             
     # 3. posedge in we register
-    time.sleep(0.1)
-    fpga.set_reg(phase_bank_info['we_reg'], 1, verbose)
-    fpga.set_reg(phase_bank_info['we_reg'], 0, verbose)
+    time.sleep(0.0)
+    fpga.set_reg(phase_bank_info['we_reg'], 1, verbose, sleep_time=sleep_time)
+    fpga.set_reg(phase_bank_info['we_reg'], 0, verbose, sleep_time=sleep_time)
 
 def write_phasor_reg_list(fpga, phasor_list, addr_list, phase_bank_info):
     """

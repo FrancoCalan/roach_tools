@@ -128,7 +128,7 @@ class CalanFpga():
 
         print 'Done setting and reseting registers'
 
-    def set_reg(self, reg, val, verbose=True):
+    def set_reg(self, reg, val, verbose=True, sleep_time=0.1):
         """
         Set a register.
         :param reg: register name in the FPGA model.
@@ -137,7 +137,7 @@ class CalanFpga():
         if verbose:
             print '\tSetting %s to %i... ' %(reg, val)
         self.fpga.write_int(reg, val)
-        time.sleep(0.1)
+        time.sleep(sleep_time)
         if verbose:
             print '\tdone'
 

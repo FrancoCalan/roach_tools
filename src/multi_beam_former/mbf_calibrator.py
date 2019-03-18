@@ -56,8 +56,8 @@ class MBFCalibrator(Experiment):
             print "Imbalance port " + str(i).zfill(2) + ": " + str(cal_ratio_new)
         print ""
 
-        print "Original unity error  :\n" + str(np.abs(cal_ratios) - np.ones(self.nports))
-        print "Calibrated unity error:\n" + str(np.abs(cal_ratios_new) - np.ones(self.nports))
+        print "Original squared error:\n" + str(np.square(np.abs(cal_ratios - np.ones(self.nports))))
+        print "Calibrated squared error:\n" + str(np.square(np.abs(cal_ratios_new - np.ones(self.nports))))
             
 def reim2comp(data):
     """

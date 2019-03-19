@@ -537,25 +537,28 @@ def float2fixed(nbits, bin_pt, data):
 def check_overflow(nbits, bin_pt, data):
     """
     Given a signed fixed point representation of bitwidth nbits and 
-    binary point bin_pt, check if the data array contains values that
+    binary point bin_pt, check if the data list contains values that
     will produce overflow if it would be cast. If overflow is detected,
     a warning signal is printed.
     :param nbits: bitwidth of the signed fixed point representation.
     :param bin_pt: binary point of the signed fixed point representation.
-    :param data: data array to check.
+    :param data: number or data list to check.
     """
-    max_val = (2.0**(nbits-1)-1) / (2**bin_pt)
-    min_val = (-2.0**(nbits-1))  / (2**bin_pt)
+    
+    if isinstance(data, float) or isinstance(data, int): # case single value
+        max_val = (2.0**(nbits-1)-1) / (2**bin_pt)
+        min_val = (-2.0**(nbits-1))  / (2**bin_pt)
+        
+        if data > max_val: 
+            print "WARNING! Maximum value exceeded in overflow check."
+            print "Max allowed value: " + str(max_val)
+            print "Data value: " + str(data)
 
-    max_data = np.max(data)
-    min_data = np.min(data)
+        if data < min_val:
+            print "WARNING! Minimum value exceeded in overflow check."
+            print "Min allowed value: " + str(min_val)
+            print "Data value: " + str(data)    
 
-    if max_data > max_val:
-        print "WARNING! Maximum value exceeded in overflow check."
-        print "Max allowed value: " + str(max_val)
-        print "Max data value: " + str(max_data)
-
-    if min_data < min_val:
-        print "WARNING! Minimum value exceeded in overflow check."
-        print "Min allowed value: " + str(min_val)
-        print "Min data value: " + str(min_data)
+    else: # case list or array of data
+        for data_el in data:
+            check_overflow(nbits, bin_pt, data_el)

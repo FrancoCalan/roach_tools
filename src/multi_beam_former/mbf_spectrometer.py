@@ -18,6 +18,8 @@ class MBFSpectrometer(SpectraAnimator):
         # just to test the model with a direct tone in all inputs
         nspecs =len(self.settings.plot_titles)
         write_phasor_reg_list(self.fpga, nspecs*[1], range(nspecs), self.settings.cal_phase_info)
+        addrs = [[0,0] + [i] for i in range(nspecs)]        
+        write_phasor_reg_list(self.fpga, nspecs*[1], addrs, self.settings.bf_phase_info)
 
     def get_data(self):
         """
@@ -26,6 +28,7 @@ class MBFSpectrometer(SpectraAnimator):
         """
         spec_data = self.fpga.get_bram_data_sync(self.settings.spec_info)
         spec_data = scale_dbfs_spec_data(self.fpga, spec_data, self.settings.spec_info)
+        print np.argmax(spec_data[0][:64])
         
         return spec_data
 
@@ -57,30 +60,30 @@ def write_phasor_reg(fpga, phasor, addrs, phase_bank_info, verbose=True):
          'addr_regs'    : register or list of registers for the address(es) in the bank.
          'we_reg'       : write enable register.
         }
+    :param verbose: True: be verbose when writing registers.
     """
     # 1. write phasor registers
-    sleep_time = 0.0
     nbits = phase_bank_info['const_nbits']
     bin_pt = phase_bank_info['const_bin_pt']
     phasor_re = float2fixed(nbits, bin_pt, np.real([phasor])) # Assuming 32-bit registers
     phasor_im = float2fixed(nbits, bin_pt, np.imag([phasor])) # Assuming 32-bit registers
-    fpga.set_reg(phase_bank_info['phasor_regs'][0], phasor_re, verbose, sleep_time=sleep_time)
-    fpga.set_reg(phase_bank_info['phasor_regs'][1], phasor_im, verbose, sleep_time=sleep_time)
+    fpga.set_reg(phase_bank_info['phasor_regs'][0], phasor_re, verbose)
+    fpga.set_reg(phase_bank_info['phasor_regs'][1], phasor_im, verbose)
 
     # 2. write address register(s)
     if isinstance(phase_bank_info['addr_regs'], str): # case one register
-        fpga.set_reg(phase_bank_info['addr_regs'], addrs, verbose, sleep_time=sleep_time)
+        fpga.set_reg(phase_bank_info['addr_regs'], addrs, verbose)
     
     else: # case multiple registers
         for addr_reg, addr in zip(phase_bank_info['addr_regs'], addrs):
-            fpga.set_reg(addr_reg, addr, verbose, sleep_time=sleep_time)
+            fpga.set_reg(addr_reg, addr, verbose)
             
     # 3. posedge in we register
-    time.sleep(0.0)
-    fpga.set_reg(phase_bank_info['we_reg'], 1, verbose, sleep_time=sleep_time)
-    fpga.set_reg(phase_bank_info['we_reg'], 0, verbose, sleep_time=sleep_time)
+    #time.sleep(0.0)
+    fpga.set_reg(phase_bank_info['we_reg'], 1, verbose)
+    fpga.set_reg(phase_bank_info['we_reg'], 0, verbose)
 
-def write_phasor_reg_list(fpga, phasor_list, addr_list, phase_bank_info):
+def write_phasor_reg_list(fpga, phasor_list, addr_list, phase_bank_info, verbose=True):
     """
     Write multiple phasors in a register bank using write_phasor_reg().
     :param fpga: CalanFpga object.
@@ -88,8 +91,11 @@ def write_phasor_reg_list(fpga, phasor_list, addr_list, phase_bank_info):
     :param addr_list: list of addresses to write into.
     :param phase_bank_info: dictionary with the info of the phase bank.
         The dictionary format is the same as for write_phasor_reg_list.
+    :param verbose: True: be verbose when start wirting phasors.
     """
-    print("Writing phasor registers...")
+    if verbose:
+        print("Writing phasor registers...")
     for phasor, addr in zip(phasor_list, addr_list):
         write_phasor_reg(fpga, phasor, addr, phase_bank_info, verbose=False)
-    print("done")
+    if verbose:
+        print("done")

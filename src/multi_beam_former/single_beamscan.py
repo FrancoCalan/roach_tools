@@ -1,3 +1,4 @@
+import time, datetime
 import numpy as np
 import matplotlib.pyplot as plt
 from  itertools import chain
@@ -5,6 +6,7 @@ from ..experiment import Experiment
 from ..calanfigure import CalanFigure
 from beamscan_axis import BeamscanAxis
 from mbf_spectrometer import write_phasor_reg_list
+from ..spectra_animator import scale_dbfs_spec_data
 from ..digital_sideband_separation.dss_calibrator import check_overflow
 
 class SingleBeamscan(Experiment):
@@ -32,27 +34,46 @@ class SingleBeamscan(Experiment):
         self.figure.create_axis(0, BeamscanAxis, (self.az_angs[0], self.az_angs[-1]), 
             (self.el_angs[0], self.el_angs[-1]), azr[2], elr[2], self.figure.fig)
 
+        # fix apriori beamformer address in order to speed the process
+        self.bf_phase_info = self.settings.bf_phase_info
+        self.fpga.set_reg(self.bf_phase_info['addr_regs'][0], self.beamformer[0])
+        self.fpga.set_reg(self.bf_phase_info['addr_regs'][1], self.beamformer[1])
+        self.bf_phase_info['addr_regs'] = self.bf_phase_info['addr_regs'][2]
+
     def perform_single_beamscan(self):
         """
         Perform the beam scan.
         """
         # steering the beam through all positions and get single channel power
-        print "Start beamscan..."
+        print "Making beamscan..."
+        start_time = time.time()
         scan_data = []
         for i, el in enumerate(self.el_angs):
             for j, az in enumerate(self.az_angs):
+                #time_arr = [time.time()]
+                
                 self.steer_beam(az, el)
+                #time_arr.append(time.time())
+
                 spec_data = self.fpga.get_bram_data_sync(self.settings.bf_spec_info)[0] # data only from first beamformer
-                scan_data.append(spec_data[self.freq_chnl])
+                spec_data = scale_dbfs_spec_data(self.fpga, spec_data, self.settings.bf_spec_info)
+                scan_data.append(spec_data[self.freq_chnl+4]) # TODO: fix hack
+                #time_arr.append(time.time())
+
                 scan_mat = np.pad(scan_data, (0,self.n_angs-len(scan_data)), 'minimum') # pad the data with the minimum value
                                                                                         # (for proper imshow plotting)
                 scan_mat = np.reshape(scan_mat, (len(self.az_angs), len(self.el_angs))) # turn the data into a matrix
+                #time_arr.append(time.time())
                 
                 # update plot
                 self.figure.plot_axes(scan_mat)
                 plt.pause(0.00001)
+                #time_arr.append(time.time())
+
+                #print np.diff(time_arr)
         
-        raw_input("Beamscan ended. Press enter to close.")
+        print("Beamscan ended. Time beamscanning: " + str(time.time() - start_time))
+        self.print_beamscan_plot(scan_mat, self.figure.axes[0].img.get_extent())
 
     def steer_beam(self, az, el):
         """
@@ -64,14 +85,34 @@ class SingleBeamscan(Experiment):
         :param az: azimuth angle to point the beam in degrees.
         :param el: elevation angle to point the beam in degrees.
         """
-        addrs = [self.beamformer + [i] for i in range(self.nports)]
+        addrs = range(self.nports)
         phasor_list = angs2phasors(self.settings.array_info, el, az)
-        phasor_list = [phasor/1.1 for phasor in phasor_list] 
+        
+        # harcoded fix_18_17 assumed from model
+        phasor_list = saturate_fixed_comp(18, 17, phasor_list)
         check_overflow(18, 17, np.real(phasor_list))
         check_overflow(18, 17, np.imag(phasor_list))
         
-        write_phasor_reg_list(self.fpga, phasor_list, addrs, self.settings.bf_phase_info)
-        
+        write_phasor_reg_list(self.fpga, phasor_list, addrs, self.bf_phase_info, verbose=False)
+
+    def print_beamscan_plot(self, scan_mat, extent):
+        """
+        Print the beamscan plot with different options
+        from the live plot.
+        :param scan_mat: matrix with the plot data.
+        :param extent: limits of the plots. Take them from the
+            live plot.
+        """
+        fig = plt.figure()
+        plt.imshow(scan_mat, origin='lower', aspect='equal', interpolation='none',
+            extent=extent)
+        plt.xlabel('Azimuth ($\phi$) [$^\circ$]')
+        plt.ylabel('Elevation ($\\theta$) [$^\circ$]')
+        cbar = plt.colorbar()
+        cbar.set_label('Power [dB]')
+
+        plt.savefig('single_beamscan ' + datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S') + '.pdf')
+
 def angs2phasors(array_info, theta, phi): 
     """
     Computes the phasor constants for every element of
@@ -89,7 +130,7 @@ def angs2phasors(array_info, theta, phi):
     :return: phase constants for every element in the array to
         set in order to properly point the array to the desired direction.
     """
-    wavelength = array_info['freq'] / array_info['speed']
+    wavelength = array_info['speed'] / array_info['freq']
 
     # get array element positions in meters
     el_pos = wavelength * array_info['el_sep'] * np.array(array_info['el_pos'])
@@ -107,12 +148,39 @@ def angs2phasors(array_info, theta, phi):
     k = 2 * np.pi / wavelength * a  # wave-number vector
 
     # Calculate array manifold vector
-    v = np.exp(1j * np.dot(el_pos, k))
+    v = np.exp(-1j * np.dot(el_pos, k))
 
     return list(np.conj(v).flatten())
 
-#def saturate_fixedpoint(nbits, bit_pt, data):
-#    """
-#    """
-#    max_val = (2.0**(nbits-1)-1) / (2**bin_pt)
-#    min_val = (-2.0**(nbits-1))  / (2**bin_pt)
+def saturate_fixed_comp(nbits, bin_pt, data):
+    """
+    Receives a complex number and saturates its real
+    and imaginary part, in order that naither of them
+    surpass the upper and lower limits given by a fixed
+    representation of nbits bits and binary point bin_pt.
+    In case of saturation both the real and imaginary part
+    are scaled in order to conserve the angle of the 
+    original data.
+    :param nbits: bitwidth of the signed fixed point representation.
+    :param bin_pt: binary point of the signed fixed point representation.
+    :param data: complex number or data list to check.
+    :return: number or list with the saturated data.
+    """
+    if isinstance(data, complex): # case single data
+        max_val = (2.0**(nbits-1)-1) / (2**bin_pt)
+        min_val = (-2.0**(nbits-1))  / (2**bin_pt)
+
+        data_real = np.real(data)
+        data_imag = np.imag(data)
+
+        # case upper saturation
+        if data_real > max_val or data_imag > max_val:
+            data = data / ((max([data_real, data_imag]) / max_val) + 0.0001)
+        # case lower saturation
+        if data_real < min_val or data_imag < min_val:
+            data = data / ((min([data_real, data_imag]) / min_val) + 0.001)
+        return data
+
+    else: # case list of data
+        return [saturate_fixed_comp(nbits, bin_pt, data_el) for data_el in data]
+        

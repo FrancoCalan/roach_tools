@@ -39,6 +39,7 @@ class SingleBeamscan(Experiment):
         self.fpga.set_reg(self.bf_phase_info['addr_regs'][0], self.beamformer[0])
         self.fpga.set_reg(self.bf_phase_info['addr_regs'][1], self.beamformer[1])
         self.bf_phase_info['addr_regs'] = self.bf_phase_info['addr_regs'][2]
+        self.addrs = range(self.nports)
 
     def perform_single_beamscan(self):
         """
@@ -52,7 +53,7 @@ class SingleBeamscan(Experiment):
             for j, az in enumerate(self.az_angs):
                 #time_arr = [time.time()]
                 
-                self.steer_beam(az, el)
+                self.steer_beam(self.addrs, az, el)
                 #time_arr.append(time.time())
 
                 spec_data = self.fpga.get_bram_data_sync(self.settings.bf_spec_info)[0] # data only from first beamformer
@@ -75,17 +76,17 @@ class SingleBeamscan(Experiment):
         print("Beamscan ended. Time beamscanning: " + str(time.time() - start_time))
         self.print_beamscan_plot(scan_mat, self.figure.axes[0].img.get_extent())
 
-    def steer_beam(self, az, el):
+    def steer_beam(self, addrs, az, el):
         """
         Given a phase array antenna that outputs into the ROACH,
         set the appropiate phasor constants so that the array points
         to a given direction (in azimuth and elevation angles). The exact 
         phasors are computed using the dir2phasors() functions and the 
         array_info parameter from the config script.
+        :param addrs: list of addresses from the phase bank where to set the constants.
         :param az: azimuth angle to point the beam in degrees.
         :param el: elevation angle to point the beam in degrees.
         """
-        addrs = range(self.nports)
         phasor_list = angs2phasors(self.settings.array_info, el, az)
         
         # harcoded fix_18_17 assumed from model

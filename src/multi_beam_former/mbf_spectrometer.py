@@ -28,7 +28,6 @@ class MBFSpectrometer(SpectraAnimator):
         """
         spec_data = self.fpga.get_bram_data_sync(self.settings.spec_info)
         spec_data = scale_dbfs_spec_data(self.fpga, spec_data, self.settings.spec_info)
-        print np.argmax(spec_data[0][:64])
         
         return spec_data
 

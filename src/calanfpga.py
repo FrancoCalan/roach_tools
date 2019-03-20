@@ -133,6 +133,7 @@ class CalanFpga():
         Set a register.
         :param reg: register name in the FPGA model.
         :param val: value to set the register.
+        :param verbose: True: be verbose.
         """
         if verbose:
             print '\tSetting %s to %i... ' %(reg, val)
@@ -140,17 +141,18 @@ class CalanFpga():
         if verbose:
             print '\tdone'
 
-    def reset_reg(self, reg):
+    def reset_reg(self, reg, verbose=True):
         """
         Reset a register (->1->0).
         :param reg: register name in the FPGA model.
+        :param verbose: True: be verbose.
         """
-        print '\tResetting %s... ' %reg
+        if verbose:
+            print '\tResetting %s... ' %reg
         self.fpga.write_int(reg, 1)
-        time.sleep(0.1)
         self.fpga.write_int(reg, 0)
-        time.sleep(0.1)
-        print '\tdone'
+        if verbose:
+            print '\tdone'
 
     def listbof(self):
         """
@@ -216,8 +218,7 @@ class CalanFpga():
         
         # activate snapshots to get data
         for snapshot in self.settings.snapshots:
-            self.fpga.write_int(snapshot + '_ctrl', 0)
-            self.fpga.write_int(snapshot + '_ctrl', 1)
+            self.reset_reg(snapshot + '_ctrl', verbose=False)
         
         # activate the trigger to start recording in all snapshots at the same time 
         self.fpga.write_int('snap_trig', 1)
@@ -307,8 +308,7 @@ class CalanFpga():
         count_val = self.read_reg(bram_info['read_count_reg'])
 
         # request data
-        self.set_reg(bram_info['req_reg'], 0, verbose=False)
-        self.set_reg(bram_info['req_reg'], 1, verbose=False)
+        self.reset_reg(bram_info['req_reg'], verbose=False)
 
         # wait until data if ready to read
         while True:

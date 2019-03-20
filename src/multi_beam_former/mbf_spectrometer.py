@@ -13,13 +13,13 @@ class MBFSpectrometer(SpectraAnimator):
     def __init__(self, calanfpga):
         SpectraAnimator.__init__(self, calanfpga)
 
-        # set the cal constants to 1 in startup.
-        # Note: no calibration is done here, this is
-        # just to test the model with a direct tone in all inputs
-        nspecs =len(self.settings.plot_titles)
-        write_phasor_reg_list(self.fpga, nspecs*[1], range(nspecs), self.settings.cal_phase_info)
-        addrs = [[0,0] + [i] for i in range(nspecs)]        
-        write_phasor_reg_list(self.fpga, nspecs*[1], addrs, self.settings.bf_phase_info)
+        if self.settings.ideal_phase_consts:
+            nspecs =len(self.settings.plot_titles)
+            write_phasor_reg_list(self.fpga, nspecs*[1], range(nspecs), self.settings.cal_phase_info)
+        
+        # used to test specs in beamformers
+        #addrs = [[0,0] + [i] for i in range(nspecs)]        
+        #write_phasor_reg_list(self.fpga, nspecs*[1], addrs, self.settings.bf_phase_info)
 
     def get_data(self):
         """
@@ -78,11 +78,9 @@ def write_phasor_reg(fpga, phasor, addrs, phase_bank_info, verbose=True):
             fpga.set_reg(addr_reg, addr, verbose)
             
     # 3. posedge in we register
-    #time.sleep(0.0)
-    fpga.set_reg(phase_bank_info['we_reg'], 1, verbose)
-    fpga.set_reg(phase_bank_info['we_reg'], 0, verbose)
+    fpga.reset_reg(phase_bank_info['we_reg'], verbose)
 
-def write_phasor_reg_list(fpga, phasor_list, addr_list, phase_bank_info, verbose=True):
+def write_phasor_reg_list(fpga, phasor_list, addr_list, phase_bank_info, verbose=False):
     """
     Write multiple phasors in a register bank using write_phasor_reg().
     :param fpga: CalanFpga object.
@@ -95,6 +93,6 @@ def write_phasor_reg_list(fpga, phasor_list, addr_list, phase_bank_info, verbose
     if verbose:
         print("Writing phasor registers...")
     for phasor, addr in zip(phasor_list, addr_list):
-        write_phasor_reg(fpga, phasor, addr, phase_bank_info, verbose=False)
+        write_phasor_reg(fpga, phasor, addr, phase_bank_info, verbose=verbose)
     if verbose:
         print("done")

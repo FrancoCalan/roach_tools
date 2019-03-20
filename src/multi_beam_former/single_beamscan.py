@@ -17,8 +17,14 @@ class SingleBeamscan(Experiment):
     """
     def __init__(self, calanfpga):
         Experiment.__init__(self, calanfpga)
-        self.nports = len(list(chain.from_iterable(self.settings.array_info['el_pos']))) # flatten list)
-        #write_phasor_reg_list(self.fpga, self.nports*[1], range(self.nports), self.settings.cal_phase_info)
+
+        self.bf_spec_info = self.settings.bf_spec_info
+        self.bf_phase_info = self.settings.bf_phase_info
+        self.array_info = self.settings.array_info
+
+        self.nports = len(list(chain.from_iterable(self.array_info['el_pos']))) # flatten list
+        if self.settings.ideal_phase_consts:
+            write_phasor_reg_list(self.fpga, self.nports*[1], range(self.nports), self.settings.cal_phase_info)
 
         # beam scan parameters
         self.beamformer = [0,0]
@@ -35,7 +41,6 @@ class SingleBeamscan(Experiment):
             (self.el_angs[0], self.el_angs[-1]), azr[2], elr[2], self.figure.fig)
 
         # fix apriori beamformer address in order to speed the process
-        self.bf_phase_info = self.settings.bf_phase_info
         self.fpga.set_reg(self.bf_phase_info['addr_regs'][0], self.beamformer[0])
         self.fpga.set_reg(self.bf_phase_info['addr_regs'][1], self.beamformer[1])
         self.bf_phase_info['addr_regs'] = self.bf_phase_info['addr_regs'][2]
@@ -49,29 +54,22 @@ class SingleBeamscan(Experiment):
         print "Making beamscan..."
         start_time = time.time()
         scan_data = []
-        for i, el in enumerate(self.el_angs):
-            for j, az in enumerate(self.az_angs):
-                #time_arr = [time.time()]
-                
-                self.steer_beam(self.addrs, az, el)
-                #time_arr.append(time.time())
 
-                spec_data = self.fpga.get_bram_data_sync(self.settings.bf_spec_info)[0] # data only from first beamformer
-                spec_data = scale_dbfs_spec_data(self.fpga, spec_data, self.settings.bf_spec_info)
-                scan_data.append(spec_data[self.freq_chnl+4]) # TODO: fix hack
-                #time_arr.append(time.time())
+        for el in self.el_angs:
+            for az in self.az_angs:
+                self.steer_beam(self.addrs, az, el)
+
+                spec_data = self.fpga.get_bram_data_sync(self.bf_spec_info)[0] # data only from first beamformer
+                spec_data = scale_dbfs_spec_data(self.fpga, spec_data, self.bf_spec_info)
+                scan_data.append(spec_data[self.freq_chnl])
 
                 scan_mat = np.pad(scan_data, (0,self.n_angs-len(scan_data)), 'minimum') # pad the data with the minimum value
                                                                                         # (for proper imshow plotting)
                 scan_mat = np.reshape(scan_mat, (len(self.az_angs), len(self.el_angs))) # turn the data into a matrix
-                #time_arr.append(time.time())
                 
                 # update plot
                 self.figure.plot_axes(scan_mat)
                 plt.pause(0.00001)
-                #time_arr.append(time.time())
-
-                #print np.diff(time_arr)
         
         print("Beamscan ended. Time beamscanning: " + str(time.time() - start_time))
         self.print_beamscan_plot(scan_mat, self.figure.axes[0].img.get_extent())
@@ -87,7 +85,7 @@ class SingleBeamscan(Experiment):
         :param az: azimuth angle to point the beam in degrees.
         :param el: elevation angle to point the beam in degrees.
         """
-        phasor_list = angs2phasors(self.settings.array_info, el, az)
+        phasor_list = angs2phasors(self.array_info, el, az)
         
         # harcoded fix_18_17 assumed from model
         phasor_list = saturate_fixed_comp(18, 17, phasor_list)

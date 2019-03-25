@@ -5,6 +5,7 @@ from ..calanfigure import CalanFigure
 from beamscan_axis import BeamscanAxis
 from ..spectra_animator import scale_dbfs_spec_data
 from single_beamscan import SingleBeamscan
+from mbf_spectrometer import write_phasor_reg_list
 
 class MultibeamAnimator(Animator, SingleBeamscan):
     """

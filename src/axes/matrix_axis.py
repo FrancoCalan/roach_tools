@@ -5,7 +5,7 @@ class MatrixAxis(CalanAxis):
     """
     Class for plotting matrices (using imshow).
     """
-    def __init__(self, ax, fig, origin, aspect, interpolation, extent=None, cbar_label="", title=""):
+    def __init__(self, ax, fig, origin, aspect, interpolation, extent=None, cbar_label="", contour=False, title=""):
         CalanAxis.__init__(self, ax, title)
         self.fig = fig # needed to set colorbar
 
@@ -13,6 +13,7 @@ class MatrixAxis(CalanAxis):
             interpolation=interpolation, extent=extent)
         self.colorbar = self.fig.colorbar(self.img)
         self.colorbar.set_label(cbar_label)
+        self.contour = contour
 
     def plot(self, plot_data):
         """
@@ -21,3 +22,6 @@ class MatrixAxis(CalanAxis):
         self.img.set_data(plot_data)
         self.img.set_clim(vmin=np.min(plot_data), vmax=np.max(plot_data))
         self.colorbar.update_normal(self.img)
+        
+        if self.contour:
+            self.ax.contour

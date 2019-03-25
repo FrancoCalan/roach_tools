@@ -32,8 +32,8 @@ class VVFreqTest(Experiment):
             self.test_freq, self.settings.spec_info)
 
         self.figure = CalanFigure(n_plots=4, create_gui=False)
-        self.figure.create_axis(0, SpectrumAxis, self.nchannels, self.settings.bw, "ZDOK0")
-        self.figure.create_axis(1, SpectrumAxis, self.nchannels, self.settings.bw, "ZDOK1")
+        self.figure.create_axis(0, SpectrumAxis, self.nchannels, 0, self.settings.bw, "ZDOK0")
+        self.figure.create_axis(1, SpectrumAxis, self.nchannels, 0, self.settings.bw, "ZDOK1")
         self.figure.create_axis(2, MagRatioAxis, range(self.nsamples), "Power Ratio")
         self.figure.create_axis(3, AngleDiffAxis, range(self.nsamples), "Angle Difference")
 

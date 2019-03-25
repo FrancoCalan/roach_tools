@@ -41,18 +41,18 @@ class DssCalibrator(Experiment):
         self.srrfigure     = CalanFigure(n_plots=4, create_gui=False)
         
         # axes on figures
-        self.calfigure_lsb.create_axis(0, SpectrumAxis, self.nchannels, self.settings.bw, 'ZDOK0 spec')
-        self.calfigure_lsb.create_axis(1, SpectrumAxis, self.nchannels, self.settings.bw, 'ZDOK1 spec')
+        self.calfigure_lsb.create_axis(0, SpectrumAxis, self.nchannels, 0, self.settings.bw, 'ZDOK0 spec')
+        self.calfigure_lsb.create_axis(1, SpectrumAxis, self.nchannels, 0, self.settings.bw, 'ZDOK1 spec')
         self.calfigure_lsb.create_axis(2, MagRatioAxis, self.nchannels, self.settings.bw, 'Magnitude Ratio')
         self.calfigure_lsb.create_axis(3, AngleDiffAxis, self.nchannels, self.settings.bw, 'Angle Difference')
         #
-        self.calfigure_usb.create_axis(0, SpectrumAxis, self.nchannels, self.settings.bw, 'ZDOK0 spec')
-        self.calfigure_usb.create_axis(1, SpectrumAxis, self.nchannels, self.settings.bw, 'ZDOK1 spec')
+        self.calfigure_usb.create_axis(0, SpectrumAxis, self.nchannels, 0, self.settings.bw, 'ZDOK0 spec')
+        self.calfigure_usb.create_axis(1, SpectrumAxis, self.nchannels, 0, self.settings.bw, 'ZDOK1 spec')
         self.calfigure_usb.create_axis(2, MagRatioAxis, self.nchannels, self.settings.bw, 'Magnitude Ratio')
         self.calfigure_usb.create_axis(3, AngleDiffAxis, self.nchannels, self.settings.bw, 'Angle Difference')
         #
-        self.srrfigure.create_axis(0, SpectrumAxis, self.nchannels, self.settings.bw, 'USB spec')
-        self.srrfigure.create_axis(1, SpectrumAxis, self.nchannels, self.settings.bw, 'LSB spec')
+        self.srrfigure.create_axis(0, SpectrumAxis, self.nchannels, 0, self.settings.bw, 'USB spec')
+        self.srrfigure.create_axis(1, SpectrumAxis, self.nchannels, 0, self.settings.bw, 'LSB spec')
         self.srrfigure.create_axis(2, SrrAxis, self.nchannels, self.settings.bw, 'SRR USB')
         self.srrfigure.create_axis(3, SrrAxis, self.nchannels, self.settings.bw, 'SRR LSB')
 
@@ -63,7 +63,6 @@ class DssCalibrator(Experiment):
                          'nchannels'        : self.nchannels,
                          'cal_acc_len'      : self.fpga.read_reg(self.settings.cal_pow_info['acc_len_reg']),
                          'syn_acc_len'      : self.fpga.read_reg(self.settings.synth_info['acc_len_reg']),
-                         'cal_adcs'         : self.settings.cal_adcs,
                          'sync_adcs'        : self.settings.sync_adcs,
                          'kerr_correction'  : self.settings.kerr_correction,
                          'use_ideal_consts' : self.settings.ideal_consts['load'],
@@ -198,7 +197,7 @@ class DssCalibrator(Experiment):
                 consts_usb_imag = float2fixed(self.consts_nbits, self.consts_bin_pt, np.imag(consts_usb))
                 consts_lsb_real = float2fixed(self.consts_nbits, self.consts_bin_pt, np.real(consts_lsb))
                 consts_lsb_imag = float2fixed(self.consts_nbits, self.consts_bin_pt, np.imag(consts_lsb))
-                self.fpga.write_bram_list_interleaved_data(self.settings.const_brams_info, 
+                self.fpga.write_bram_data_interleave(self.settings.const_brams_info, 
                     [consts_usb_real, consts_usb_imag, consts_lsb_real, consts_lsb_imag])
                 print "\tdone (" + str(time.time() - step_time) + "[s])"
 

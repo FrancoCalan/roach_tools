@@ -17,7 +17,7 @@ class SpectraAnimator(Animator):
         
         for i in range(self.figure.n_plots):
             self.figure.create_axis(i, SpectrumAxis, 
-                self.nchannels, self.settings.bw, self.settings.plot_titles[i])
+                self.nchannels, 0, self.settings.bw, self.settings.plot_titles[i])
         
     def add_figure_widgets(self):
         """

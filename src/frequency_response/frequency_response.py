@@ -15,18 +15,21 @@ class FrequencyResponse(Experiment):
     def __init__(self, calanfpga):
         Experiment.__init__(self, calanfpga)
 
+        self.init_freq = self.settings.init_freq
+        self.bw = self.settings.bw
         self.nchannels = get_nchannels(self.settings.spec_info)
-        self.freqs = np.linspace(0, self.settings.bw, self.nchannels, endpoint=False)
+        self.freqs = np.linspace(self.init_freq, self.init_freq+self.bw, self.nchannels, endpoint=False)
 
         self.source = create_generator(self.settings.test_source)
         self.test_channels = range(1, self.nchannels, self.settings.chnl_step)
 
         self.figure = CalanFigure(n_plots=2, create_gui=False)
-        self.figure.create_axis(0, SpectrumAxis, self.nchannels, self.settings.bw, "Current Spectrum")
-        self.figure.create_axis(1, SpectrumAxis, self.nchannels, self.settings.bw, "Frequency Response")
+        self.figure.create_axis(0, SpectrumAxis, self.nchannels, self.init_freq, self.bw, "Current Spectrum")
+        self.figure.create_axis(1, SpectrumAxis, self.nchannels, self.init_freq, self.bw, "Frequency Response")
 
         self.datadir = self.settings.datadir + '_' + datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
-        self.testinfo = {'bw'           : self.settings.bw,
+        self.testinfo = {'init_freq'    : self.init_freq,
+                         'bw'           : self.bw,
                          'nchannels'    : self.nchannels,
                          'acc_len'      : self.fpga.read_reg(self.settings.spec_info['acc_len_reg']),
                          'source_power' : self.settings.test_source['def_power']}
@@ -49,7 +52,7 @@ class FrequencyResponse(Experiment):
             time.sleep(self.settings.pause_time)
 
             # get spectrum data
-            spec_data = self.fpga.get_bram_data_interleave(spec_info)
+            spec_data = self.fpga.get_bram_data_interleave(self.settings.spec_info)
             # consider only the first spectrum if multiple are defined
             if isinstance(spec_data, list):
                 spec_data = spec_data[0]

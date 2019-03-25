@@ -330,7 +330,8 @@ class CalanFpga():
         if isinstance(brams, str): # case single bram
             width = bram_info['word_width']
             depth = 2**bram_info['addr_width']
-            dtype = bram_info['data_type'] 
+            dtype = bram_info['data_type']
+
             # check for bram-data datatype compatibility
             if dtype != data.dtype:
                 print "WARNING! data types between write bram and data don't match."
@@ -347,7 +348,7 @@ class CalanFpga():
                 print "data bytes: " + str(data_byes)
                 print "Attempting to write in bram anyway."
             
-            self.fpga.write(bram, data.tobytes())
+            self.fpga.write(brams, data.tobytes())
             return
 
         elif isinstance(brams, list): # case bram list
@@ -356,7 +357,28 @@ class CalanFpga():
                 new_bram_info['bram_names'] = bram_name
                 self.write_bram_data(new_bram_info, data_item)
 
-    def get_dram_data(self, dram_info):
+    def write_bram_data_interleave(self, bram_info, data):
+        """
+        Interleaves or deinterleaves data and then writes it to
+        the FPGA using write_bram_data.
+        The interleaved nature of the data is obtained from the bram_info 
+        (checking the 'interleave' and 'deinterleaved_by' keys).
+        :param bram_info: dictionary with the info from the bram. Same as
+            the get_bram_data param.
+        :param data: numpy array or list of numpy arrays with the 
+            interleaved/deinterleaved data.
+        """
+
+        # manage interleave/deinterleave data
+        if 'interleave' in bram_info and bram_info['interleave']==True:
+            data = interleave_array_list(data, bram_info['data_type'])
+        elif 'deinterleave_by' in bram_info:
+            data = deinterleave_array_list(data, bram_info['deinterleave_by'])
+            #data = list(chain.from_iterable(data)) # flatten list
+
+        self.write_bram_data(bram_info, data)
+
+    def write_dram_data(self, dram_info):
         """
         Retreive and unpack data from ROACH's DRAM using data information form dram_info.
         :param dram_info: dictionary with the info from the dram.

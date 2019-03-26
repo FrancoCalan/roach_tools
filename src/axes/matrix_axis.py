@@ -13,7 +13,6 @@ class MatrixAxis(CalanAxis):
             interpolation=interpolation, extent=extent)
         self.colorbar = self.fig.colorbar(self.img)
         self.colorbar.set_label(cbar_label)
-        self.contour = contour
 
     def plot(self, plot_data):
         """

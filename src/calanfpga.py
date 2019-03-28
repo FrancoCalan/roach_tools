@@ -69,10 +69,15 @@ class CalanFpga():
         configuration file.
         """
         self.connect_to_roach()
+    
         if self.settings.upload and self.settings.program:
             self.upload_program_fpga()
         elif self.settings.program:
             self.program_fpga()
+        elif self.settings.upload:
+            print "Upload bof without programming it is not supported."
+            exit()
+
         self.estimate_clock()
         self.set_reset_regs()
 
@@ -111,7 +116,13 @@ class CalanFpga():
         """
         Estimate FPGA clock.
         """
-        print 'Estimating FPGA clock: ' + str(self.fpga.est_brd_clk()) + '[MHz]'
+        print 'Estimating FPGA clock:'
+        try:
+            clock = self.fpga.est_brd_clk()
+        except RuntimeError:
+            print "Unable to get ROACH clock.\nDid you forget to program the FPGA with a .bof file?"
+            exit()
+        print str(clock) + '[MHz]'
 
     def set_reset_regs(self):
         """

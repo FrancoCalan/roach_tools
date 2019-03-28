@@ -1,7 +1,7 @@
 from setuptools import setup, find_packages, findall
 
 setup(name             = 'roach_tools',
-      version          = '0.7',
+      version          = '0.8',
       description      = 'Roach tools for digital development in the MWL.',
       url              = 'http://github.com/francocalan/roach_tools',
       author           = 'Franco Curotto',

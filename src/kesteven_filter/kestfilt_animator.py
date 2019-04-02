@@ -57,7 +57,7 @@ class KestfiltAnimator(SpectraAnimator):
         frame = SpectraAnimator.add_reg_entry(self, chnl_reg)
         chnl_entry = self.reg_entries['channel']
         chnl_value = self.fpga.read_reg(chnl_reg)
-        chnl_freq = get_freq_from_channel(self.settings.bw, chnl_value, self.settings.spec_info)
+        chnl_freq = get_freq_from_channel(0, self.settings.bw, chnl_value, self.settings.spec_info)
         freq_label = Tk.Label(frame, text= str(chnl_freq) + " MHz")
         freq_label.pack(side=Tk.LEFT)
         chnl_entry.bind('<Return>', lambda x: self.set_channel_reg(chnl_reg, chnl_entry, freq_label))
@@ -68,7 +68,7 @@ class KestfiltAnimator(SpectraAnimator):
         """
         SpectraAnimator.set_reg_from_entry(self, chnl_reg, chnl_entry)
         chnl_value = self.fpga.read_reg(chnl_reg)
-        chnl_freq = get_freq_from_channel(self.settings.bw, chnl_value, self.settings.spec_info)
+        chnl_freq = get_freq_from_channel(0, self.settings.bw, chnl_value, self.settings.spec_info)
         freq_label['text'] = str(chnl_freq) + " MHz" 
 
     def plot_convergence(self):

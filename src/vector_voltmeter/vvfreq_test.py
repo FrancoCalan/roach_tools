@@ -4,7 +4,6 @@ import matplotlib.pyplot as plt
 from ..experiment import Experiment, get_nchannels, get_channel_from_freq
 from ..calanfigure import CalanFigure
 from ..instruments.generator import create_generator
-from ..spectra_animator import scale_dbfs_spec_data
 from ..axes.spectrum_axis import SpectrumAxis
 from magratio_axis import MagRatioAxis
 from anglediff_axis import AngleDiffAxis
@@ -28,7 +27,7 @@ class VVFreqTest(Experiment):
         self.nsamples = self.settings.nsamples
         self.tested_magratios = self.settings.tested_magratios
         self.test_freq = self.settings.test_source['def_freq']
-        self.test_chnl = get_channel_from_freq(self.settings.bw, 
+        self.test_chnl = get_channel_from_freq(0, self.settings.bw, 
             self.test_freq, self.settings.spec_info)
 
         self.figure = CalanFigure(n_plots=4, create_gui=False)
@@ -78,9 +77,9 @@ class VVFreqTest(Experiment):
                 comp_ratios.append(np.conj(ab) / a2[self.test_chnl]) # (ab*)* / bb* = b/a = LSB/USB.
 
                 # plot spec data
-                a2_dbfs = scale_dbfs_spec_data(self.fpga, a2, self.settings.spec_info)
+                a2_dbfs = self.scale_dbfs_spec_data(a2, self.settings.spec_info)
                 self.figure.axes[0].plot(a2_dbfs)
-                b2_dbfs = scale_dbfs_spec_data(self.fpga, b2, self.settings.spec_info)
+                b2_dbfs = self.scale_dbfs_spec_data(b2, self.settings.spec_info)
                 self.figure.axes[1].plot(b2_dbfs)
 
                 # plot power ratio

@@ -6,7 +6,6 @@ from ..experiment import Experiment
 from ..calanfigure import CalanFigure
 from beamscan_axis import BeamscanAxis
 from mbf_spectrometer import write_phasor_reg_list
-from ..spectra_animator import scale_dbfs_spec_data
 from ..digital_sideband_separation.dss_calibrator import check_overflow
 
 class SingleBeamscan(Experiment):
@@ -60,7 +59,7 @@ class SingleBeamscan(Experiment):
                 self.steer_beam(self.addrs, az, el)
 
                 spec_data = self.fpga.get_bram_data_sync(self.bf_spec_info)[0] # data only from first beamformer
-                spec_data = scale_dbfs_spec_data(self.fpga, spec_data, self.bf_spec_info)
+                spec_data = self.scale_dbfs_spec_data(spec_data, self.bf_spec_info)
                 scan_data.append(spec_data[self.freq_chnl])
 
                 scan_mat = np.pad(scan_data, (0,self.n_angs-len(scan_data)), 'minimum') # pad the data with the minimum value

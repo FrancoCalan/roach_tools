@@ -2,11 +2,9 @@ import os, time, datetime, itertools, json, tarfile, shutil
 import numpy as np
 import scipy.stats
 import matplotlib.pyplot as plt
-from ..experiment import Experiment
-from ..experiment import linear_to_dBFS, get_nchannels
+from ..experiment import Experiment, linear_to_dBFS, get_nchannels
 from ..calanfigure import CalanFigure
 from ..instruments.generator import Generator, create_generator
-from ..spectra_animator import scale_dbfs_spec_data
 from ..axes.spectrum_axis import SpectrumAxis
 from mag_ratio_axis import MagRatioAxis
 from angle_diff_axis import AngleDiffAxis
@@ -116,7 +114,7 @@ class DssCalibrator(Experiment):
 
                 # plot spec data
                 [cal_a2_plot, cal_b2_plot] = \
-                    scale_dbfs_spec_data(self.fpga, [cal_a2, cal_b2], self.settings.cal_pow_info)
+                    self.scale_dbfs_spec_data([cal_a2, cal_b2], self.settings.cal_pow_info)
                 self.calfigure_usb.axes[0].plot(cal_a2_plot)
                 self.calfigure_usb.axes[1].plot(cal_b2_plot)
 
@@ -240,7 +238,7 @@ class DssCalibrator(Experiment):
                 
         # plot spec data
         [a2_cold_plot, b2_cold_plot] = \
-            scale_dbfs_spec_data(self.fpga, [a2_cold, b2_cold], self.settings.cal_pow_info)
+            self.scale_dbfs_spec_data([a2_cold, b2_cold], self.settings.cal_pow_info)
         self.calfigure_usb.axes[0].plot(a2_cold_plot)
         self.calfigure_usb.axes[1].plot(b2_cold_plot)
         plt.pause(self.settings.pause_time) 
@@ -251,7 +249,7 @@ class DssCalibrator(Experiment):
 
         # plot spec data
         [a2_hot_plot, b2_hot_plot] = \
-            scale_dbfs_spec_data(self.fpga, [a2_hot, b2_hot], self.settings.cal_pow_info)
+            self.scale_dbfs_spec_data([a2_hot, b2_hot], self.settings.cal_pow_info)
         self.calfigure_usb.axes[0].plot(a2_hot_plot)
         self.calfigure_usb.axes[1].plot(b2_hot_plot)
         plt.pause(self.settings.pause_time) 
@@ -304,7 +302,7 @@ class DssCalibrator(Experiment):
 
             # plot spec data
             [cal_a2_plot, cal_b2_plot] = \
-                scale_dbfs_spec_data(self.fpga, [cal_a2, cal_b2], self.settings.cal_pow_info)
+                self.scale_dbfs_spec_data([cal_a2, cal_b2], self.settings.cal_pow_info)
             self.calfigure_usb.axes[0].plot(cal_a2_plot)
             self.calfigure_usb.axes[1].plot(cal_b2_plot)
             
@@ -359,7 +357,7 @@ class DssCalibrator(Experiment):
 
             # plot spec data
             [cal_a2_plot, cal_b2_plot] = \
-                scale_dbfs_spec_data(self.fpga, [cal_a2, cal_b2], self.settings.cal_pow_info)
+                self.scale_dbfs_spec_data([cal_a2, cal_b2], self.settings.cal_pow_info)
             self.calfigure_lsb.axes[0].plot(cal_a2_plot)
             self.calfigure_lsb.axes[1].plot(cal_b2_plot)
             
@@ -407,7 +405,7 @@ class DssCalibrator(Experiment):
 
             # plot spec data
             [a2_tone_usb_plot, b2_tone_usb_plot] = \
-                scale_dbfs_spec_data(self.fpga, [a2_tone_usb, b2_tone_usb], self.settings.synth_info)
+                self.scale_dbfs_spec_data([a2_tone_usb, b2_tone_usb], self.settings.synth_info)
             self.srrfigure.axes[0].plot(a2_tone_usb_plot)
             self.srrfigure.axes[1].plot(b2_tone_usb_plot)
 
@@ -425,7 +423,7 @@ class DssCalibrator(Experiment):
 
             # plot spec data
             [a2_tone_lsb_plot, b2_tone_lsb_plot] = \
-                scale_dbfs_spec_data(self.fpga, [a2_tone_lsb, b2_tone_lsb], self.settings.synth_info)
+                self.scale_dbfs_spec_data([a2_tone_lsb, b2_tone_lsb], self.settings.synth_info)
             self.srrfigure.axes[0].plot(a2_tone_lsb_plot)
             self.srrfigure.axes[1].plot(b2_tone_lsb_plot)
 

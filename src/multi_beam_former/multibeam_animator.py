@@ -3,7 +3,6 @@ from  itertools import chain
 from ..animator import Animator
 from ..calanfigure import CalanFigure
 from beamscan_axis import BeamscanAxis
-from ..spectra_animator import scale_dbfs_spec_data
 from single_beamscan import SingleBeamscan
 from mbf_spectrometer import write_phasor_reg_list
 
@@ -48,7 +47,7 @@ class MultibeamAnimator(Animator, SingleBeamscan):
         Get the power data from all the beamformers.
         """
         spec_data = self.fpga.get_bram_data_sync(self.bf_spec_info)
-        spec_data = scale_dbfs_spec_data(self.fpga, spec_data, self.bf_spec_info)
+        spec_data = self.scale_dbfs_spec_data(spec_data, self.bf_spec_info)
         mbf_data = np.reshape(np.array(spec_data)[:, self.freq_chnl], (len(self.az_angs), len(self.el_angs)))
 
         return mbf_data

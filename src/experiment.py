@@ -11,6 +11,27 @@ class Experiment():
         self.fpga = calanfpga
         self.settings = self.fpga.settings
 
+    def scale_dbfs_spec_data(self, spec_data, spec_info):
+        """
+        Scales spectral data by the accumulation length given by the
+        accumulation reg in the spec_info dictionary, and converts
+        the data to dBFS. Used for plotting spectra.
+        :param spec_data: spectral data in linear scale, as read with CalanFpga's
+            get_bram_data(). Can be a numpy array or a list (with possible more 
+            inner lists) of numpy arrays.
+        :param spec_info: dictionary with info of the memory with 
+            the spectral data in the FPGA.
+        :return: spectral data in dBFS.
+        """
+        if isinstance(spec_data, np.ndarray): 
+            spec_data = spec_data / float(self.fpga.read_reg(spec_info['acc_len_reg'])) # divide by accumulation
+            spec_data = linear_to_dBFS(spec_data, spec_info)
+            return spec_data
+            
+        else: # spec_data is list
+            spec_data = [self.scale_dbfs_spec_data(spec_data_item, spec_info) for spec_data_item in spec_data]
+            return spec_data
+
 def linear_to_dBFS(data, bram_info, nbits=8):
     """
     Turn data in linear scale to dBFS scale.
@@ -53,10 +74,11 @@ def get_nchannels(bram_info):
 
     return n_channels
 
-def get_freq_from_channel(bw, channel, bram_info):
+def get_freq_from_channel(init_freq, bw, channel, bram_info):
     """
     Compute the center frequency of a channel, given the spectrometer
     bandwidth and the bram info data.
+    :param init_freq: initial frequency of the frequency band.
     :param bw: bandwith of the spectrometer.
     :param channel: the channel position used to compute the frequency
         (note that channel 0 is always 0Hz).
@@ -66,12 +88,13 @@ def get_freq_from_channel(bw, channel, bram_info):
     :return: center frequency of the spectral bin. Note that the measurement unit 
         is the same as for the bw parameter.
     """
-    return bw * channel / get_nchannels(bram_info)
+    return init_freq + (bw * channel / get_nchannels(bram_info))
 
-def get_channel_from_freq(bw, freq, bram_info):
+def get_channel_from_freq(init_freq, bw, freq, bram_info):
     """
     Compute the closest channel to a fixed frequency, given the spectrometer
     bandwidth and bram_info data.
+    :param init_freq: initial frequency of the frequency band.
     :param bw: bandwith of the spectrometer.
     :param freq: frequency to compute the channel position.
         Must be in the same units as bw (note that channel 0 is always 0Hz).
@@ -80,7 +103,7 @@ def get_channel_from_freq(bw, freq, bram_info):
         of channels of the spectrometer.
     :return: Closest channel to the frequency freq.
     """
-    return int(round(freq / (bw / get_nchannels(bram_info))))
+    return int(round((freq - init_freq) / (bw / get_nchannels(bram_info))))
 
 def get_spec_time_arr(bw, n_specs, bram_info):
     """

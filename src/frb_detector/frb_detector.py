@@ -1,7 +1,7 @@
 import numpy as np
 import Tkinter as Tk
 from decimal import Decimal
-from ..spectra_animator import SpectraAnimator, scale_dbfs_spec_data
+from ..spectra_animator import SpectraAnimator
 from ..experiment import get_freq_from_channel
 
 class FRBDetector(SpectraAnimator):
@@ -42,5 +42,5 @@ class FRBDetector(SpectraAnimator):
         else:
             self.label['detection_label']['text'] = 'No FRB detected :('
 
-        spec_data = scale_dbfs_spec_data(self.fpga, spec_data, self.settings.spec_info)
+        spec_data = self.scale_dbfs_spec_data(spec_data, self.settings.spec_info)
         return spec_data

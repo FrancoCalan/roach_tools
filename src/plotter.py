@@ -58,7 +58,7 @@ class Plotter(Experiment):
         Save plot data and aditional data from experiment (if apply) 
         in JSON format.
         """
-        save_data = self.get_save_data()
+        save_data = self.figure.get_save_data()
         json_filename = self.save_entry.get()
         if self.datetime_check.get():
             json_filename += ' ' + datetime.now().strftime('%Y-%m-%d %H:%M:%S')
@@ -67,14 +67,6 @@ class Plotter(Experiment):
                 json.dump(save_data, jsonfile,  indent=4)
         print "Data saved."
         
-    def get_save_data(self):
-        """
-        Get potter data for saving.
-        :return: plotter data in dictionary format. The exact data
-            to save depends on the figure axes.
-        """
-        return self.figure.get_save_data()
-
     def save_fig(self):
         """
         Save current plot as a .pdf figure.

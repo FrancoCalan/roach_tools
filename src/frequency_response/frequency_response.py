@@ -4,7 +4,6 @@ import matplotlib.pyplot as plt
 from ..experiment import Experiment, get_nchannels
 from ..calanfigure import CalanFigure
 from ..instruments.generator import create_generator
-from ..spectra_animator import scale_dbfs_spec_data
 from ..axes.spectrum_axis import SpectrumAxis
 
 class FrequencyResponse(Experiment):
@@ -56,7 +55,7 @@ class FrequencyResponse(Experiment):
             # consider only the first spectrum if multiple are defined
             if isinstance(spec_data, list):
                 spec_data = spec_data[0]
-            spec_data_dbfs = scale_dbfs_spec_data(self.fpga, spec_data, self.settings.spec_info)
+            spec_data_dbfs = self.scale_dbfs_spec_data(spec_data, self.settings.spec_info)
 
             # update frequency response
             Hf_arr.append(spec_data_dbfs[chnl])

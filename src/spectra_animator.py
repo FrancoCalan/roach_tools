@@ -4,7 +4,7 @@ from itertools import chain
 from animator import Animator
 from calanfigure import CalanFigure
 from axes.spectrum_axis import SpectrumAxis
-from experiment import linear_to_dBFS, get_nchannels
+from experiment import get_nchannels
 
 class SpectraAnimator(Animator):
     """
@@ -46,28 +46,6 @@ class SpectraAnimator(Animator):
         :return: spectral data.
         """
         spec_data = self.fpga.get_bram_data_interleave(self.settings.spec_info)
-        spec_data = scale_dbfs_spec_data(self.fpga, spec_data, self.settings.spec_info)
+        spec_data = self.scale_dbfs_spec_data(spec_data, self.settings.spec_info)
         
-        return spec_data
-
-def scale_dbfs_spec_data(fpga, spec_data, spec_info):
-    """
-    Scale spectral data by the accumulation length given by the
-    accumulation reg in the spec_info dictionary, and convert
-    the data to dBFS. Used for plotting spectra.
-    :param fpga: CalanFpga object.
-    :param spec_data: spectral data in linear scale, as read with CalanFpga's
-        get_bram_data(). Can be a numpy array or a list (with possible more 
-        inner lists) of numpy arrays.
-    :param spec_info: dictionary with info of the memory with 
-        the spectral data in the FPGA.
-    :return: spectral data in dBFS.
-    """
-    if isinstance(spec_data, np.ndarray): 
-        spec_data = spec_data / float(fpga.read_reg(spec_info['acc_len_reg'])) # divide by accumulation
-        spec_data = linear_to_dBFS(spec_data, spec_info)
-        return spec_data
-        
-    else: # spec_data is list
-        spec_data = [scale_dbfs_spec_data(fpga, spec_data_item, spec_info) for spec_data_item in spec_data]
         return spec_data

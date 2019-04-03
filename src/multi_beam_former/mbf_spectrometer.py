@@ -1,6 +1,6 @@
 import time
 import numpy as np
-from ..spectra_animator import SpectraAnimator, scale_dbfs_spec_data
+from ..spectra_animator import SpectraAnimator
 from ..digital_sideband_separation.dss_calibrator import float2fixed
 
 class MBFSpectrometer(SpectraAnimator):
@@ -27,7 +27,7 @@ class MBFSpectrometer(SpectraAnimator):
         :return: spectral data.
         """
         spec_data = self.fpga.get_bram_data_sync(self.settings.spec_info)
-        spec_data = scale_dbfs_spec_data(self.fpga, spec_data, self.settings.spec_info)
+        spec_data = self.scale_dbfs_spec_data(spec_data, self.settings.spec_info)
         
         return spec_data
 

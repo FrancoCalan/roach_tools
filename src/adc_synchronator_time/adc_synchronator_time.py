@@ -7,9 +7,10 @@ from ..axes.snapshot_axis import SnapshotAxis
 from ..instruments.generator import create_generator
 from ..dummies.dummy_generator import gen_time_arr
 
-class AdcSynchronator(Experiment):
+class AdcSynchronatorTime(Experiment):
     """
-    This class is used to synchronize two ADC
+    This class is used to synchronize two ADC using
+    time domain information.
     """
     def __init__(self, calanfpga):
         Experiment.__init__(self, calanfpga)

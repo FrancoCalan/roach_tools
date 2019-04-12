@@ -14,10 +14,10 @@ class SpectraAnimator(Animator):
         Animator.__init__(self, calanfpga)
         self.figure = CalanFigure(n_plots=len(self.settings.plot_titles), create_gui=True)
         self.nchannels = get_nchannels(self.settings.spec_info)
+        self.freqs = np.linspace(0, self.settings.bw, self.nchannels, endpoint=False)
         
         for i in range(self.figure.n_plots):
-            self.figure.create_axis(i, SpectrumAxis, 
-                self.nchannels, 0, self.settings.bw, self.settings.plot_titles[i])
+            self.figure.create_axis(i, SpectrumAxis, self.freqs, self.settings.plot_titles[i])
         
     def add_figure_widgets(self):
         """

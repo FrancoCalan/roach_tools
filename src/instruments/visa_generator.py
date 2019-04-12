@@ -8,10 +8,6 @@ class VisaGenerator(Generator):
     """
     def __init__(self, instr, instr_info):
         Generator.__init__(self, instr, instr_info)
-        # set multiplier for the displayed frequency
-        if 'freq_mult' in self.settings.rf_source:
-            freq_mult = self.settings.rf_source['freq_mult']
-            self.instr.write('freq:mult ' + str(freq_mult))
         
     def turn_output_on(self):
         """
@@ -56,3 +52,10 @@ class VisaGenerator(Generator):
             power = self.def_power
         self.instr.write('power ' + str(power))
         time.sleep(self.sleep_time)
+
+    def set_freq_mult(self, freq_mult): 
+        """
+        Set frequency multiplier.
+        """
+        self.instr.write('freq:mult ' + str(freq_mult))
+

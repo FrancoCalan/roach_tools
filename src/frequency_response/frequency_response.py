@@ -23,8 +23,8 @@ class FrequencyResponse(Experiment):
         self.test_channels = range(1, self.nchannels, self.settings.chnl_step)
 
         self.figure = CalanFigure(n_plots=2, create_gui=False)
-        self.figure.create_axis(0, SpectrumAxis, self.nchannels, self.init_freq, self.bw, "Current Spectrum")
-        self.figure.create_axis(1, SpectrumAxis, self.nchannels, self.init_freq, self.bw, "Frequency Response")
+        self.figure.create_axis(0, SpectrumAxis, self.freqs, "Current Spectrum")
+        self.figure.create_axis(1, SpectrumAxis, self.freqs, "Frequency Response")
 
         self.datadir = self.settings.datadir + '_' + datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
         self.testinfo = {'init_freq'    : self.init_freq,

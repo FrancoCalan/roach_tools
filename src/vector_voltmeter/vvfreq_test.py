@@ -22,6 +22,7 @@ class VVFreqTest(Experiment):
         Experiment.__init__(self, calanfpga)
 
         self.nchannels = get_nchannels(self.settings.spec_info)
+        self.freqs = np.linspace(0, self.settings.bw, self.nchannels, endpoint=False)
 
         self.source = create_generator(self.settings.test_source)
         self.nsamples = self.settings.nsamples
@@ -31,8 +32,8 @@ class VVFreqTest(Experiment):
             self.test_freq, self.settings.spec_info)
 
         self.figure = CalanFigure(n_plots=4, create_gui=False)
-        self.figure.create_axis(0, SpectrumAxis, self.nchannels, 0, self.settings.bw, "ZDOK0")
-        self.figure.create_axis(1, SpectrumAxis, self.nchannels, 0, self.settings.bw, "ZDOK1")
+        self.figure.create_axis(0, SpectrumAxis, self.freqs, "ZDOK0")
+        self.figure.create_axis(1, SpectrumAxis, self.freqs, "ZDOK1")
         self.figure.create_axis(2, MagRatioAxis, range(self.nsamples), "Power Ratio")
         self.figure.create_axis(3, AngleDiffAxis, range(self.nsamples), "Angle Difference")
 

@@ -34,6 +34,13 @@ class CalanFigure():
         calanaxis = calanaxis_class(matplotlib_axis, *axis_args)
         self.axes.append(calanaxis)
 
+    def set_window_title(self, title):
+        """
+        Set the title of the figure window.
+        :param title: window title to set.
+        """
+        self.fig.canvas.set_window_title(title)
+
     def create_window(self):
         """
         Create a Tkinter window with all of the components (plots, toolbar, widgets).

@@ -54,11 +54,11 @@ def get_nchannels(bram_info):
     :return: number of channels of the spectral data.
     """
     data_per_word =  bram_info['word_width']/8 / np.dtype(bram_info['data_type']).alignment
-    data_per_bram = 2**bram_info['addr_width'] * data_per_word
+    n_channels = 2**bram_info['addr_width'] * data_per_word
     
     # correct for interleaved data
     if 'deinterleave_by' in bram_info:
-        n_channels = data_per_bram / bram_info['deinterleave_by']
+        n_channels = n_channels / bram_info['deinterleave_by']
 
     # correct for deinterleaved data
     if 'interleave' in bram_info and bram_info['interleave']==True:
@@ -70,7 +70,7 @@ def get_nchannels(bram_info):
                 return get_nbrams(bram_names[0])
 
         n_deinterleaved_brams = get_nbrams(bram_info['bram_names'])
-        n_channels = data_per_bram * n_deinterleaved_brams
+        n_channels = n_channels * n_deinterleaved_brams
 
     return n_channels
 

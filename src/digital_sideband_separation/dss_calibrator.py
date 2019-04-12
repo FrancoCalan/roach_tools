@@ -6,8 +6,8 @@ from ..experiment import Experiment, linear_to_dBFS, get_nchannels
 from ..calanfigure import CalanFigure
 from ..instruments.generator import Generator, create_generator
 from ..axes.spectrum_axis import SpectrumAxis
-from mag_ratio_axis import MagRatioAxis
-from angle_diff_axis import AngleDiffAxis
+from ..adc_synchronator_freq.mag_ratio_axis import MagRatioAxis
+from ..adc_synchronator_freq.angle_diff_axis import AngleDiffAxis
 from srr_axis import SrrAxis
 
 class DssCalibrator(Experiment):
@@ -29,7 +29,6 @@ class DssCalibrator(Experiment):
         self.lo_sources = [create_generator(lo_source) for lo_source in self.settings.lo_sources]
         
         # test channels array
-        self.sync_channels = range(1, 101, 10)
         self.cal_channels  = range(1, self.nchannels, self.settings.cal_chnl_step)
         self.srr_channels  = range(1, self.nchannels, self.settings.srr_chnl_step)
 
@@ -39,20 +38,20 @@ class DssCalibrator(Experiment):
         self.srrfigure     = CalanFigure(n_plots=4, create_gui=False)
         
         # axes on figures
-        self.calfigure_lsb.create_axis(0, SpectrumAxis, self.nchannels, 0, self.settings.bw, 'ZDOK0 spec')
-        self.calfigure_lsb.create_axis(1, SpectrumAxis, self.nchannels, 0, self.settings.bw, 'ZDOK1 spec')
-        self.calfigure_lsb.create_axis(2, MagRatioAxis, self.nchannels, self.settings.bw, 'Magnitude Ratio')
-        self.calfigure_lsb.create_axis(3, AngleDiffAxis, self.nchannels, self.settings.bw, 'Angle Difference')
+        self.calfigure_lsb.create_axis(0, SpectrumAxis,  self.freqs, 'ZDOK0 spec')
+        self.calfigure_lsb.create_axis(1, SpectrumAxis,  self.freqs, 'ZDOK1 spec')
+        self.calfigure_lsb.create_axis(2, MagRatioAxis,  self.freqs, 'Magnitude Ratio')
+        self.calfigure_lsb.create_axis(3, AngleDiffAxis, self.freqs, 'Angle Difference')
         #
-        self.calfigure_usb.create_axis(0, SpectrumAxis, self.nchannels, 0, self.settings.bw, 'ZDOK0 spec')
-        self.calfigure_usb.create_axis(1, SpectrumAxis, self.nchannels, 0, self.settings.bw, 'ZDOK1 spec')
-        self.calfigure_usb.create_axis(2, MagRatioAxis, self.nchannels, self.settings.bw, 'Magnitude Ratio')
-        self.calfigure_usb.create_axis(3, AngleDiffAxis, self.nchannels, self.settings.bw, 'Angle Difference')
+        self.calfigure_usb.create_axis(0, SpectrumAxis,  self.freqs, 'ZDOK0 spec')
+        self.calfigure_usb.create_axis(1, SpectrumAxis,  self.freqs, 'ZDOK1 spec')
+        self.calfigure_usb.create_axis(2, MagRatioAxis,  self.freqs, 'Magnitude Ratio')
+        self.calfigure_usb.create_axis(3, AngleDiffAxis, self.freqs, 'Angle Difference')
         #
-        self.srrfigure.create_axis(0, SpectrumAxis, self.nchannels, 0, self.settings.bw, 'USB spec')
-        self.srrfigure.create_axis(1, SpectrumAxis, self.nchannels, 0, self.settings.bw, 'LSB spec')
-        self.srrfigure.create_axis(2, SrrAxis, self.nchannels, self.settings.bw, 'SRR USB')
-        self.srrfigure.create_axis(3, SrrAxis, self.nchannels, self.settings.bw, 'SRR LSB')
+        self.srrfigure.create_axis(0, SpectrumAxis, self.freqs, 'USB spec')
+        self.srrfigure.create_axis(1, SpectrumAxis, self.freqs, 'LSB spec')
+        self.srrfigure.create_axis(2, SrrAxis, self.freqs, 'SRR USB')
+        self.srrfigure.create_axis(3, SrrAxis, self.freqs, 'SRR LSB')
 
         # data save attributes
         self.datadir = self.settings.datadir + '_' + datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')

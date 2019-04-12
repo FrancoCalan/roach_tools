@@ -16,6 +16,11 @@ class Generator():
         except KeyError:
             self.def_power = -100
 
+        # set multiplier for the displayed frequency
+        if 'freq_mult' in instr_info:
+            freq_mult = instr_info['freq_mult']
+            self.set_freq_mult(freq_mult)
+
         # set default parameters
         self.set_freq_mhz()
         self.set_power_dbm()

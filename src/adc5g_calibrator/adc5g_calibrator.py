@@ -24,7 +24,8 @@ class Adc5gCalibrator(Experiment):
     def __init__(self, calanfpga):
         Experiment.__init__(self, calanfpga)
         self.snapshots = self.settings.snapshots
-        self.nbins = len(self.fpga.get_snapshots()[0]) / 2
+        self.nchannels = len(self.fpga.get_snapshots()[0]) / 2
+        self.freqs = np.linspace(0, self.settings.bw, self.nchannels, endpoint=False)
         self.now = datetime.datetime.now()
         self.caldir = self.settings.caldir + '_' + self.now.strftime('%Y-%m-%d %H:%M:%S')
 
@@ -35,7 +36,7 @@ class Adc5gCalibrator(Experiment):
         # figure axes
         for i in range(len(self.snapshots)):
             self.snapfigure.create_axis(i, SnapshotAxis, self.settings.snap_samples, self.snapshots[i])
-            self.specfigure.create_axis(i, SpectrumAxis, self.nbins, self.settings.bw, self.snapshots[i] + str(" spec"))
+            self.specfigure.create_axis(i, SpectrumAxis, self.freqs, self.snapshots[i] + str(" spec"))
 
         # calibration source
         self.source = create_generator(self.settings.cal_source)
@@ -66,10 +67,13 @@ class Adc5gCalibrator(Experiment):
         
         # pre calibration spectrum plots
         if self.settings.plot_spectra:
-            dummy_spec_info = {'bram_name' : 'bram', 'addr_width' : int(np.log2(self.nbins))} # used for linear_to_dBFS funct
+            dummy_spec_info = {'bram_name'  : 'bram', 
+                               'addr_width' : int(np.log2(self.nchannels)),
+                               'word_width' : 64,
+                               'data_type'  : '>u8'} # used for linear_to_dBFS funct
             uncal_snaps_full = self.fpga.get_snapshots()
             for axis, uncal_snap in zip(self.specfigure.axes, uncal_snaps_full):
-                uncal_spec = np.square(np.abs(np.fft.rfft(uncal_snap)[:-1] / np.sqrt(self.nbins))) # the sqrt(nbins) is a workaround for nice plots
+                uncal_spec = np.square(np.abs(np.fft.rfft(uncal_snap)[:-1] / np.sqrt(self.nchannels))) # the sqrt(nchannels) is a workaround for nice plots
                 uncal_spec = linear_to_dBFS(uncal_spec, dummy_spec_info)
                 axis.plot([uncal_spec])
             plt.pause(1)
@@ -104,9 +108,9 @@ class Adc5gCalibrator(Experiment):
         if self.settings.plot_spectra:
             cal_snaps_full = self.fpga.get_snapshots()
             for axis, uncal_snap, cal_snap in zip(self.specfigure.axes, uncal_snaps_full, cal_snaps_full):
-                uncal_spec = np.square(np.abs(np.fft.rfft(uncal_snap)[:-1] / np.sqrt(self.nbins))) # the sqrt(nbins) is a workaround for nice plots
+                uncal_spec = np.square(np.abs(np.fft.rfft(uncal_snap)[:-1] / np.sqrt(self.nchannels))) # the sqrt(nchannels) is a workaround for nice plots
                 uncal_spec = linear_to_dBFS(uncal_spec, dummy_spec_info)
-                cal_spec = np.square(np.abs(np.fft.rfft(cal_snap)[:-1] / np.sqrt(self.nbins))) # the sqrt(nbins) is a workaround for nice plots
+                cal_spec = np.square(np.abs(np.fft.rfft(cal_snap)[:-1] / np.sqrt(self.nchannels))) # the sqrt(nchannels) is a workaround for nice plots
                 cal_spec = linear_to_dBFS(cal_spec, dummy_spec_info)
                 axis.plot([uncal_spec, cal_spec])
             plt.pause(1)

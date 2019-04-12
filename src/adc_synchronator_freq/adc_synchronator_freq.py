@@ -29,7 +29,7 @@ class AdcSynchronatorFreq(Experiment):
         sync_chnl_stop  = self.settings.sync_chnl_stop
         sync_chnl_step  = self.settings.sync_chnl_step
         self.sync_channels = range(sync_chnl_start, sync_chnl_stop, sync_chnl_step)
-        self.sync_freqs = self.freqs(self.sync_channels)
+        self.sync_freqs = self.freqs[self.sync_channels]
 
         # figures and axes
         self.figure = CalanFigure(n_plots=4, create_gui=False)
@@ -46,12 +46,9 @@ class AdcSynchronatorFreq(Experiment):
         ADC running ahead in order to sychronize both ADCs. This is 
         frequency based synchronization methods, that is an alternative
         to the stand-alone time-based adc_synchornator method, with the
-        benefit that is less cumbersome when using DSS backends, and more
-        precise.
+        benefit that is less cumbersome when using backends that require
+        down-conversion, and that is more precise.
         """
-        self.calfigure_usb.axes[2].ax.set_xlim((self.freqs[self.sync_channels[0]], self.freqs[self.sync_channels[-1]]))
-        self.calfigure_usb.axes[3].ax.set_xlim((self.freqs[self.sync_channels[0]], self.freqs[self.sync_channels[-1]]))
-        
         self.init_sources()
 
         # set LO freqs as first freq combination
@@ -62,44 +59,40 @@ class AdcSynchronatorFreq(Experiment):
 
         print "Synchronizing ADCs..."
         while True:
-            sb_ratios = []
+            spec_ratios = []
 
             for i, chnl in enumerate(self.sync_channels):
-                freq = self.freqs[chnl]
                 # set generator frequency
+                freq = self.freqs[chnl]
                 self.rf_source.set_freq_mhz(center_freq + freq)
                 plt.pause(self.settings.pause_time) 
 
                 # get power-crosspower data
-                cal_a2, cal_b2 = self.fpga.get_bram_data_interleave(self.settings.cal_pow_info)
-                cal_ab_re, cal_ab_im = self.fpga.get_bram_data_interleave(self.settings.cal_crosspow_info)
+                a2, b2 = self.fpga.get_bram_data_interleave(self.settings.spec_info)
+                ab_re, ab_im = self.fpga.get_bram_data_interleave(self.settings.crosspow_info)
 
                 # compute constant
                 ab = cal_ab_re[chnl] + 1j*cal_ab_im[chnl]
-                sb_ratios.append(np.conj(ab) / cal_a2[chnl]) # (ab*)* / aa* = a*b / aa* = b/a = LSB/USB
+                spec_ratios.append(np.conj(ab) / cal_a2[chnl]) # (ab*)* / aa* = a*b / aa* = b/a
 
                 # plot spec data
-                [cal_a2_plot, cal_b2_plot] = \
-                    self.scale_dbfs_spec_data([cal_a2, cal_b2], self.settings.cal_pow_info)
-                self.calfigure_usb.axes[0].plot(cal_a2_plot)
-                self.calfigure_usb.axes[1].plot(cal_b2_plot)
+                [a2_plot, b2_plot] = \
+                    self.scale_dbfs_spec_data([cal_a2, cal_b2], self.settings.spec_info)
+                self.figure.axes[0].plot(a2_plot)
+                self.figure.axes[1].plot(b2_plot)
 
+                # plot magnitude ratio and angle difference
                 partial_freqs = self.freqs[self.sync_channels[:i+1]]
-                # plot magnitude ratio
-                self.calfigure_usb.axes[2].plot(partial_freqs, np.abs(sb_ratios))
-                # plot angle difference
-                self.calfigure_usb.axes[3].plot(partial_freqs, np.angle(sb_ratios, deg=True))
+                self.figure.axes[2].plot(partial_freqs, np.abs(spec_ratios))
+                self.calfigure_usb.axes[3].plot(partial_freqs, np.angle(spec_ratios, deg=True))
 
             # plot last frequency
             plt.pause(self.settings.pause_time) 
 
-            delay = self.compute_adc_delay_freq(partial_freqs, sb_ratios)            
+            delay = self.compute_adc_delay_freq(partial_freqs, spec_ratios) 
             # check adc sync status, apply delay if needed
             if delay == 0:
-                print "ADCs successfully synthronized"
-                # reset axis to original values
-                self.calfigure_usb.axes[2].ax.set_xlim((0, self.settings.bw))
-                self.calfigure_usb.axes[3].ax.set_xlim((0, self.settings.bw))
+                print "ADCs successfully synthronized!"
                 return
             elif delay > 0: # if delay is positive adc1 is ahead, hence delay adc1
                 self.fpga.set_reg('adc1_delay', delay)

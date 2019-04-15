@@ -1,5 +1,6 @@
 import numpy as np
 from itertools import chain
+from instruments.generator import Generator
 
 class Experiment():
     """
@@ -119,3 +120,34 @@ def get_spec_time_arr(bw, n_specs, bram_info):
     """
     n_channels = get_nchannels(bram_info)
     return np.arange(0, n_specs) * (1.0/bw) * n_channels
+
+def init_sources(sources):
+    """
+    Initalizise a source or (list of sources) instrument, that is, set the 
+    default frequency, power and turn on the RF output.
+    :param sources: source object, or list of objects, defined as in
+        instruments/generator.py
+    """
+    if isinstance(sources, Generator):
+        sources.set_freq_mhz()
+        sources.set_power_dbm()
+        sources.turn_output_on()
+    
+    else: # is list
+        for source in sources:
+            init_sources(source)
+        
+def turn_off_sources(sources):
+    """
+    Turn of output off of source (or list of sources). Useful to call at
+    the end of experiments.
+    :param sources: source object, or list of objects, defined as in
+        instruments/generator.py
+    """
+    if isinstance(sources, Generator):
+        sources.turn_output_off()
+    
+    else: # is list
+        for source in sources:
+            turn_off_sources(source)
+     

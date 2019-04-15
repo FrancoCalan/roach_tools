@@ -2,7 +2,7 @@ import itertools
 import numpy as np
 import scipy.stats
 import matplotlib.pyplot as plt
-from ..experiment import Experiment, linear_to_dBFS, get_nchannels
+from ..experiment import Experiment, linear_to_dBFS, get_nchannels, init_sources, turn_off_sources
 from ..calanfigure import CalanFigure
 from ..instruments.generator import Generator, create_generator
 from ..axes.spectrum_axis import SpectrumAxis
@@ -23,6 +23,7 @@ class AdcSynchronatorFreq(Experiment):
         # sources (RF and LOs)
         self.rf_source = create_generator(self.settings.rf_source)
         self.lo_sources = [create_generator(lo_source) for lo_source in self.settings.lo_sources]
+        self.sources = self.lo_sources + [self.rf_source]
         
         # test channels array
         sync_chnl_start = self.settings.sync_chnl_start
@@ -49,7 +50,7 @@ class AdcSynchronatorFreq(Experiment):
         benefit that is less cumbersome when using backends that require
         down-conversion, and that is more precise.
         """
-        self.init_sources()
+        init_sources(self.sources)
 
         # set LO freqs as first freq combination
         lo_comb = self.lo_combinations[0]
@@ -99,20 +100,7 @@ class AdcSynchronatorFreq(Experiment):
             else: # (delay < 0) if delay is negative adc0 is ahead, hence delay adc0
                 self.fpga.set_reg('adc0_delay', -1*delay)
 
-        # turn off sources
-        self.rf_source.turn_output_off()
-        for lo_source in self.lo_sources:
-            lo_source.turn_output_off()
-
-    def init_sources(self):
-        """
-        Turn on LO and RF sources and set them to their default power value.
-        """
-        self.rf_source.set_power_dbm()
-        self.rf_source.turn_output_on()
-        for lo_source in self.lo_sources:
-            lo_source.set_power_dbm()
-            lo_source.turn_output_on()
+        turn_off_sources(self.sources)
 
     def compute_adc_delay_freq(self, freqs, spec_ratios):
         """

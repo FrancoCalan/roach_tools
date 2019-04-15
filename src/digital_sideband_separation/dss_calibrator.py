@@ -2,10 +2,11 @@ import os, time, datetime, itertools, json, tarfile, shutil
 import numpy as np
 import scipy.stats
 import matplotlib.pyplot as plt
-from ..experiment import Experiment, linear_to_dBFS, get_nchannels
+from ..experiment import Experiment, linear_to_dBFS, get_nchannels, init_sources, turn_off_sources
 from ..calanfigure import CalanFigure
 from ..instruments.generator import Generator, create_generator
 from ..axes.spectrum_axis import SpectrumAxis
+from ..adc_synchronator_freq.adc_synchronator_freq import get_lo_combinations
 from ..adc_synchronator_freq.mag_ratio_axis import MagRatioAxis
 from ..adc_synchronator_freq.angle_diff_axis import AngleDiffAxis
 from srr_axis import SrrAxis
@@ -18,7 +19,7 @@ class DssCalibrator(Experiment):
         Experiment.__init__(self, calanfpga)
         self.nchannels = get_nchannels(self.settings.synth_info)
         self.freqs = np.linspace(0, self.settings.bw, self.nchannels, endpoint=False)
-        self.lo_combinations = self.get_lo_combinations()
+        self.lo_combinations = get_lo_combinations(self.settings.lo_sources)
         
         # const dtype info
         self.consts_nbits = np.dtype(self.settings.const_brams_info['data_type']).alignment * 8
@@ -27,6 +28,7 @@ class DssCalibrator(Experiment):
         # sources (RF and LOs)
         self.rf_source = create_generator(self.settings.rf_source)
         self.lo_sources = [create_generator(lo_source) for lo_source in self.settings.lo_sources]
+        self.sources = self.lo_sources + [self.rf_source]
         
         # test channels array
         self.cal_channels  = range(1, self.nchannels, self.settings.cal_chnl_step)
@@ -58,9 +60,8 @@ class DssCalibrator(Experiment):
         os.mkdir(self.datadir)
         self.testinfo = {'bw'               : self.settings.bw,
                          'nchannels'        : self.nchannels,
-                         'cal_acc_len'      : self.fpga.read_reg(self.settings.cal_pow_info['acc_len_reg']),
+                         'cal_acc_len'      : self.fpga.read_reg(self.settings.spec_info['acc_len_reg']),
                          'syn_acc_len'      : self.fpga.read_reg(self.settings.synth_info['acc_len_reg']),
-                         'sync_adcs'        : self.settings.sync_adcs,
                          'kerr_correction'  : self.settings.kerr_correction,
                          'use_ideal_consts' : self.settings.ideal_consts['load'],
                          'ideal_const'      : str(self.settings.ideal_consts['val']),
@@ -71,79 +72,11 @@ class DssCalibrator(Experiment):
         with open(self.datadir + '/testinfo.json', 'w') as jsonfile:
             json.dump(self.testinfo, jsonfile, indent=4)
         
-    def synchronize_adcs(self):
-        """
-        Compute the delay difference between ADC (expected to be 
-        an integer of the smaple time), and apply that delay to the
-        ADC running ahead in order to sychronize both ADCs. This is 
-        frequency based synchronization methods, that is an alternative
-        to the stand-alone time-based adc_synchornator method, with the
-        benefit that is less cumbersome when using DSS backends, and more
-        precise.
-        """
-        self.calfigure_usb.fig.canvas.set_window_title('ADC Sync')
-        self.calfigure_usb.axes[2].ax.set_xlim((self.freqs[self.sync_channels[0]], self.freqs[self.sync_channels[-1]]))
-        self.calfigure_usb.axes[3].ax.set_xlim((self.freqs[self.sync_channels[0]], self.freqs[self.sync_channels[-1]]))
-        
-        self.init_sources()
-
-        # set LO freqs as first freq combination
-        lo_comb = self.get_lo_combinations()[0]
-        for lo_source, freq in zip(self.lo_sources, lo_comb):
-            lo_source.set_freq_mhz(freq)
-        center_freq = sum(lo_comb)
-
-        print "Synchronizing ADCs..."
-        while True:
-            sb_ratios = []
-
-            for i, chnl in enumerate(self.sync_channels):
-                freq = self.freqs[chnl]
-                # set generator frequency
-                self.rf_source.set_freq_mhz(center_freq + freq)
-                plt.pause(self.settings.pause_time) 
-
-                # get power-crosspower data
-                cal_a2, cal_b2 = self.fpga.get_bram_data_interleave(self.settings.cal_pow_info)
-                cal_ab_re, cal_ab_im = self.fpga.get_bram_data_interleave(self.settings.cal_crosspow_info)
-
-                # compute constant
-                ab = cal_ab_re[chnl] + 1j*cal_ab_im[chnl]
-                sb_ratios.append(np.conj(ab) / cal_a2[chnl]) # (ab*)* / aa* = a*b / aa* = b/a = LSB/USB
-
-                # plot spec data
-                [cal_a2_plot, cal_b2_plot] = \
-                    self.scale_dbfs_spec_data([cal_a2, cal_b2], self.settings.cal_pow_info)
-                self.calfigure_usb.axes[0].plot(cal_a2_plot)
-                self.calfigure_usb.axes[1].plot(cal_b2_plot)
-
-                partial_freqs = self.freqs[self.sync_channels[:i+1]]
-                # plot magnitude ratio
-                self.calfigure_usb.axes[2].plot(partial_freqs, np.abs(sb_ratios))
-                # plot angle difference
-                self.calfigure_usb.axes[3].plot(partial_freqs, np.angle(sb_ratios, deg=True))
-
-            # plot last frequency
-            plt.pause(self.settings.pause_time) 
-
-            delay = self.compute_adc_delay_freq(partial_freqs, sb_ratios)            
-            # check adc sync status, apply delay if needed
-            if delay == 0:
-                print "ADCs successfully synthronized"
-                # reset axis to original values
-                self.calfigure_usb.axes[2].ax.set_xlim((0, self.settings.bw))
-                self.calfigure_usb.axes[3].ax.set_xlim((0, self.settings.bw))
-                return
-            elif delay > 0: # if delay is positive adc1 is ahead, hence delay adc1
-                self.fpga.set_reg('adc1_delay', delay)
-            else: # (delay < 0) if delay is negative adc0 is ahead, hence delay adc0
-                self.fpga.set_reg('adc0_delay', -1*delay)
-
     def run_dss_test(self):
         """
         Perform a full DSS test, with constants and SRR computation. 
         """
-        self.init_sources()
+        init_sources(self.sources)
 
         initial_time = time.time()
         for lo_comb in self.lo_combinations:
@@ -205,9 +138,7 @@ class DssCalibrator(Experiment):
                 print "\tdone (" + str(time.time() - step_time) + "[s])"
 
         # turn off sources
-        self.rf_source.turn_output_off()
-        for lo_source in self.lo_sources:
-            lo_source.turn_output_off()
+        turn_off_sources(self.sources)
 
         # print srr (full) plot
         self.print_srr_plot(self.lo_combinations)
@@ -233,22 +164,22 @@ class DssCalibrator(Experiment):
         """
         # make the receiver cold
         self.chopper.move_90cw()
-        a2_cold, b2_cold = self.fpga.get_bram_data_interleave(self.settings.cal_pow_info)
+        a2_cold, b2_cold = self.fpga.get_bram_data_interleave(self.settings.spec_info)
                 
         # plot spec data
         [a2_cold_plot, b2_cold_plot] = \
-            self.scale_dbfs_spec_data([a2_cold, b2_cold], self.settings.cal_pow_info)
+            self.scale_dbfs_spec_data([a2_cold, b2_cold], self.settings.spec_info)
         self.calfigure_usb.axes[0].plot(a2_cold_plot)
         self.calfigure_usb.axes[1].plot(b2_cold_plot)
         plt.pause(self.settings.pause_time) 
 
         # make the receiver hot
         self.chopper.move_90ccw()
-        a2_hot, b2_hot = self.fpga.get_bram_data_interleave(self.settings.cal_pow_info)
+        a2_hot, b2_hot = self.fpga.get_bram_data_interleave(self.settings.spec_info)
 
         # plot spec data
         [a2_hot_plot, b2_hot_plot] = \
-            self.scale_dbfs_spec_data([a2_hot, b2_hot], self.settings.cal_pow_info)
+            self.scale_dbfs_spec_data([a2_hot, b2_hot], self.settings.spec_info)
         self.calfigure_usb.axes[0].plot(a2_hot_plot)
         self.calfigure_usb.axes[1].plot(b2_hot_plot)
         plt.pause(self.settings.pause_time) 
@@ -288,8 +219,8 @@ class DssCalibrator(Experiment):
             plt.pause(self.settings.pause_time) 
 
             # get power-crosspower data
-            cal_a2, cal_b2 = self.fpga.get_bram_data_interleave(self.settings.cal_pow_info)
-            cal_ab_re, cal_ab_im = self.fpga.get_bram_data_interleave(self.settings.cal_crosspow_info)
+            cal_a2, cal_b2 = self.fpga.get_bram_data_interleave(self.settings.spec_info)
+            cal_ab_re, cal_ab_im = self.fpga.get_bram_data_interleave(self.settings.crosspow_info)
 
             # save cal rawdata
             np.savez(cal_datadir + '/usb_chnl_' + str(chnl), 
@@ -301,7 +232,7 @@ class DssCalibrator(Experiment):
 
             # plot spec data
             [cal_a2_plot, cal_b2_plot] = \
-                self.scale_dbfs_spec_data([cal_a2, cal_b2], self.settings.cal_pow_info)
+                self.scale_dbfs_spec_data([cal_a2, cal_b2], self.settings.spec_info)
             self.calfigure_usb.axes[0].plot(cal_a2_plot)
             self.calfigure_usb.axes[1].plot(cal_b2_plot)
             
@@ -343,8 +274,8 @@ class DssCalibrator(Experiment):
             plt.pause(self.settings.pause_time) 
 
             # get power-crosspower data
-            cal_a2, cal_b2 = self.fpga.get_bram_data_interleave(self.settings.cal_pow_info)
-            cal_ab_re, cal_ab_im = self.fpga.get_bram_data_interleave(self.settings.cal_crosspow_info)
+            cal_a2, cal_b2 = self.fpga.get_bram_data_interleave(self.settings.spec_info)
+            cal_ab_re, cal_ab_im = self.fpga.get_bram_data_interleave(self.settings.crosspow_info)
 
             # save cal rawdata
             np.savez(cal_datadir + '/lsb_chnl_' + str(chnl), 
@@ -356,7 +287,7 @@ class DssCalibrator(Experiment):
 
             # plot spec data
             [cal_a2_plot, cal_b2_plot] = \
-                self.scale_dbfs_spec_data([cal_a2, cal_b2], self.settings.cal_pow_info)
+                self.scale_dbfs_spec_data([cal_a2, cal_b2], self.settings.spec_info)
             self.calfigure_lsb.axes[0].plot(cal_a2_plot)
             self.calfigure_lsb.axes[1].plot(cal_b2_plot)
             
@@ -452,44 +383,6 @@ class DssCalibrator(Experiment):
 
         # save srr data
         np.savez(lo_datadir+"/srr", srr_usb=srr_usb, srr_lsb=srr_lsb)
-
-    def init_sources(self):
-        """
-        Turn on LO and RF sources and set them to their default power value.
-        """
-        self.rf_source.set_power_dbm()
-        self.rf_source.turn_output_on()
-        for lo_source in self.lo_sources:
-            lo_source.set_power_dbm()
-            lo_source.turn_output_on()
-
-    def get_lo_combinations(self):
-        """
-        Creates a list of tuples with all the possible LO combinations from
-        the lo_sources parameter of the config file. Used to perform a
-        nested loop that set all LO combinations in generators.
-        :return: list of tuples of LO combinations.
-        """
-        lo_freqs_arr = [lo_source['lo_freqs'] for lo_source in self.settings.lo_sources]
-        return list(itertools.product(*lo_freqs_arr))
-
-    def compute_adc_delay_freq(self, freqs, sb_ratios):
-        """
-        Compute the adc delay between two unsynchronized adcs using information
-        in the frequency domain. It's done by computing the slope of the phase
-        diffrence with respect the frequency, and then it translates this value
-        into an interger delay in number of samples.
-        :freqs: frequency array in which the sideband ratios where computed.
-        :sb_ratios: sideband ratios array of the adcs. by definition the sideband
-            ratio is the complex division of an spectral channel from adc0 with adc1.
-        :return: adc delaty in number of samples.
-        """
-        phase_diffs = np.unwrap(np.angle(sb_ratios))
-        linregress_results = scipy.stats.linregress(freqs, phase_diffs)
-        angle_slope = linregress_results.slope
-        delay = int(round(angle_slope * 2*self.settings.bw / (2*np.pi))) # delay = dphi/df * Fs / 2pi
-        print "Computed delay: " + str(delay)
-        return delay
 
     def print_srr_plot(self, lo_combinations):
         """

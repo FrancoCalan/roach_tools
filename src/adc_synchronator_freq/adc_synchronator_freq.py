@@ -52,7 +52,7 @@ class AdcSynchronatorFreq(Experiment):
         self.init_sources()
 
         # set LO freqs as first freq combination
-        lo_comb = self.get_lo_combinations()[0]
+        lo_comb = self.lo_combinations[0]
         for lo_source, freq in zip(self.lo_sources, lo_comb):
             lo_source.set_freq_mhz(freq)
         center_freq = sum(lo_comb)
@@ -72,19 +72,19 @@ class AdcSynchronatorFreq(Experiment):
                 ab_re, ab_im = self.fpga.get_bram_data_interleave(self.settings.crosspow_info)
 
                 # compute constant
-                ab = cal_ab_re[chnl] + 1j*cal_ab_im[chnl]
-                spec_ratios.append(np.conj(ab) / cal_a2[chnl]) # (ab*)* / aa* = a*b / aa* = b/a
+                ab = ab_re[chnl] + 1j*ab_im[chnl]
+                spec_ratios.append(np.conj(ab) / a2[chnl]) # (ab*)* / aa* = a*b / aa* = b/a
 
                 # plot spec data
                 [a2_plot, b2_plot] = \
-                    self.scale_dbfs_spec_data([cal_a2, cal_b2], self.settings.spec_info)
-                self.figure.axes[0].plot(a2_plot)
-                self.figure.axes[1].plot(b2_plot)
+                    self.scale_dbfs_spec_data([a2, b2], self.settings.spec_info)
+                self.figure.axes[0].plot(self.freqs, a2_plot)
+                self.figure.axes[1].plot(self.freqs, b2_plot)
 
                 # plot magnitude ratio and angle difference
                 partial_freqs = self.freqs[self.sync_channels[:i+1]]
                 self.figure.axes[2].plot(partial_freqs, np.abs(spec_ratios))
-                self.calfigure_usb.axes[3].plot(partial_freqs, np.angle(spec_ratios, deg=True))
+                self.figure.axes[3].plot(partial_freqs, np.angle(spec_ratios, deg=True))
 
             # plot last frequency
             plt.pause(self.settings.pause_time) 
@@ -93,11 +93,16 @@ class AdcSynchronatorFreq(Experiment):
             # check adc sync status, apply delay if needed
             if delay == 0:
                 print "ADCs successfully synthronized!"
-                return
+                break
             elif delay > 0: # if delay is positive adc1 is ahead, hence delay adc1
                 self.fpga.set_reg('adc1_delay', delay)
             else: # (delay < 0) if delay is negative adc0 is ahead, hence delay adc0
                 self.fpga.set_reg('adc0_delay', -1*delay)
+
+        # turn off sources
+        self.rf_source.turn_output_off()
+        for lo_source in self.lo_sources:
+            lo_source.turn_output_off()
 
     def init_sources(self):
         """
@@ -109,7 +114,7 @@ class AdcSynchronatorFreq(Experiment):
             lo_source.set_power_dbm()
             lo_source.turn_output_on()
 
-    def compute_adc_delay_freq(self, freqs, sb_ratios):
+    def compute_adc_delay_freq(self, freqs, spec_ratios):
         """
         Compute the adc delay between two unsynchronized adcs using information
         in the frequency domain. It's done by computing the slope of the phase

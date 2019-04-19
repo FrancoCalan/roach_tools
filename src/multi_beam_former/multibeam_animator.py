@@ -33,7 +33,7 @@ class MultibeamAnimator(Animator, SingleBeamscan):
         # figure and axis
         self.figure = CalanFigure(n_plots=1, create_gui=True)
         self.figure.create_axis(0, BeamscanAxis, (self.az_angs[0], self.az_angs[-1]), 
-            (self.el_angs[0], self.el_angs[-1]), azr[2], elr[2], self.figure.fig)
+            (self.el_angs[0], self.el_angs[-1]), azr[2], elr[2], self.figure.fig, self.settings.interpolation)
 
         print "Steering the beams for every beamformer..."
         for i, el in enumerate(self.el_angs):

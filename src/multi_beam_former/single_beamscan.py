@@ -139,8 +139,8 @@ def angs2phasors(array_info, theta, phi):
     phi = 90 - phi
 
     # convert angles into radians
-    theta = np.pi / 180 * theta
-    phi = np.pi / 180 * phi
+    theta = np.radians(theta)
+    phi = np.radians(phi)
 
     a = np.array([-np.sin(theta) * np.cos(phi), -np.sin(theta) * np.sin(phi), -np.cos(theta)])  # direction of arrival
     k = 2 * np.pi / wavelength * a  # wave-number vector

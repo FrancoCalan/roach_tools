@@ -1,13 +1,12 @@
-import itertools
 import numpy as np
 import scipy.stats
 import matplotlib.pyplot as plt
-from ..experiment import Experiment, linear_to_dBFS, get_nchannels, init_sources, turn_off_sources
+from ..experiment import Experiment, get_nchannels, init_sources, turn_off_sources
 from ..calanfigure import CalanFigure
 from ..instruments.generator import Generator, create_generator
 from ..axes.spectrum_axis import SpectrumAxis
-from mag_ratio_axis import MagRatioAxis
-from angle_diff_axis import AngleDiffAxis
+from ..pocket_correlator.mag_ratio_axis import MagRatioAxis
+from ..pocket_correlator.angle_diff_axis import AngleDiffAxis
 
 class AdcSynchronatorFreq(Experiment):
     """
@@ -16,28 +15,29 @@ class AdcSynchronatorFreq(Experiment):
     """
     def __init__(self, calanfpga):
         Experiment.__init__(self, calanfpga)
+        self.bw = self.settings.bw
         self.nchannels = get_nchannels(self.settings.spec_info)
-        self.freqs = np.linspace(0, self.settings.bw, self.nchannels, endpoint=False)
-        self.lo_combinations = get_lo_combinations(self.settings.lo_sources)
-        
-        # sources (RF and LOs)
-        self.rf_source = create_generator(self.settings.rf_source)
-        self.lo_sources = [create_generator(lo_source) for lo_source in self.settings.lo_sources]
-        self.sources = self.lo_sources + [self.rf_source]
+        self.freqs = np.linspace(0, self.bw, self.nchannels, endpoint=False)
         
         # test channels array
-        sync_chnl_start = self.settings.sync_chnl_start
-        sync_chnl_stop  = self.settings.sync_chnl_stop
-        sync_chnl_step  = self.settings.sync_chnl_step
-        self.sync_channels = range(sync_chnl_start, sync_chnl_stop, sync_chnl_step)
-        self.sync_freqs = self.freqs[self.sync_channels]
+        chnl_start = self.settings.chnl_start
+        chnl_stop  = self.settings.chnl_stop
+        chnl_step  = self.settings.chnl_step
+        self.test_channels = range(chnl_start, chnl_stop, chnl_step)
+        self.test_freqs = self.freqs[self.test_channels]
+
+        # sources (RF and LOs)
+        self.rf_source  = create_generator(self.settings.test_source)
+        self.lo_sources = [create_generator(lo_source) for lo_source in self.settings.lo_sources]
+        self.sources = self.lo_sources + [self.rf_source]
+        self.lo_combination = get_first_lo_combination(self.settings.lo_sources)
 
         # figures and axes
         self.figure = CalanFigure(n_plots=4, create_gui=False)
-        self.figure.create_axis(0, SpectrumAxis,  self.sync_freqs, 'ZDOK0 spec')
-        self.figure.create_axis(1, SpectrumAxis,  self.sync_freqs, 'ZDOK1 spec')
-        self.figure.create_axis(2, MagRatioAxis,  self.sync_freqs, 'Magnitude Ratio')
-        self.figure.create_axis(3, AngleDiffAxis, self.sync_freqs, 'Angle Difference')
+        self.figure.create_axis(0, SpectrumAxis,  self.freqs, 'ZDOK0 spec')
+        self.figure.create_axis(1, SpectrumAxis,  self.freqs, 'ZDOK1 spec')
+        self.figure.create_axis(2, MagRatioAxis,  self.test_freqs, ['z1/z0'], 'Magnitude Ratio')
+        self.figure.create_axis(3, AngleDiffAxis, self.test_freqs, ['z1-z0'], 'Angle Difference')
         self.figure.set_window_title('ADC Sync')
         
     def synchronize_adcs(self):
@@ -53,20 +53,19 @@ class AdcSynchronatorFreq(Experiment):
         init_sources(self.sources)
 
         # set LO freqs as first freq combination
-        lo_comb = self.lo_combinations[0]
-        for lo_source, freq in zip(self.lo_sources, lo_comb):
+        for lo_source, freq in zip(self.lo_sources, self.lo_combination):
             lo_source.set_freq_mhz(freq)
-        center_freq = sum(lo_comb)
+        center_freq = sum(self.lo_combination)
 
         print "Synchronizing ADCs..."
         while True:
             spec_ratios = []
 
-            for i, chnl in enumerate(self.sync_channels):
+            for i, chnl in enumerate(self.test_channels):
                 # set generator frequency
                 freq = self.freqs[chnl]
                 self.rf_source.set_freq_mhz(center_freq + freq)
-                plt.pause(self.settings.pause_time) 
+                plt.pause(self.settings.pause_time)
 
                 # get power-crosspower data
                 a2, b2 = self.fpga.get_bram_data_interleave(self.settings.spec_info)
@@ -79,18 +78,17 @@ class AdcSynchronatorFreq(Experiment):
                 # plot spec data
                 [a2_plot, b2_plot] = \
                     self.scale_dbfs_spec_data([a2, b2], self.settings.spec_info)
-                self.figure.axes[0].plot(self.freqs, a2_plot)
-                self.figure.axes[1].plot(self.freqs, b2_plot)
+                self.figure.axes[0].ploty(a2_plot)
+                self.figure.axes[1].ploty(b2_plot)
 
                 # plot magnitude ratio and angle difference
-                partial_freqs = self.freqs[self.sync_channels[:i+1]]
-                self.figure.axes[2].plot(partial_freqs, np.abs(spec_ratios))
-                self.figure.axes[3].plot(partial_freqs, np.angle(spec_ratios, deg=True))
+                self.figure.axes[2].plotxy(self.test_freqs[:i+1], [np.abs(spec_ratios)])
+                self.figure.axes[3].plotxy(self.test_freqs[:i+1], [np.angle(spec_ratios, deg=True)])
 
             # plot last frequency
             plt.pause(self.settings.pause_time) 
 
-            delay = self.compute_adc_delay_freq(partial_freqs, spec_ratios) 
+            delay = self.compute_adc_delay_freq(self.test_freqs[:i+1], spec_ratios) 
             # check adc sync status, apply delay if needed
             if delay == 0:
                 print "ADCs successfully synthronized!"
@@ -120,13 +118,10 @@ class AdcSynchronatorFreq(Experiment):
         print "Computed delay: " + str(delay)
         return delay
 
-def get_lo_combinations(lo_sources):
+def get_first_lo_combination(lo_sources):
     """
-    Creates a list of tuples with all the possible LO combinations from
-    the lo_sources parameter of the config file. Used to perform a
-    nested loop that set all LO combinations in generators.
+    Get the first lo combination from the lo_sources config file.
     :param lo_sources: list of dictionaries with the sources for the LOs.
-    :return: list of tuples of LO combinations.
+    :return: list of the lo frequencies for the first combination.
     """
-    lo_freqs_arr = [lo_source['lo_freqs'] for lo_source in lo_sources]
-    return list(itertools.product(*lo_freqs_arr))
+    return [lo_source['lo_freqs'][0] for lo_source in lo_sources]

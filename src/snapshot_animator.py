@@ -9,11 +9,12 @@ class SnapshotAnimator(Animator):
     def __init__(self, calanfpga):
         Animator.__init__(self, calanfpga)
         self.snapshots = self.settings.snapshots
-        self.figure = CalanFigure(n_plots=len(self.snapshots), create_gui=True)
-        
-        for i in range(self.figure.n_plots):
+
+        self.n_inputs = len(self.snapshots)
+        self.figure = CalanFigure(n_plots=self.n_inputs, create_gui=True)
+        for i, snapshot in enumerate(self.snapshots):
             self.figure.create_axis(i, SnapshotAxis, 
-                self.settings.snap_samples, self.snapshots[i])
+                self.settings.snap_samples, snapshot)
         
     def get_data(self):
         """

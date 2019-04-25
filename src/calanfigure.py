@@ -10,7 +10,8 @@ class CalanFigure():
     """
     def __init__(self, n_plots, create_gui):
         self.n_plots = n_plots
-        self.plot_map = {1: [1,1], 2: [1,2], 3: [2,2], 4: [2,2], 16: [4,4]}
+        self.plot_map = {1: [1,1], 2: [1,2], 3: [2,2], 
+            4: [2,2], 6: [2,4], 8: [2,4], 16: [4,4]}
         self.axes = []
         # Figure() needed in order for Tkinter GUI elements to work properly
         if create_gui:
@@ -69,7 +70,7 @@ class CalanFigure():
             
         else: # case multiple plots
             for axis, data in zip(self.axes, data):
-                axis.plot(data)
+                axis.ploty(data)
 
     def get_save_data(self):
         """

@@ -9,19 +9,20 @@ class SingleLineAxis(LineAxis):
         LineAxis.__init__(self, ax, xdata, title)
         self.line = self.ax.plot([], [], lw=2)[0]
 
-    def plot(self, *args):
+    def ploty(self, ydata):
         """
-        Plot y data in axis.
-        If want to use the default xdata of axis, args[0] = ydata
-        else args[0] = xdata, args[1] = ydata.
+        Plot y-data in axis using the default x-data.
+        :param ydata: array with data to plot.
         """
-        if len(args) == 1:
-            ydata = args[0]
-        else:
-            self.xdata = args[0]
-            ydata = args[1]
+        self.plotxy(self.xdata, ydata)
 
-        self.line.set_data(self.xdata, ydata)
+    def plotxy(self, xdata, ydata):
+        """
+        plot y-data using the given x-data array.
+        :param xdata: data for the x-axis.
+        :param ydata: array with the data to plot.
+        """
+        self.line.set_data(xdata, ydata)
 
     def gen_data_dict(self):
         """

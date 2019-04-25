@@ -22,24 +22,25 @@ class DssCalibrator(Experiment):
         
         # test channels array
         self.cal_channels  = range(1, self.nchannels, self.settings.cal_chnl_step)
-        self.srr_channels  = range(1, self.nchannels, self.settings.srr_chnl_step)
+        self.syn_channels  = range(1, self.nchannels, self.settings.syn_chnl_step)
         self.cal_freqs = self.freqs[self.cal_channels]
-        self.srr_freqs = self.freqs[self.srr_channels]
+        self.syn_freqs = self.freqs[self.syn_channels]
 
         # const dtype info
         self.consts_nbits = np.dtype(self.settings.const_brams_info['data_type']).alignment * 8
         self.consts_bin_pt = self.settings.const_bin_pt
 
         # sources (RF and LOs)
-        self.rf_source  = create_generator(self.settings.rf_source)
-        self.lo_sources = [create_generator(lo_source) for lo_source in self.settings.lo_sources]
-        self.sources = self.lo_sources + [self.rf_source]
+        self.rf_source   = create_generator(self.settings.rf_source)
+        self.test_source = create_generator(self.settings.test_source)
+        self.lo_sources  = [create_generator(lo_source) for lo_source in self.settings.lo_sources]
+        self.sources = self.lo_sources + [self.rf_source, test_source]
         self.lo_combinations = get_lo_combinations(self.settings.lo_sources)
         
         # figures
         self.calfigure_lsb = CalanFigure(n_plots=4, create_gui=False)
         self.calfigure_usb = CalanFigure(n_plots=4, create_gui=False)
-        self.srrfigure     = CalanFigure(n_plots=4, create_gui=False)
+        self.synfigure     = CalanFigure(n_plots=3, create_gui=False)
         
         # axes on figures
         self.calfigure_lsb.create_axis(0, SpectrumAxis,  self.freqs, 'ZDOK0 spec')
@@ -54,26 +55,23 @@ class DssCalibrator(Experiment):
         self.calfigure_usb.create_axis(3, AngleDiffAxis, self.freqs, ['ZDOK1-ZDOK0'], 'Angle Difference')
         self.calfigure_lsb.set_window_title('Calibration LSB ' + lo_label)
         #
-        self.srrfigure.create_axis(0, SpectrumAxis, self.freqs, 'USB spec')
-        self.srrfigure.create_axis(1, SpectrumAxis, self.freqs, 'LSB spec')
-        self.srrfigure.create_axis(2, SrrAxis, self.freqs, 'SRR USB')
-        self.srrfigure.create_axis(3, SrrAxis, self.freqs, 'SRR LSB')
-        self.srrfigure.fig.canvas.set_window_title('SRR Computation ' + lo_label)
+        self.synfigure.create_axis(0, SpectrumAxis, self.freqs, 'Synth spec')
+        self.synfigure.create_axis(1, SpectrumAxis, self.freqs, 'Noise Power USB')
+        self.synfigure.create_axis(2, SpectrumAxis, self.freqs, 'Noise Power LSB')
+        self.synfigure.fig.canvas.set_window_title('SRR Computation ' + lo_label)
 
         # data save attributes
         self.dataname = os.path.splitext(self.settings.boffile)[0]
-        self.dataname = 'dsstest ' + self.dataname + ' '
+        self.dataname = 'bmtest ' + self.dataname + ' '
         self.datadir = self.settings.datadir + '_' + datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
         os.mkdir(self.datadir)
-        self.testinfo = {'bw'               : self.settings.bw,
+        self.testinfo = {'bw'               : self.bw,
                          'nchannels'        : self.nchannels,
                          'cal_acc_len'      : self.fpga.read_reg(self.settings.spec_info['acc_len_reg']),
                          'syn_acc_len'      : self.fpga.read_reg(self.settings.synth_info['acc_len_reg']),
-                         'kerr_correction'  : self.settings.kerr_correction,
-                         'use_ideal_consts' : self.settings.ideal_consts['load'],
-                         'ideal_const'      : str(self.settings.ideal_consts['val']),
+                         'cal_method'       : self.settings.cal_method,
                          'cal_chnl_step'    : self.settings.cal_chnl_step,
-                         'srr_chnl_step'    : self.settings.srr_chnl_step,
+                         'syn_chnl_step'    : self.settings.srr_chnl_step,
                          'lo_combinations'  : self.lo_combinations}
 
         with open(self.datadir + '/testinfo.json', 'w') as jsonfile:
@@ -96,56 +94,42 @@ class DssCalibrator(Experiment):
             for i, lo in enumerate(lo_comb):
                 self.lo_sources[i].set_freq_mhz(lo)
                 
-                # Hot-Cold Measurement
-                if self.settings.kerr_correction:
-                    print "\tMake hotcold test..."; step_time = time.time()
-                    M_DSB = self.make_hotcold_measurement()
-                    print "\tdone (" + str(time.time() - step_time) + "[s])"
-                else:
-                    M_DSB = None
-                
                 # compute calibration constants (sideband ratios)
-                if not self.settings.ideal_consts['load']:
-                    print "\tComputing sideband ratios, tone in USB..."; step_time = time.time()
-                    sb_ratios_usb = self.compute_sb_ratios_usb(lo_comb, lo_datadir)
-                    print "\tdone (" + str(time.time() - step_time) + "[s])" 
+                print "\tComputing sideband ratios, tone in USB..."; step_time = time.time()
+                sb_ratios_usb = self.compute_sb_ratios_usb(lo_comb, lo_datadir)
+                print "\tdone (" + str(time.time() - step_time) + "[s])" 
 
-                    print "\tComputing sideband ratios, tone in LSB..."; step_time = time.time()
-                    sb_ratios_lsb = self.compute_sb_ratios_lsb(lo_comb, lo_datadir)
-                    print "\tdone (" + str(time.time() - step_time) + "[s])"
+                print "\tComputing sideband ratios, tone in LSB..."; step_time = time.time()
+                sb_ratios_lsb = self.compute_sb_ratios_lsb(lo_comb, lo_datadir)
+                print "\tdone (" + str(time.time() - step_time) + "[s])"
 
-                    # save sb ratios
-                    np.savez(lo_datadir+'/sb_ratios', sb_ratios_usb=sb_ratios_usb, sb_ratios_lsb=sb_ratios_lsb)
+                # save sb ratios
+                np.savez(lo_datadir+'/sb_ratios', sb_ratios_usb=sb_ratios_usb, sb_ratios_lsb=sb_ratios_lsb)
 
-                    # constant computation
-                    consts_usb = -1.0 * sb_ratios_usb
-                    consts_lsb = -1.0 * sb_ratios_lsb
-
-                else:
-                    const = self.settings.ideal_consts['val']
-                    consts_usb = const * np.ones(self.nchannels, dtype=np.complex128)
-                    consts_lsb = const * np.ones(self.nchannels, dtype=np.complex128)
+                # constant computation
+                if self.settings.method == 'LSB'
+                    consts = -1.0 * sb_ratios_lsb
+                elif self.settings.method == 'Higher'
+                    consts = -1.0 * get_higher_constants(sb_ratios_lsb, sb_ratios_usb)
+                elif self.settings.method == 'Optimal'
+                    consts = -1.0 * # a2_usb x b2_usb* + a2_lsb x b2_lsb* /
+                                    # b2_usb + b2_lsb
 
                 # load constants
                 print "\tLoading constants..."; step_time = time.time()
-                consts_usb_real = float2fixed(self.consts_nbits, self.consts_bin_pt, np.real(consts_usb))
-                consts_usb_imag = float2fixed(self.consts_nbits, self.consts_bin_pt, np.imag(consts_usb))
-                consts_lsb_real = float2fixed(self.consts_nbits, self.consts_bin_pt, np.real(consts_lsb))
-                consts_lsb_imag = float2fixed(self.consts_nbits, self.consts_bin_pt, np.imag(consts_lsb))
+                consts_real = float2fixed(self.consts_nbits, self.consts_bin_pt, np.real(consts))
+                consts_imag = float2fixed(self.consts_nbits, self.consts_bin_pt, np.imag(consts))
                 self.fpga.write_bram_data_interleave(self.settings.const_brams_info, 
-                    [consts_usb_real, consts_usb_imag, consts_lsb_real, consts_lsb_imag])
+                    [consts_real, consts_imag])
                 print "\tdone (" + str(time.time() - step_time) + "[s])"
 
-                # compute SRR
-                print "\tComputing SRR..."; step_time = time.time()
-                self.compute_srr(M_DSB, lo_comb, lo_datadir)
+                # compute Noise Power
+                print "\tComputing Noise Power..."; step_time = time.time()
+                self.compute_srr(lo_comb, lo_datadir)
                 print "\tdone (" + str(time.time() - step_time) + "[s])"
 
         # turn off sources
         turn_off_sources(self.sources)
-
-        # print srr (full) plot
-        self.print_srr_plot(self.lo_combinations)
 
         # compress saved data
         print "\tCompressing data..."; step_time = time.time()
@@ -159,43 +143,6 @@ class DssCalibrator(Experiment):
         shutil.rmtree(self.datadir)
 
         print "Total time: " + str(time.time() - initial_time) + "[s]"
-
-    def make_hotcold_test(self):
-        """
-        Perform a hotcold test (Kerr calibration) to the determine the M_DSB parameter to
-        correctly compute the Sideband Rejection Ratio (SRR) in Sideband separating receivers.
-        More information in ALMA's Memo 357 (http://legacy.nrao.edu/alma/memos/html-memos/abstracts/abs357.html)
-        """
-        # make the receiver cold
-        self.chopper.move_90cw()
-        a2_cold, b2_cold = self.fpga.get_bram_data_interleave(self.settings.spec_info)
-                
-        # plot spec data
-        [a2_cold_plot, b2_cold_plot] = \
-            self.scale_dbfs_spec_data([a2_cold, b2_cold], self.settings.spec_info)
-        self.calfigure_usb.axes[0].plot(a2_cold_plot)
-        self.calfigure_usb.axes[1].plot(b2_cold_plot)
-        plt.pause(self.settings.pause_time) 
-
-        # make the receiver hot
-        self.chopper.move_90ccw()
-        a2_hot, b2_hot = self.fpga.get_bram_data_interleave(self.settings.spec_info)
-
-        # plot spec data
-        [a2_hot_plot, b2_hot_plot] = \
-            self.scale_dbfs_spec_data([a2_hot, b2_hot], self.settings.spec_info)
-        self.calfigure_usb.axes[0].plot(a2_hot_plot)
-        self.calfigure_usb.axes[1].plot(b2_hot_plot)
-        plt.pause(self.settings.pause_time) 
-
-        # Compute Kerr's parameter.
-        M_DSB = np.divide(a2_hot - a2_cold, b2_hot - b2_cold, dtype=np.float64)
-
-        # save hotcold data
-        np.savez(self.lo_datadir+'/hotcold', a2_cold=a2_cold, b2_cold=b2_cold, 
-            a2_hot=a2_hot, b2_hot=b2_hot, M_DSB=M_DSB)
-        
-        return M_DSB
 
     def compute_sb_ratios_usb(self, lo_comb, lo_datadir):
         """
@@ -381,82 +328,3 @@ class DssCalibrator(Experiment):
 
         # save srr data
         np.savez(lo_datadir+"/srr", srr_usb=srr_usb, srr_lsb=srr_lsb)
-
-    def print_srr_plot(self, lo_combinations):
-        """
-        Print SRR plot using the data saved from the test.
-        :lo_combination: list of lo combinations used for the DSS calibration.
-        """
-        srr_freqs = np.array([self.freqs[chnl]/1.0e3 for chnl in self.srr_channels])
-        fig = plt.figure()
-        for lo_comb in lo_combinations:
-            lo_label = '_'.join(['LO'+str(i+1)+'_'+str(lo/1e3)+'GHZ' for i,lo in enumerate(lo_comb)]) 
-            datadir = self.datadir + '/' + lo_label
-
-            srrdata = np.load(datadir + '/srr.npz')
-            
-            usb_freqs = lo_comb[0]/1.0e3 + sum(lo_comb[1:])/1.0e3 + srr_freqs
-            lsb_freqs = lo_comb[0]/1.0e3 - sum(lo_comb[1:])/1.0e3 - srr_freqs
-            
-            plt.plot(usb_freqs, srrdata['srr_usb'], '-r')
-            plt.plot(lsb_freqs, srrdata['srr_lsb'], '-b')
-            plt.grid()
-            plt.xlabel('Frequency [GHz]')
-            plt.ylabel('SRR [dB]')
-
-        plt.savefig(self.datadir + '/srr.pdf', bbox_inches='tight')
-
-def get_lo_combinations(lo_sources):
-    """
-    Creates a list of tuples with all the possible LO combinations from
-    the lo_sources parameter of the config file. Used to perform a
-    nested loop that set all LO combinations in generators.
-    :param lo_sources: list of dictionaries with the sources for the LOs.
-    :return: list of tuples of LO combinations.
-    """
-    lo_freqs_arr = [lo_source['lo_freqs'] for lo_source in lo_sources]
-    return list(itertools.product(*lo_freqs_arr))
-
-def float2fixed(nbits, bin_pt, data):
-    """
-    Convert a numpy array with float point numbers into big-endian 
-    (ROACH compatible) fixed point numbers. An overflow check is done 
-    and a warning is printed if the float number can't be represented
-    with the fixed point parameters (round is allowed).
-    :param nbits: bitwidth of the fixed point representation.
-    :param bin_pt: binary point of the fixed point representation.
-    :param data: data array to convert.
-    :return: converted data array.
-    """
-    check_overflow(nbits, bin_pt, data)
-    fixedpoint_data = (2**bin_pt * data).astype('>i'+str(nbits/8))
-    return fixedpoint_data
-
-def check_overflow(nbits, bin_pt, data):
-    """
-    Given a signed fixed point representation of bitwidth nbits and 
-    binary point bin_pt, check if the data list contains values that
-    will produce overflow if it would be cast. If overflow is detected,
-    a warning signal is printed.
-    :param nbits: bitwidth of the signed fixed point representation.
-    :param bin_pt: binary point of the signed fixed point representation.
-    :param data: number or data list to check.
-    """
-    
-    if isinstance(data, float) or isinstance(data, int): # case single value
-        max_val = (2.0**(nbits-1)-1) / (2**bin_pt)
-        min_val = (-2.0**(nbits-1))  / (2**bin_pt)
-        
-        if data > max_val: 
-            print "WARNING! Maximum value exceeded in overflow check."
-            print "Max allowed value: " + str(max_val)
-            print "Data value: " + str(data)
-
-        if data < min_val:
-            print "WARNING! Minimum value exceeded in overflow check."
-            print "Min allowed value: " + str(min_val)
-            print "Data value: " + str(data)    
-
-    else: # case list or array of data
-        for data_el in data:
-            check_overflow(nbits, bin_pt, data_el)

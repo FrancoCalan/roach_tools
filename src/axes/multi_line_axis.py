@@ -13,19 +13,21 @@ class MultiLineAxis(LineAxis):
             self.lines.append(self.ax.plot([], [], lw=2, label=legend)[0])
         self.ax.legend()
 
-    def plot(self, *args):
+    def ploty(self, ydata_list):
         """
-        Plot y data in axis.
-        If want to use the default xdata of axis, args[0] = ydata
-        else args[0] = xdata, args[1] = ydata.
+        Plot y-data in axis using the default x-data.
+        :param ydata_list: list of arrays with data to plot.
         """
-        if len(args) == 1:
-            ydata_arr = args[0]
-        else:
-            self.xdata = args[0]
-            ydata_arr = args[1]
-        for line, ydata in zip(self.lines[:len(ydata_arr)], ydata_arr):
-            line.set_data(self.xdata, ydata)
+        self.plotxy(self.xdata, *args)
+
+    def plotxy(self, xdata, ydata_list):
+        """
+        plot y-data using the given x-data array.
+        :param xdata: data for the x-axis.
+        :param ydata_list: list of arrays with the data to plot.
+        """
+        for line, ydata in zip(self.lines[:len(ydata_list)], ydata_list):
+            line.set_data(xdata, ydata)
 
     def gen_data_dict(self):
         """

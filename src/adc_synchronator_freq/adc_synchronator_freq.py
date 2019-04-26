@@ -16,13 +16,13 @@ class AdcSynchronatorFreq(Experiment):
     def __init__(self, calanfpga):
         Experiment.__init__(self, calanfpga)
         self.bw = self.settings.bw
-        self.nchannels = get_nchannels(self.settings.spec_info)
+        self.nchannels = get_nchannels(self.settings.specsync_info)
         self.freqs = np.linspace(0, self.bw, self.nchannels, endpoint=False)
         
         # test channels array
-        chnl_start = self.settings.chnl_start
-        chnl_stop  = self.settings.chnl_stop
-        chnl_step  = self.settings.chnl_step
+        chnl_start = self.settings.sync_chnl_start
+        chnl_stop  = self.settings.sync_chnl_stop
+        chnl_step  = self.settings.sync_chnl_step
         self.test_channels = range(chnl_start, chnl_stop, chnl_step)
         self.test_freqs = self.freqs[self.test_channels]
 
@@ -68,8 +68,8 @@ class AdcSynchronatorFreq(Experiment):
                 plt.pause(self.settings.pause_time)
 
                 # get power-crosspower data
-                a2, b2 = self.fpga.get_bram_data_interleave(self.settings.spec_info)
-                ab_re, ab_im = self.fpga.get_bram_data_interleave(self.settings.crosspow_info)
+                a2, b2 = self.fpga.get_bram_data_interleave(self.settings.specsync_info)
+                ab_re, ab_im = self.fpga.get_bram_data_interleave(self.settings.crosspowsync_info)
 
                 # compute constant
                 ab = ab_re[chnl] + 1j*ab_im[chnl]
@@ -77,7 +77,7 @@ class AdcSynchronatorFreq(Experiment):
 
                 # plot spec data
                 [a2_plot, b2_plot] = \
-                    self.scale_dbfs_spec_data([a2, b2], self.settings.spec_info)
+                    self.scale_dbfs_spec_data([a2, b2], self.settings.specsync_info)
                 self.figure.axes[0].ploty(a2_plot)
                 self.figure.axes[1].ploty(b2_plot)
 

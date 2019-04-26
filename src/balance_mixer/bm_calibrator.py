@@ -12,7 +12,7 @@ from srr_axis import SrrAxis
 
 class DssCalibrator(Experiment):
     """
-    This class is used to calibrate a Sideband Separating receiver.
+    This class is used to calibrate a Balance Mixer.
     """
     def __init__(self, calanfpga):
         Experiment.__init__(self, calanfpga)
@@ -79,7 +79,8 @@ class DssCalibrator(Experiment):
         
     def run_dss_test(self):
         """
-        Perform a full DSS test, with constants and SRR computation. 
+        Perform a full balance mixer test, with constants 
+        and noise power computation. 
         """
         init_sources(self.sources)
 
@@ -95,8 +96,8 @@ class DssCalibrator(Experiment):
                 self.lo_sources[i].set_freq_mhz(lo)
                 
                 # compute calibration constants (sideband ratios)
-                print "\tComputing sideband ratios, tone in USB..."; step_time = time.time()
-                sb_ratios_usb = self.compute_sb_ratios_usb(lo_comb, lo_datadir)
+                print "\tComputing ab parameters, tone in USB..."; step_time = time.time()
+                sb_ratios_usb = self.compute_ab_param_usb(lo_comb, lo_datadir)
                 print "\tdone (" + str(time.time() - step_time) + "[s])" 
 
                 print "\tComputing sideband ratios, tone in LSB..."; step_time = time.time()

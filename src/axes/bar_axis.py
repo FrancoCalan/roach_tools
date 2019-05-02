@@ -8,7 +8,7 @@ class BarAxis(CalanAxis):
         CalanAxis.__init__(self, ax, title)
         self.rects = self.ax.bar(xdata, len(xdata)*[0], align='center', width=1)
 
-    def plot(self, ydata):
+    def ploty(self, ydata):
         """
         Plot y data in axis.
         """

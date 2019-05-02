@@ -24,8 +24,9 @@ class Adc5gCalibrator(Experiment):
     def __init__(self, calanfpga):
         Experiment.__init__(self, calanfpga)
         self.snapshots = self.settings.snapshots
+        self.bw = self.settings.bw
         self.nchannels = len(self.fpga.get_snapshots()[0]) / 2
-        self.freqs = np.linspace(0, self.settings.bw, self.nchannels, endpoint=False)
+        self.freqs = np.linspace(0, self.bw, self.nchannels, endpoint=False)
         self.now = datetime.datetime.now()
         self.caldir = self.settings.caldir + '_' + self.now.strftime('%Y-%m-%d %H:%M:%S')
 
@@ -47,7 +48,6 @@ class Adc5gCalibrator(Experiment):
         Perform MMCM, OGP or/and INL calibrations as indicated in the
         config file.
         """
-
         # if doing ogp or inl calibrations...
         if self.settings.do_ogp or self.settings.do_inl:
             # create directory for calibration data
@@ -62,7 +62,7 @@ class Adc5gCalibrator(Experiment):
         if self.settings.plot_snapshots:
             uncal_snaps = self.fpga.get_snapshots(self.settings.snap_samples)
             for axis, uncal_snap in zip(self.snapfigure.axes, uncal_snaps):
-                axis.plot([uncal_snap])
+                axis.ploty([[uncal_snap[0]], [uncal_snap[1]]])
             plt.pause(1)
         
         # pre calibration spectrum plots
@@ -75,7 +75,7 @@ class Adc5gCalibrator(Experiment):
             for axis, uncal_snap in zip(self.specfigure.axes, uncal_snaps_full):
                 uncal_spec = np.square(np.abs(np.fft.rfft(uncal_snap)[:-1] / np.sqrt(self.nchannels))) # the sqrt(nchannels) is a workaround for nice plots
                 uncal_spec = linear_to_dBFS(uncal_spec, dummy_spec_info)
-                axis.plot([uncal_spec])
+                axis.ploty([[uncal_spec[0]], [uncal_spec[1]]])
             plt.pause(1)
 
         # perform calibrations indicated in configuration file
@@ -101,7 +101,7 @@ class Adc5gCalibrator(Experiment):
         if self.settings.plot_snapshots:
             cal_snaps = self.fpga.get_snapshots(self.settings.snap_samples)
             for axis, uncal_snap, cal_snap in zip(self.snapfigure.axes, uncal_snaps, cal_snaps):
-                axis.plot([uncal_snap, cal_snap])
+                axis.ploty([[uncal_snap[0], cal_snap[0]], [uncal_snap[1], cal_snap[1]]])
             plt.pause(1)
 
         # post calibration spectrum plots
@@ -112,7 +112,7 @@ class Adc5gCalibrator(Experiment):
                 uncal_spec = linear_to_dBFS(uncal_spec, dummy_spec_info)
                 cal_spec = np.square(np.abs(np.fft.rfft(cal_snap)[:-1] / np.sqrt(self.nchannels))) # the sqrt(nchannels) is a workaround for nice plots
                 cal_spec = linear_to_dBFS(cal_spec, dummy_spec_info)
-                axis.plot([uncal_spec, cal_spec])
+                axis.ploty([[uncal_spec[0], cal_spec[0]], [uncal_spec[1], cal_spec[1]]])
             plt.pause(1)
         
         # if doing ogp or inl calibrations...
@@ -185,6 +185,6 @@ class Adc5gCalibrator(Experiment):
         :return: adc5g_devel ADCCalibrate object.
         """
         adccal = ADCCalibrate(roach=self.fpga.fpga, roach_name="", zdok=zdok, 
-            snapshot=snapshot, dir=self.caldir, now=self.now, clockrate=self.settings.bw)
+            snapshot=snapshot, dir=self.caldir, now=self.now, clockrate=self.bw)
         return adccal
 

@@ -47,18 +47,15 @@ class DssCalibrator(Experiment):
         self.calfigure_lsb.create_axis(1, SpectrumAxis,  self.freqs, 'ZDOK1 spec')
         self.calfigure_lsb.create_axis(2, MagRatioAxis,  self.freqs, ['ZDOK0/ZDOK1'], 'Magnitude Ratio')
         self.calfigure_lsb.create_axis(3, AngleDiffAxis, self.freqs, ['ZDOK0-ZDOK1'], 'Angle Difference')
-        self.calfigure_usb.set_window_title('Calibration USB ' + lo_label)
         #
         self.calfigure_usb.create_axis(0, SpectrumAxis,  self.freqs, 'ZDOK0 spec')
         self.calfigure_usb.create_axis(1, SpectrumAxis,  self.freqs, 'ZDOK1 spec')
         self.calfigure_usb.create_axis(2, MagRatioAxis,  self.freqs, ['ZDOK1/ZDOK0'], 'Magnitude Ratio')
         self.calfigure_usb.create_axis(3, AngleDiffAxis, self.freqs, ['ZDOK1-ZDOK0'], 'Angle Difference')
-        self.calfigure_lsb.set_window_title('Calibration LSB ' + lo_label)
         #
         self.synfigure.create_axis(0, SpectrumAxis, self.freqs, 'Synth spec')
         self.synfigure.create_axis(1, SpectrumAxis, self.freqs, 'Noise Power USB')
         self.synfigure.create_axis(2, SpectrumAxis, self.freqs, 'Noise Power LSB')
-        self.synfigure.fig.canvas.set_window_title('SRR Computation ' + lo_label)
 
         # data save attributes
         self.dataname = os.path.splitext(self.settings.boffile)[0]
@@ -95,26 +92,32 @@ class DssCalibrator(Experiment):
             for i, lo in enumerate(lo_comb):
                 self.lo_sources[i].set_freq_mhz(lo)
                 
-                # compute calibration constants (sideband ratios)
-                print "\tComputing ab parameters, tone in USB..."; step_time = time.time()
-                sb_ratios_usb = self.compute_ab_param_usb(lo_comb, lo_datadir)
-                print "\tdone (" + str(time.time() - step_time) + "[s])" 
+                if self.settings.method != 'Ideal':
+                    # compute calibration constants (sideband ratios)
+                    print "\tComputing ab parameters, tone in USB..."; step_time = time.time()
+                    self.calfigure_usb.set_window_title('Calibration USB ' + lo_label)
+                    a2_usb, b2_usb, ab_usb = self.compute_ab_params_usb(lo_comb, lo_datadir)
+                    print "\tdone (" + str(time.time() - step_time) + "[s])" 
 
-                print "\tComputing sideband ratios, tone in LSB..."; step_time = time.time()
-                sb_ratios_lsb = self.compute_sb_ratios_lsb(lo_comb, lo_datadir)
-                print "\tdone (" + str(time.time() - step_time) + "[s])"
+                    print "\tComputing ab parameters, tone in LSB..."; step_time = time.time()
+                    self.calfigure_lsb.set_window_title('Calibration LSB ' + lo_label)
+                    a2_lsb, b2_lsb, ab_lsb = self.compute_ab_params_lsb(lo_comb, lo_datadir)
+                    print "\tdone (" + str(time.time() - step_time) + "[s])"
 
-                # save sb ratios
-                np.savez(lo_datadir+'/sb_ratios', sb_ratios_usb=sb_ratios_usb, sb_ratios_lsb=sb_ratios_lsb)
+                    # save ab params
+                    np.savez(lo_datadir+'/ab_params', 
+                        a2_usb=a2_usb, b2_usb=b2_usb, ab_usb=ab_usb,
+                        a2_lsb=a2_lsb, b2_lsb=b2_lsb, ab_lsb=ab_lsb)
 
                 # constant computation
-                if self.settings.method == 'LSB'
-                    consts = -1.0 * sb_ratios_lsb
+                if self.settings.method == 'Ideal':
+                    consts = np.ones(self.nchannels, dtype=np.complex)
+                elif self.settings.method == 'USB'
+                    consts = -1.0 * ab_usb / b2_usb
                 elif self.settings.method == 'Higher'
                     consts = -1.0 * get_higher_constants(sb_ratios_lsb, sb_ratios_usb)
                 elif self.settings.method == 'Optimal'
-                    consts = -1.0 * # a2_usb x b2_usb* + a2_lsb x b2_lsb* /
-                                    # b2_usb + b2_lsb
+                    consts = -1.0 *  (ab_usb + ab_lsb) / (b2_usb + b2_lsb)
 
                 # load constants
                 print "\tLoading constants..."; step_time = time.time()
@@ -126,7 +129,8 @@ class DssCalibrator(Experiment):
 
                 # compute Noise Power
                 print "\tComputing Noise Power..."; step_time = time.time()
-                self.compute_srr(lo_comb, lo_datadir)
+                self.synfigure.fig.canvas.set_window_title('Noise Power Computation ' + lo_label)
+                self.compute_noisepow(lo_comb, lo_datadir)
                 print "\tdone (" + str(time.time() - step_time) + "[s])"
 
         # turn off sources
@@ -145,19 +149,24 @@ class DssCalibrator(Experiment):
 
         print "Total time: " + str(time.time() - initial_time) + "[s]"
 
-    def compute_sb_ratios_usb(self, lo_comb, lo_datadir):
+    def compute_ab_params_usb(self, lo_comb, lo_datadir):
         """
         Sweep a tone through the receiver bandwidth and computes the USB
-        sideband ratio for a number of FFT channel. The USB sideband ratio is 
-        defined as the complex division LSB/USB when the test tone is in the USB.
+        ab paramters. The USB ab parameters are the power of the first input (a2),
+        the power of the second input (b2), and the correlation between the inputs,
+        i.e. the first multpiplied by the conjugated of the second (ab), all
+        measured in the channel of the tone.
         The total number of  channels used for the computations depends in the config 
         file parameter cal_chnl_step. The channels not measured are interpolated.
         :param lo_comb: LO frequency combination for the test. Used to properly set
             the RF test input.
         :param lo_datadir: diretory for the data of the current LO frequency combination.
-        :return: USB sideband ratios
+        :return: 
         """
-        sb_ratios = []
+        a2_arr    = []
+        b2_arr    = []
+        ab_arr    = []
+        ab_ratios = []
         rf_freqs = lo_comb[0] + sum(lo_comb[1:]) + self.freqs
 
         cal_datadir = lo_datadir + '/cal_rawdata'
@@ -173,14 +182,17 @@ class DssCalibrator(Experiment):
             # get power-crosspower data
             cal_a2, cal_b2 = self.fpga.get_bram_data_interleave(self.settings.spec_info)
             cal_ab_re, cal_ab_im = self.fpga.get_bram_data_interleave(self.settings.crosspow_info)
+            a2_arr.append(cal_a2[chnl])
+            b2_arr.append(cal_b2[chnl])
 
             # save cal rawdata
             np.savez(cal_datadir + '/usb_chnl_' + str(chnl), 
                 cal_a2=cal_a2, cal_b2=cal_b2, cal_ab_re=cal_ab_re, cal_ab_im=cal_ab_im)
 
-            # compute constant
+            # compute ratio
             ab = cal_ab_re[chnl] + 1j*cal_ab_im[chnl]
-            sb_ratios.append(np.conj(ab) / cal_a2[chnl]) # (ab*)* / aa* = a*b / aa* = b/a = LSB/USB
+            ab_arr.append(ab)
+            ab_ratios.append(np.conj(ab) / cal_a2[chnl]) # (ab*)* / aa* = a*b / aa* = b/a
 
             # plot spec data
             [cal_a2_plot, cal_b2_plot] = \
@@ -189,33 +201,42 @@ class DssCalibrator(Experiment):
             self.calfigure_usb.axes[1].ploty(cal_b2_plot)
 
             # plot the magnitude ratio and phase difference
-            self.calfigure_usb.axes[2].plotxy(self.cal_freqs[:i+1], np.abs(sb_ratios))
-            self.calfigure_usb.axes[3].plotxy(self.cal_freqs[:i+1], np.angle(sb_ratios, deg=True))
+            self.calfigure_usb.axes[2].plotxy(self.cal_freqs[:i+1], np.abs(ab_ratios))
+            self.calfigure_usb.axes[3].plotxy(self.cal_freqs[:i+1], np.angle(ab_ratios, deg=True))
 
         # plot last frequency
         plt.pause(self.settings.pause_time) 
 
         # compute interpolations
-        sb_ratios = np.interp(range(self.nchannels), self.cal_channels, sb_ratios)
+        a2_arr = np.interp(range(self.nchannels), self.cal_channels, a2_arr)
+        b2_arr = np.interp(range(self.nchannels), self.cal_channels, b2_arr)
+        ab_arr = np.interp(range(self.nchannels), self.cal_channels, ab_arr)
 
-        return sb_ratios
+        return a2_arr, b2_arr, ab_arr
 
-    def compute_sb_ratios_lsb(self, lo_comb, lo_datadir):
+    def compute_ab_params_lsb(self, lo_comb, lo_datadir):
         """
         Sweep a tone through the receiver bandwidth and computes the LSB
-        sideband ratio for a number of FFT channel. The LSB sideband ratio is 
-        defined as the complex division USB/LSB when the test tone is in the LSB.
+        ab paramters. The LSB ab parameters are the power of the first input (a2),
+        the power of the second input (b2), and the correlation between the inputs,
+        i.e. the first multpiplied by the conjugated of the second (ab), all
+        measured in the channel of the tone.
         The total number of  channels used for the computations depends in the config 
         file parameter cal_chnl_step. The channels not measured are interpolated.
         :param lo_comb: LO frequency combination for the test. Used to properly set
             the RF test input.
         :param lo_datadir: diretory for the data of the current LO frequency combination.
-        :return: USB sideband ratios
+        :return: 
         """
-        sb_ratios = []
+        a2_arr    = []
+        b2_arr    = []
+        ab_arr    = []
+        ab_ratios = []
         rf_freqs = lo_comb[0] - sum(lo_comb[1:]) - self.freqs
 
         cal_datadir = lo_datadir + '/cal_rawdata'
+        # creates directory for the raw calibration data
+        os.mkdir(cal_datadir)
 
         for i, chnl in enumerate(self.cal_channels):
             # set generator frequency
@@ -226,106 +247,99 @@ class DssCalibrator(Experiment):
             # get power-crosspower data
             cal_a2, cal_b2 = self.fpga.get_bram_data_interleave(self.settings.spec_info)
             cal_ab_re, cal_ab_im = self.fpga.get_bram_data_interleave(self.settings.crosspow_info)
+            a2_arr.append(cal_a2[chnl])
+            b2_arr.append(cal_b2[chnl])
 
             # save cal rawdata
             np.savez(cal_datadir + '/lsb_chnl_' + str(chnl), 
                 cal_a2=cal_a2, cal_b2=cal_b2, cal_ab_re=cal_ab_re, cal_ab_im=cal_ab_im)
 
-            # compute constant
+            # compute ratio
             ab = cal_ab_re[chnl] + 1j*cal_ab_im[chnl]
-            sb_ratios.append(ab / cal_b2[chnl]) # ab* / bb* = a/b = USB/LSB.
+            ab_arr.append(ab)
+            ab_ratios.append(ab / cal_b2[chnl]) # ab* / bb* = a/b
 
             # plot spec data
             [cal_a2_plot, cal_b2_plot] = \
                 self.scale_dbfs_spec_data([cal_a2, cal_b2], self.settings.spec_info)
-            self.calfigure_lsb.axes[0].ploty(cal_a2_plot)
-            self.calfigure_lsb.axes[1].ploty(cal_b2_plot)
-            
+            self.calfigure_usb.axes[0].ploty(cal_a2_plot)
+            self.calfigure_usb.axes[1].ploty(cal_b2_plot)
+
             # plot the magnitude ratio and phase difference
-            self.calfigure_lsb.axes[2].plotxy(self.cal_freqs[:i+1], np.abs(sb_ratios))
-            self.calfigure_lsb.axes[3].plotxy(self.cal_freqs[:i+1], np.angle(sb_ratios, deg=True))
+            self.calfigure_usb.axes[2].plotxy(self.cal_freqs[:i+1], np.abs(ab_ratios))
+            self.calfigure_usb.axes[3].plotxy(self.cal_freqs[:i+1], np.angle(ab_ratios, deg=True))
 
         # plot last frequency
         plt.pause(self.settings.pause_time) 
 
         # compute interpolations
-        sb_ratios = np.interp(range(self.nchannels), self.cal_channels, sb_ratios)
+        a2_arr = np.interp(range(self.nchannels), self.cal_channels, a2_arr)
+        b2_arr = np.interp(range(self.nchannels), self.cal_channels, b2_arr)
+        ab_arr = np.interp(range(self.nchannels), self.cal_channels, ab_arr)
 
-        return sb_ratios
+        return a2_arr, b2_arr, ab_arr
 
-    def compute_srr(self, M_DSB, lo_comb, lo_datadir):
+    def compute_noisepow(self, lo_comb, lo_datadir):
         """
-        Compute SRR from the DSS receiver using the Kerr method
-        (see ALMA Memo 357 (http://legacy.nrao.edu/alma/memos/html-memos/abstracts/abs357.html)).
-        The total number of channels used for the SRR computations
+        Compute the noise power for the balanced mixer. It is assumed that
+        the calibration constants were previously loaded.
+        The total number of channels used for the noise power computations
         can be controlled by the config file parameter srr_chnl_step.
-        :param M_DSB: constant computed in the hotcold test used for the Kerr method.
         :param lo_comb: LO frequency combination for the test. Used to properly set
             the RF test input.
         :param lo_datadir: diretory for the data of the current LO frequency combination.
         """
-        srr_usb = []
-        srr_lsb = []
+        niosep_usb = []
+        noisep_lsb = []
         rf_freqs_usb = lo_comb[0] + sum(lo_comb[1:]) + self.freqs
         rf_freqs_lsb = lo_comb[0] - sum(lo_comb[1:]) - self.freqs
 
-        syn_datadir = lo_datadir + '/srr_rawdata'
+        syn_datadir = lo_datadir + '/noisepow_rawdata'
         os.mkdir(syn_datadir)
- 
-        for i, chnl in enumerate(self.srr_channels):
+
+        for i, chnl in enumerate(self.syn_channels):
             # set generator at USB frequency
             self.rf_source.set_freq_mhz(rf_freqs_usb[chnl])
             # plot while the generator is changing to frequency to give the system time to update
             plt.pause(self.settings.pause_time) 
             
-            # get USB and LSB power data
-            a2_tone_usb, b2_tone_usb = self.fpga.get_bram_data_interleave(self.settings.synth_info)
+            # get USB power data
+            a2_tone_usb = self.fpga.get_bram_data_interleave(self.settings.synth_info)
+            noisep_usb.append(a2_tone_usb[chnl])
 
             # plot spec data
-            [a2_tone_usb_plot, b2_tone_usb_plot] = \
-                self.scale_dbfs_spec_data([a2_tone_usb, b2_tone_usb], self.settings.synth_info)
-            self.srrfigure.axes[0].plot(a2_tone_usb_plot)
-            self.srrfigure.axes[1].plot(b2_tone_usb_plot)
+            a2_tone_usb_plot = self.scale_dbfs_spec_data(a2_tone_usb, self.settings.synth_info)
+            self.synfigure.axes[0].ploty(a2_tone_usb_plot)
 
+            # save syn rawdata
+            np.savez(syn_datadir+'/usb_chnl_'+str(chnl), a2_tone_usb=a2_tone_usb)
+
+            # plot noise power data
+            self.synfigure.axes[1].plotxy(self.srr_freqs[:i+1], noisep_usb)
+
+        for i, chnl in enumerate(self.syn_channels):
             # set generator at LSB frequency
             self.rf_source.set_freq_mhz(rf_freqs_lsb[chnl])
             # plot while the generator is changing to frequency to give the system time to update
             plt.pause(self.settings.pause_time) 
             
-            # get USB and LSB power data
-            a2_tone_lsb, b2_tone_lsb = self.fpga.get_bram_data_interleave(self.settings.synth_info)
-
-            # save syn rawdata
-            np.savez(syn_datadir+'/chnl_'+str(chnl), a2_tone_usb=a2_tone_usb, b2_tone_usb=b2_tone_usb, 
-                a2_tone_lsb=a2_tone_lsb, b2_tone_lsb=b2_tone_lsb)
+            # get LSB power data
+            a2_tone_lsb = self.fpga.get_bram_data_interleave(self.settings.synth_info)
+            noisep_lsb.append(a2_tone_lsb[chnl])
 
             # plot spec data
-            [a2_tone_lsb_plot, b2_tone_lsb_plot] = \
-                self.scale_dbfs_spec_data([a2_tone_lsb, b2_tone_lsb], self.settings.synth_info)
-            self.srrfigure.axes[0].ploty(a2_tone_lsb_plot)
-            self.srrfigure.axes[1].ploty(b2_tone_lsb_plot)
+            a2_tone_lsb_plot = self.scale_dbfs_spec_data(a2_tone_lsb, self.settings.synth_info)
+            self.synfigure.axes[0].ploty(a2_tone_lsb_plot)
 
-            # Compute sideband ratios
-            ratio_usb = np.divide(a2_tone_usb[chnl], b2_tone_usb[chnl], dtype=np.float64)
-            ratio_lsb = np.divide(b2_tone_lsb[chnl], a2_tone_lsb[chnl], dtype=np.float64)
-            
-            # Compute SRR as per Kerr calibration if set in config file
-            if self.settings.kerr_correction:
-                new_srr_usb = ratio_usb * (ratio_lsb*M_DSB[chnl] - 1) / (ratio_usb - M_DSB[chnl])
-                new_srr_lsb = ratio_lsb * (ratio_usb - M_DSB[chnl]) / (ratio_lsb*M_DSB[chnl] - 1)
-            else: # compute SRR as sideband ratio
-                new_srr_usb = ratio_usb
-                new_srr_lsb = ratio_lsb
+            # save syn rawdata
+            np.savez(syn_datadir+'/lsb_chnl_'+str(chnl), a2_tone_lsb=a2_tone_lsb)
 
-            srr_usb.append(10*np.log10(new_srr_usb))
-            srr_lsb.append(10*np.log10(new_srr_lsb))
+            # plot noise power data
+            self.synfigure.axes[2].plotxy(self.srr_freqs[:i+1], noisep_lsb)
 
-            # plot the magnitude ratio and phase difference
-            self.srrfigure.axes[2].plotxy(self.srr_freqs[:i+1], srr_usb)
-            self.srrfigure.axes[3].plotxy(self.srr_freqs[:i+1], srr_lsb)
-        
         # plot last frequency
         plt.pause(self.settings.pause_time)
 
         # save srr data
-        np.savez(lo_datadir+"/srr", srr_usb=srr_usb, srr_lsb=srr_lsb)
+        np.savez(lo_datadir+"/noisepow", noisepow_usb=noisepow_usb, 
+            noisepow_lsb=noisepow_lsb)

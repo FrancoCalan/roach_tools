@@ -46,24 +46,21 @@ class DssCalibrator(Experiment):
         self.calfigure_lsb.create_axis(1, SpectrumAxis,  self.freqs, 'ZDOK1 spec')
         self.calfigure_lsb.create_axis(2, MagRatioAxis,  self.freqs, ['ZDOK0/ZDOK1'], 'Magnitude Ratio')
         self.calfigure_lsb.create_axis(3, AngleDiffAxis, self.freqs, ['ZDOK0-ZDOK1'], 'Angle Difference')
-        self.calfigure_usb.set_window_title('Calibration USB ' + lo_label)
         #
         self.calfigure_usb.create_axis(0, SpectrumAxis,  self.freqs, 'ZDOK0 spec')
         self.calfigure_usb.create_axis(1, SpectrumAxis,  self.freqs, 'ZDOK1 spec')
         self.calfigure_usb.create_axis(2, MagRatioAxis,  self.freqs, ['ZDOK1/ZDOK0'], 'Magnitude Ratio')
         self.calfigure_usb.create_axis(3, AngleDiffAxis, self.freqs, ['ZDOK1-ZDOK0'], 'Angle Difference')
-        self.calfigure_lsb.set_window_title('Calibration LSB ' + lo_label)
         #
         self.srrfigure.create_axis(0, SpectrumAxis, self.freqs, 'USB spec')
         self.srrfigure.create_axis(1, SpectrumAxis, self.freqs, 'LSB spec')
         self.srrfigure.create_axis(2, SrrAxis, self.freqs, 'SRR USB')
         self.srrfigure.create_axis(3, SrrAxis, self.freqs, 'SRR LSB')
-        self.srrfigure.fig.canvas.set_window_title('SRR Computation ' + lo_label)
 
         # data save attributes
         self.dataname = os.path.splitext(self.settings.boffile)[0]
         self.dataname = 'dsstest ' + self.dataname + ' '
-        self.datadir = self.settings.datadir + '_' + datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+        self.datadir = self.dataname + '_' + datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
         os.mkdir(self.datadir)
         self.testinfo = {'bw'               : self.settings.bw,
                          'nchannels'        : self.nchannels,
@@ -107,10 +104,12 @@ class DssCalibrator(Experiment):
                 # compute calibration constants (sideband ratios)
                 if not self.settings.ideal_consts['load']:
                     print "\tComputing sideband ratios, tone in USB..."; step_time = time.time()
+                    self.calfigure_usb.set_window_title('Calibration USB ' + lo_label)
                     sb_ratios_usb = self.compute_sb_ratios_usb(lo_comb, lo_datadir)
                     print "\tdone (" + str(time.time() - step_time) + "[s])" 
 
                     print "\tComputing sideband ratios, tone in LSB..."; step_time = time.time()
+                    self.calfigure_lsb.set_window_title('Calibration LSB ' + lo_label)
                     sb_ratios_lsb = self.compute_sb_ratios_lsb(lo_comb, lo_datadir)
                     print "\tdone (" + str(time.time() - step_time) + "[s])"
 
@@ -133,11 +132,12 @@ class DssCalibrator(Experiment):
                 consts_lsb_real = float2fixed(self.consts_nbits, self.consts_bin_pt, np.real(consts_lsb))
                 consts_lsb_imag = float2fixed(self.consts_nbits, self.consts_bin_pt, np.imag(consts_lsb))
                 self.fpga.write_bram_data_interleave(self.settings.const_brams_info, 
-                    [consts_usb_real, consts_usb_imag, consts_lsb_real, consts_lsb_imag])
+                    [consts_lsb_real, consts_lsb_imag, consts_usb_real, consts_usb_imag])
                 print "\tdone (" + str(time.time() - step_time) + "[s])"
 
                 # compute SRR
                 print "\tComputing SRR..."; step_time = time.time()
+                self.srrfigure.fig.canvas.set_window_title('SRR Computation ' + lo_label)
                 self.compute_srr(M_DSB, lo_comb, lo_datadir)
                 print "\tdone (" + str(time.time() - step_time) + "[s])"
 
@@ -173,8 +173,8 @@ class DssCalibrator(Experiment):
         # plot spec data
         [a2_cold_plot, b2_cold_plot] = \
             self.scale_dbfs_spec_data([a2_cold, b2_cold], self.settings.spec_info)
-        self.calfigure_usb.axes[0].plot(a2_cold_plot)
-        self.calfigure_usb.axes[1].plot(b2_cold_plot)
+        self.calfigure_usb.axes[0].ploty(a2_cold_plot)
+        self.calfigure_usb.axes[1].ploty(b2_cold_plot)
         plt.pause(self.settings.pause_time) 
 
         # make the receiver hot
@@ -184,8 +184,8 @@ class DssCalibrator(Experiment):
         # plot spec data
         [a2_hot_plot, b2_hot_plot] = \
             self.scale_dbfs_spec_data([a2_hot, b2_hot], self.settings.spec_info)
-        self.calfigure_usb.axes[0].plot(a2_hot_plot)
-        self.calfigure_usb.axes[1].plot(b2_hot_plot)
+        self.calfigure_usb.axes[0].ploty(a2_hot_plot)
+        self.calfigure_usb.axes[1].ploty(b2_hot_plot)
         plt.pause(self.settings.pause_time) 
 
         # Compute Kerr's parameter.
@@ -336,8 +336,8 @@ class DssCalibrator(Experiment):
             # plot spec data
             [a2_tone_usb_plot, b2_tone_usb_plot] = \
                 self.scale_dbfs_spec_data([a2_tone_usb, b2_tone_usb], self.settings.synth_info)
-            self.srrfigure.axes[0].plot(a2_tone_usb_plot)
-            self.srrfigure.axes[1].plot(b2_tone_usb_plot)
+            self.srrfigure.axes[0].ploty(a2_tone_usb_plot)
+            self.srrfigure.axes[1].ploty(b2_tone_usb_plot)
 
             # set generator at LSB frequency
             self.rf_source.set_freq_mhz(rf_freqs_lsb[chnl])
@@ -372,7 +372,7 @@ class DssCalibrator(Experiment):
             srr_usb.append(10*np.log10(new_srr_usb))
             srr_lsb.append(10*np.log10(new_srr_lsb))
 
-            # plot the magnitude ratio and phase difference
+            # plot SRR
             self.srrfigure.axes[2].plotxy(self.srr_freqs[:i+1], srr_usb)
             self.srrfigure.axes[3].plotxy(self.srr_freqs[:i+1], srr_lsb)
         

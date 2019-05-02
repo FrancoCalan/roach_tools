@@ -18,7 +18,7 @@ class MultiLineAxis(LineAxis):
         Plot y-data in axis using the default x-data.
         :param ydata_list: list of arrays with data to plot.
         """
-        self.plotxy(self.xdata, *args)
+        self.plotxy(self.xdata, ydata_list)
 
     def plotxy(self, xdata, ydata_list):
         """

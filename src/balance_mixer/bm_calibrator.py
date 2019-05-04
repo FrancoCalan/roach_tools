@@ -8,9 +8,9 @@ from ..instruments.generator import Generator, create_generator
 from ..axes.spectrum_axis import SpectrumAxis
 from ..pocket_correlator.mag_ratio_axis import MagRatioAxis
 from ..pocket_correlator.angle_diff_axis import AngleDiffAxis
-from srr_axis import SrrAxis
+from ..digital_sideband_separation.dss_calibrator import get_lo_combinations, float2fixed
 
-class DssCalibrator(Experiment):
+class BmCalibrator(Experiment):
     """
     This class is used to calibrate a Balance Mixer.
     """
@@ -34,7 +34,7 @@ class DssCalibrator(Experiment):
         self.rf_source   = create_generator(self.settings.rf_source)
         self.test_source = create_generator(self.settings.test_source)
         self.lo_sources  = [create_generator(lo_source) for lo_source in self.settings.lo_sources]
-        self.sources = self.lo_sources + [self.rf_source, test_source]
+        self.sources = self.lo_sources + [self.rf_source, self.test_source]
         self.lo_combinations = get_lo_combinations(self.settings.lo_sources)
         
         # figures
@@ -58,9 +58,9 @@ class DssCalibrator(Experiment):
         self.synfigure.create_axis(2, SpectrumAxis, self.freqs, 'Noise Power LSB')
 
         # data save attributes
-        self.dataname = os.path.splitext(self.settings.boffile)[0]
-        self.dataname = 'bmtest ' + self.dataname + ' '
-        self.datadir = self.settings.datadir + '_' + datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+        self.dataname = self.settings.boffile[:self.settings.boffile.index('.')]
+        self.dataname = 'bmtest ' + self.dataname
+        self.datadir = self.dataname + ' ' + datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
         os.mkdir(self.datadir)
         self.testinfo = {'bw'               : self.bw,
                          'nchannels'        : self.nchannels,
@@ -68,13 +68,13 @@ class DssCalibrator(Experiment):
                          'syn_acc_len'      : self.fpga.read_reg(self.settings.synth_info['acc_len_reg']),
                          'cal_method'       : self.settings.cal_method,
                          'cal_chnl_step'    : self.settings.cal_chnl_step,
-                         'syn_chnl_step'    : self.settings.srr_chnl_step,
+                         'syn_chnl_step'    : self.settings.syn_chnl_step,
                          'lo_combinations'  : self.lo_combinations}
 
         with open(self.datadir + '/testinfo.json', 'w') as jsonfile:
             json.dump(self.testinfo, jsonfile, indent=4)
         
-    def run_dss_test(self):
+    def run_bm_test(self):
         """
         Perform a full balance mixer test, with constants 
         and noise power computation. 
@@ -92,7 +92,7 @@ class DssCalibrator(Experiment):
             for i, lo in enumerate(lo_comb):
                 self.lo_sources[i].set_freq_mhz(lo)
                 
-                if self.settings.method != 'Ideal':
+                if self.settings.cal_method is not 'Ideal':
                     # compute calibration constants (sideband ratios)
                     print "\tComputing ab parameters, tone in USB..."; step_time = time.time()
                     self.calfigure_usb.set_window_title('Calibration USB ' + lo_label)
@@ -110,13 +110,15 @@ class DssCalibrator(Experiment):
                         a2_lsb=a2_lsb, b2_lsb=b2_lsb, ab_lsb=ab_lsb)
 
                 # constant computation
-                if self.settings.method == 'Ideal':
+                if self.settings.cal_method == 'Ideal':
                     consts = np.ones(self.nchannels, dtype=np.complex)
-                elif self.settings.method == 'USB'
-                    consts = -1.0 * ab_usb / b2_usb
-                elif self.settings.method == 'Higher'
-                    consts = -1.0 * get_higher_constants(sb_ratios_lsb, sb_ratios_usb)
-                elif self.settings.method == 'Optimal'
+                elif self.settings.cal_method == 'USB':
+                    consts = -1.0 * ab_usb / b2_usb # ab* / bb* = a/b
+                elif self.settings.cal_method == 'Higher':
+                    ratios_usb = ab_usb / b2_usb
+                    ratios_lsb = ab_lsb / b2_lsb
+                    consts = -1.0 * get_higher_constants(ratios_lsb, ratios_usb)
+                elif self.settings.cal_method == 'Optimal':
                     consts = -1.0 *  (ab_usb + ab_lsb) / (b2_usb + b2_lsb)
 
                 # load constants
@@ -154,7 +156,7 @@ class DssCalibrator(Experiment):
         Sweep a tone through the receiver bandwidth and computes the USB
         ab paramters. The USB ab parameters are the power of the first input (a2),
         the power of the second input (b2), and the correlation between the inputs,
-        i.e. the first multpiplied by the conjugated of the second (ab), all
+        i.e. the first multiplied by the conjugated of the second (ab), all
         measured in the channel of the tone.
         The total number of  channels used for the computations depends in the config 
         file parameter cal_chnl_step. The channels not measured are interpolated.
@@ -175,7 +177,7 @@ class DssCalibrator(Experiment):
 
         for i, chnl in enumerate(self.cal_channels):
             # set generator frequency
-            self.rf_source.set_freq_mhz(rf_freqs[chnl])    
+            self.test_source.set_freq_mhz(rf_freqs[chnl])    
             # plot while the generator is changing to frequency to give the system time to update
             plt.pause(self.settings.pause_time) 
 
@@ -235,12 +237,10 @@ class DssCalibrator(Experiment):
         rf_freqs = lo_comb[0] - sum(lo_comb[1:]) - self.freqs
 
         cal_datadir = lo_datadir + '/cal_rawdata'
-        # creates directory for the raw calibration data
-        os.mkdir(cal_datadir)
 
         for i, chnl in enumerate(self.cal_channels):
             # set generator frequency
-            self.rf_source.set_freq_mhz(rf_freqs[chnl])    
+            self.test_source.set_freq_mhz(rf_freqs[chnl])    
             # plot while the generator is changing to frequency to give the system time to update
             plt.pause(self.settings.pause_time) 
 
@@ -262,12 +262,12 @@ class DssCalibrator(Experiment):
             # plot spec data
             [cal_a2_plot, cal_b2_plot] = \
                 self.scale_dbfs_spec_data([cal_a2, cal_b2], self.settings.spec_info)
-            self.calfigure_usb.axes[0].ploty(cal_a2_plot)
-            self.calfigure_usb.axes[1].ploty(cal_b2_plot)
+            self.calfigure_lsb.axes[0].ploty(cal_a2_plot)
+            self.calfigure_lsb.axes[1].ploty(cal_b2_plot)
 
             # plot the magnitude ratio and phase difference
-            self.calfigure_usb.axes[2].plotxy(self.cal_freqs[:i+1], np.abs(ab_ratios))
-            self.calfigure_usb.axes[3].plotxy(self.cal_freqs[:i+1], np.angle(ab_ratios, deg=True))
+            self.calfigure_lsb.axes[2].plotxy(self.cal_freqs[:i+1], np.abs(ab_ratios))
+            self.calfigure_lsb.axes[3].plotxy(self.cal_freqs[:i+1], np.angle(ab_ratios, deg=True))
 
         # plot last frequency
         plt.pause(self.settings.pause_time) 
@@ -284,12 +284,12 @@ class DssCalibrator(Experiment):
         Compute the noise power for the balanced mixer. It is assumed that
         the calibration constants were previously loaded.
         The total number of channels used for the noise power computations
-        can be controlled by the config file parameter srr_chnl_step.
+        can be controlled by the config file parameter syn_chnl_step.
         :param lo_comb: LO frequency combination for the test. Used to properly set
             the RF test input.
         :param lo_datadir: diretory for the data of the current LO frequency combination.
         """
-        niosep_usb = []
+        noisep_usb = []
         noisep_lsb = []
         rf_freqs_usb = lo_comb[0] + sum(lo_comb[1:]) + self.freqs
         rf_freqs_lsb = lo_comb[0] - sum(lo_comb[1:]) - self.freqs
@@ -299,47 +299,66 @@ class DssCalibrator(Experiment):
 
         for i, chnl in enumerate(self.syn_channels):
             # set generator at USB frequency
-            self.rf_source.set_freq_mhz(rf_freqs_usb[chnl])
+            self.test_source.set_freq_mhz(rf_freqs_usb[chnl])
             # plot while the generator is changing to frequency to give the system time to update
             plt.pause(self.settings.pause_time) 
             
             # get USB power data
             a2_tone_usb = self.fpga.get_bram_data_interleave(self.settings.synth_info)
-            noisep_usb.append(a2_tone_usb[chnl])
 
             # plot spec data
             a2_tone_usb_plot = self.scale_dbfs_spec_data(a2_tone_usb, self.settings.synth_info)
             self.synfigure.axes[0].ploty(a2_tone_usb_plot)
+            noisep_usb.append(a2_tone_usb_plot[chnl])
 
             # save syn rawdata
             np.savez(syn_datadir+'/usb_chnl_'+str(chnl), a2_tone_usb=a2_tone_usb)
 
             # plot noise power data
-            self.synfigure.axes[1].plotxy(self.srr_freqs[:i+1], noisep_usb)
+            self.synfigure.axes[1].plotxy(self.syn_freqs[:i+1], noisep_usb)
 
         for i, chnl in enumerate(self.syn_channels):
             # set generator at LSB frequency
-            self.rf_source.set_freq_mhz(rf_freqs_lsb[chnl])
+            self.test_source.set_freq_mhz(rf_freqs_lsb[chnl])
             # plot while the generator is changing to frequency to give the system time to update
             plt.pause(self.settings.pause_time) 
             
             # get LSB power data
             a2_tone_lsb = self.fpga.get_bram_data_interleave(self.settings.synth_info)
-            noisep_lsb.append(a2_tone_lsb[chnl])
 
             # plot spec data
             a2_tone_lsb_plot = self.scale_dbfs_spec_data(a2_tone_lsb, self.settings.synth_info)
             self.synfigure.axes[0].ploty(a2_tone_lsb_plot)
+            noisep_lsb.append(a2_tone_lsb_plot[chnl])
 
             # save syn rawdata
             np.savez(syn_datadir+'/lsb_chnl_'+str(chnl), a2_tone_lsb=a2_tone_lsb)
 
             # plot noise power data
-            self.synfigure.axes[2].plotxy(self.srr_freqs[:i+1], noisep_lsb)
+            self.synfigure.axes[2].plotxy(self.syn_freqs[:i+1], noisep_lsb)
 
         # plot last frequency
         plt.pause(self.settings.pause_time)
 
-        # save srr data
-        np.savez(lo_datadir+"/noisepow", noisepow_usb=noisepow_usb, 
-            noisepow_lsb=noisepow_lsb)
+        # save syn data
+        np.savez(lo_datadir+"/noisepow", noisepow_usb=noisep_usb, 
+            noisepow_lsb=noisep_lsb)
+
+def get_higher_constants(comp_consts1, comp_consts2):
+    """
+    Given two arrays of complex constants, generates a new array
+    with the constant woth higher absolute value (sqrt(zz*)) for each
+    array position. Used to get the constants in the 'Higher' of
+    calibration.
+    :comp_consts1: first array of complex constats.
+    :comp_consts2: second array of complex constats.
+    :return: array with the higher absolute values.
+    """
+    max_consts = []
+    for z1, z2 in zip(comp_consts1, comp_consts2):
+        if np.abs(z1) > np.abs(z2):
+            max_consts.append(z1) 
+        else:
+            max_consts.append(z2)
+
+    return np.array(max_consts)

@@ -58,7 +58,7 @@ class DssCalibrator(Experiment):
         self.srrfigure.create_axis(3, SrrAxis, self.freqs, 'SRR LSB')
 
         # data save attributes
-        self.dataname = os.path.splitext(self.settings.boffile)[0]
+        self.dataname = self.settings.boffile[:self.settings.boffile.index('.')]
         self.dataname = 'dsstest ' + self.dataname + ' '
         self.datadir = self.dataname + '_' + datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
         os.mkdir(self.datadir)

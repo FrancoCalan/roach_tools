@@ -28,7 +28,7 @@ class SpectraAnimator(Animator):
         # save button/entry
         self.add_save_widgets('spec_data')
         # reset button
-        self.add_reset_button('cnt_rst', 'Reset')
+        self.add_reset_button(self.settings.reset_regs, 'Reset')
         # acc_len entry
         self.add_reg_entry(self.settings.spec_info['acc_len_reg'])
 

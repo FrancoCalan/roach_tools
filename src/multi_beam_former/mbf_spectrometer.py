@@ -16,16 +16,6 @@ class MBFSpectrometer(SpectraAnimator):
             nspecs =len(self.settings.spec_titles)
             write_phasor_reg_list(self.fpga, nspecs*[1], range(nspecs), self.settings.cal_phase_info)
         
-#    def get_data(self):
-#        """
-#        Gets the spectra data from the mbf model. As per model design all data is synced.
-#        :return: spectral data.
-#        """
-#        spec_data = self.fpga.get_bram_data_sync(self.settings.spec_info)
-#        spec_data = self.scale_dbfs_spec_data(spec_data, self.settings.spec_info)
-#        
-#        return spec_data
-
 def write_phasor_reg(fpga, phasor, addrs, phase_bank_info, verbose=True):
     """
     Writes a phasor (complex) constant into a register from a register bank

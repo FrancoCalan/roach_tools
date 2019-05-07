@@ -134,9 +134,7 @@ class CalanFpga():
             self.set_reg(reg['name'], reg['val'])
             
         print 'Resetting registers:'
-        for reg in self.settings.reset_regs:
-            self.reset_reg(reg)
-
+        self.reset_regs(self.settings.reset_regs)
         print 'Done setting and reseting registers'
 
     def set_reg(self, reg, val, verbose=True):
@@ -151,6 +149,15 @@ class CalanFpga():
         self.fpga.write_int(reg, val)
         if verbose:
             print '\tdone'
+    
+    def reset_regs(self, regs, verbose=True):
+        """
+        Reset a list of registers.
+        :param: register list.
+        :param: verbose: True: be verbose.
+        """
+        for reg in regs:
+            self.reset_reg(reg, verbose)
 
     def reset_reg(self, reg, verbose=True):
         """

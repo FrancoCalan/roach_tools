@@ -62,16 +62,16 @@ class Animator(Plotter):
             raise Exception('Unable to parse value in textbox: ' + string_val)
         self.fpga.set_reg(reg, val)
 
-    def add_reset_button(self, reg_name, button_text):
+    def add_reset_button(self, regs_name, button_text):
         """
         Add reset button to the button panel of the GUI.
-        Once pressed, the register is reset, that is, is set to 1 and
+        Once pressed, the registers are reset, that is, is set to 1 and
         the 0 immediately.
-        :param reg_name: name of the register affected by the button.
+        :param regs_name: list of names of the registers affected by the button.
         :param button_text: default text to display in the button.
         """
         reset_button = Tk.Button(self.button_frame, text=button_text)
-        reset_button.config(command=lambda: self.fpga.reset_reg(reg_name))
+        reset_button.config(command=lambda: self.fpga.reset_regs(regs_name))
         reset_button.pack(side=Tk.LEFT)
 
     def add_push_button(self, reg_name, button_text_raised, button_text_sunken):

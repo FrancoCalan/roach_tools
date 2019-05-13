@@ -66,6 +66,7 @@ class BmCalibrator(Experiment):
                          'nchannels'        : self.nchannels,
                          'cal_acc_len'      : self.fpga.read_reg(self.settings.spec_info['acc_len_reg']),
                          'syn_acc_len'      : self.fpga.read_reg(self.settings.synth_info['acc_len_reg']),
+                         'saved_params'     : self.settings.saved_params,
                          'cal_method'       : self.settings.cal_method,
                          'cal_chnl_step'    : self.settings.cal_chnl_step,
                          'syn_chnl_step'    : self.settings.syn_chnl_step,
@@ -92,22 +93,34 @@ class BmCalibrator(Experiment):
             for i, lo in enumerate(lo_comb):
                 self.lo_sources[i].set_freq_mhz(lo)
                 
-                if self.settings.cal_method is not 'Ideal':
-                    # compute calibration constants (sideband ratios)
-                    print "\tComputing ab parameters, tone in USB..."; step_time = time.time()
-                    self.calfigure_usb.set_window_title('Calibration USB ' + lo_label)
-                    a2_usb, b2_usb, ab_usb = self.compute_ab_params_usb(lo_comb, lo_datadir)
+                # load ab params from saved file
+                if self.settings.saved_params['use_saved']:
+                    print "\tLoading ab parameters from file..."; step_time = time.time()
+                    tar_datafile = tarfile.open(self.settings.saved_params['datadir'])
+                    ab_datafile = tar_datafile.extractfile(lo_label + '/ab_params.npz')
+                    ab_data = np.load(ab_datafile)
+                    a2_usb = ab_data['a2_usb']; b2_usb = ab_data['b2_usb']; ab_usb = ab_data['ab_usb']
+                    a2_lsb = ab_data['a2_lsb']; b2_lsb = ab_data['b2_lsb']; ab_lsb = ab_data['ab_lsb']
                     print "\tdone (" + str(time.time() - step_time) + "[s])" 
 
-                    print "\tComputing ab parameters, tone in LSB..."; step_time = time.time()
-                    self.calfigure_lsb.set_window_title('Calibration LSB ' + lo_label)
-                    a2_lsb, b2_lsb, ab_lsb = self.compute_ab_params_lsb(lo_comb, lo_datadir)
-                    print "\tdone (" + str(time.time() - step_time) + "[s])"
+                # measure params
+                else:
+                    if self.settings.cal_method is not 'Ideal':
+                        # compute calibration constants (sideband ratios)
+                        print "\tComputing ab parameters, tone in USB..."; step_time = time.time()
+                        self.calfigure_usb.set_window_title('Calibration USB ' + lo_label)
+                        a2_usb, b2_usb, ab_usb = self.compute_ab_params_usb(lo_comb, lo_datadir)
+                        print "\tdone (" + str(time.time() - step_time) + "[s])" 
 
-                    # save ab params
-                    np.savez(lo_datadir+'/ab_params', 
-                        a2_usb=a2_usb, b2_usb=b2_usb, ab_usb=ab_usb,
-                        a2_lsb=a2_lsb, b2_lsb=b2_lsb, ab_lsb=ab_lsb)
+                        print "\tComputing ab parameters, tone in LSB..."; step_time = time.time()
+                        self.calfigure_lsb.set_window_title('Calibration LSB ' + lo_label)
+                        a2_lsb, b2_lsb, ab_lsb = self.compute_ab_params_lsb(lo_comb, lo_datadir)
+                        print "\tdone (" + str(time.time() - step_time) + "[s])"
+
+                        # save ab params
+                        np.savez(lo_datadir+'/ab_params', 
+                            a2_usb=a2_usb, b2_usb=b2_usb, ab_usb=ab_usb,
+                            a2_lsb=a2_lsb, b2_lsb=b2_lsb, ab_lsb=ab_lsb)
 
                 # constant computation
                 if self.settings.cal_method == 'Ideal':
@@ -138,6 +151,9 @@ class BmCalibrator(Experiment):
         # turn off sources
         turn_off_sources(self.sources)
 
+        # print noisepow (full) plot
+        self.print_noisepow_plot()
+
         # compress saved data
         print "\tCompressing data..."; step_time = time.time()
         tar = tarfile.open(self.datadir + ".tar.gz", "w:gz")
@@ -162,8 +178,8 @@ class BmCalibrator(Experiment):
         file parameter cal_chnl_step. The channels not measured are interpolated.
         :param lo_comb: LO frequency combination for the test. Used to properly set
             the RF test input.
-        :param lo_datadir: diretory for the data of the current LO frequency combination.
-        :return: 
+        :param lo_datadir: directory for the data of the current LO frequency combination.
+        :return: ab parameters.
         """
         a2_arr    = []
         b2_arr    = []
@@ -190,11 +206,24 @@ class BmCalibrator(Experiment):
             # save cal rawdata
             np.savez(cal_datadir + '/usb_chnl_' + str(chnl), 
                 cal_a2=cal_a2, cal_b2=cal_b2, cal_ab_re=cal_ab_re, cal_ab_im=cal_ab_im)
+            # compute ratio
+            ab = cal_ab_re[chnl] + 1j*cal_ab_im[chnl]
+
+            # compute ratio
+            ab = cal_ab_re[chnl] + 1j*cal_ab_im[chnl]
+
 
             # compute ratio
             ab = cal_ab_re[chnl] + 1j*cal_ab_im[chnl]
             ab_arr.append(ab)
             ab_ratios.append(np.conj(ab) / cal_a2[chnl]) # (ab*)* / aa* = a*b / aa* = b/a
+
+            [cal_a2_plot, cal_b2_plot] = \
+                self.scale_dbfs_spec_data([cal_a2, cal_b2], self.settings.spec_info)
+            self.calfigure_usb.axes[0].ploty(cal_a2_plot)
+            self.calfigure_usb.axes[1].ploty(cal_b2_plot)
+
+            # plot the magnitude ratio and phase difference
 
             # plot spec data
             [cal_a2_plot, cal_b2_plot] = \
@@ -203,8 +232,8 @@ class BmCalibrator(Experiment):
             self.calfigure_usb.axes[1].ploty(cal_b2_plot)
 
             # plot the magnitude ratio and phase difference
-            self.calfigure_usb.axes[2].plotxy(self.cal_freqs[:i+1], np.abs(ab_ratios))
-            self.calfigure_usb.axes[3].plotxy(self.cal_freqs[:i+1], np.angle(ab_ratios, deg=True))
+            self.calfigure_usb.axes[2].plotxy(self.cal_freqs[:i+1], [np.abs(ab_ratios)])
+            self.calfigure_usb.axes[3].plotxy(self.cal_freqs[:i+1], [np.angle(ab_ratios, deg=True)])
 
         # plot last frequency
         plt.pause(self.settings.pause_time) 
@@ -227,8 +256,8 @@ class BmCalibrator(Experiment):
         file parameter cal_chnl_step. The channels not measured are interpolated.
         :param lo_comb: LO frequency combination for the test. Used to properly set
             the RF test input.
-        :param lo_datadir: diretory for the data of the current LO frequency combination.
-        :return: 
+        :param lo_datadir: directory for the data of the current LO frequency combination.
+        :return: ab parameters.
         """
         a2_arr    = []
         b2_arr    = []
@@ -266,8 +295,8 @@ class BmCalibrator(Experiment):
             self.calfigure_lsb.axes[1].ploty(cal_b2_plot)
 
             # plot the magnitude ratio and phase difference
-            self.calfigure_lsb.axes[2].plotxy(self.cal_freqs[:i+1], np.abs(ab_ratios))
-            self.calfigure_lsb.axes[3].plotxy(self.cal_freqs[:i+1], np.angle(ab_ratios, deg=True))
+            self.calfigure_lsb.axes[2].plotxy(self.cal_freqs[:i+1], [np.abs(ab_ratios)])
+            self.calfigure_lsb.axes[3].plotxy(self.cal_freqs[:i+1], [np.angle(ab_ratios], deg=True))
 
         # plot last frequency
         plt.pause(self.settings.pause_time) 
@@ -289,8 +318,8 @@ class BmCalibrator(Experiment):
             the RF test input.
         :param lo_datadir: diretory for the data of the current LO frequency combination.
         """
-        noisep_usb = []
-        noisep_lsb = []
+        noisepow_usb = []
+        noisepow_lsb = []
         rf_freqs_usb = lo_comb[0] + sum(lo_comb[1:]) + self.freqs
         rf_freqs_lsb = lo_comb[0] - sum(lo_comb[1:]) - self.freqs
 
@@ -309,13 +338,13 @@ class BmCalibrator(Experiment):
             # plot spec data
             a2_tone_usb_plot = self.scale_dbfs_spec_data(a2_tone_usb, self.settings.synth_info)
             self.synfigure.axes[0].ploty(a2_tone_usb_plot)
-            noisep_usb.append(a2_tone_usb_plot[chnl])
+            noisepow_usb.append(a2_tone_usb_plot[chnl])
 
             # save syn rawdata
             np.savez(syn_datadir+'/usb_chnl_'+str(chnl), a2_tone_usb=a2_tone_usb)
 
             # plot noise power data
-            self.synfigure.axes[1].plotxy(self.syn_freqs[:i+1], noisep_usb)
+            self.synfigure.axes[1].plotxy(self.syn_freqs[:i+1], noisepow_usb)
 
         for i, chnl in enumerate(self.syn_channels):
             # set generator at LSB frequency
@@ -329,20 +358,42 @@ class BmCalibrator(Experiment):
             # plot spec data
             a2_tone_lsb_plot = self.scale_dbfs_spec_data(a2_tone_lsb, self.settings.synth_info)
             self.synfigure.axes[0].ploty(a2_tone_lsb_plot)
-            noisep_lsb.append(a2_tone_lsb_plot[chnl])
+            noisepow_lsb.append(a2_tone_lsb_plot[chnl])
 
             # save syn rawdata
             np.savez(syn_datadir+'/lsb_chnl_'+str(chnl), a2_tone_lsb=a2_tone_lsb)
 
             # plot noise power data
-            self.synfigure.axes[2].plotxy(self.syn_freqs[:i+1], noisep_lsb)
+            self.synfigure.axes[2].plotxy(self.syn_freqs[:i+1], noisepow_lsb)
 
         # plot last frequency
         plt.pause(self.settings.pause_time)
 
         # save syn data
-        np.savez(lo_datadir+"/noisepow", noisepow_usb=noisep_usb, 
-            noisepow_lsb=noisep_lsb)
+        np.savez(lo_datadir+"/noisepow", noisepow_usb=noisepow_usb,
+            noisepow_lsb=noisepow_lsb)
+
+    def print_noisepow_plot(self):
+        """
+        Print noise power plot using the data saved from the test.
+        """
+        fig = plt.figure()
+        for lo_comb in self.lo_combinations:
+            lo_label = '_'.join(['LO'+str(i+1)+'_'+str(lo/1e3)+'GHZ' for i,lo in enumerate(lo_comb)]) 
+            datadir = self.datadir + '/' + lo_label
+
+            noisepow_data = np.load(datadir + '/noisepow.npz')
+            
+            usb_freqs = lo_comb[0]/1.0e3 + sum(lo_comb[1:])/1.0e3 + self.syn_freqs
+            lsb_freqs = lo_comb[0]/1.0e3 - sum(lo_comb[1:])/1.0e3 - self.syn_freqs
+            
+            plt.plot(usb_freqs, noisepow_data['noisepow_usb'], '-r')
+            plt.plot(lsb_freqs, noisepow_data['noisepow_lsb'], '-b')
+            plt.grid()
+            plt.xlabel('Frequency [GHz]')
+            plt.ylabel('Noise Power [dB]')
+        
+        plt.savefig(self.datadir + '/noisepow.pdf', bbox_inches='tight')
 
 def get_higher_constants(comp_consts1, comp_consts2):
     """

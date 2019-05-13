@@ -26,7 +26,10 @@ class MultiLineAxis(LineAxis):
         :param xdata: data for the x-axis.
         :param ydata_list: list of arrays with the data to plot.
         """
-        for line, ydata in zip(self.lines[:len(ydata_list)], ydata_list):
+        if len(self.lines) is not len(ydata_list):
+            print "WARNING: number of lines and number of data lists does not match for multiline axis."
+            
+        for line, ydata in zip(self.lines, ydata_list):
             line.set_data(xdata, ydata)
 
     def gen_data_dict(self):

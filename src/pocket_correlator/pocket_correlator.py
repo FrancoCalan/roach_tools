@@ -45,7 +45,7 @@ class PocketCorrelator(Experiment):
 
         # data save attributes
         self.dataname = os.path.splitext(self.settings.boffile)[0]
-        self.dataname = 'frequency_response ' + self.dataname + ' '
+        self.dataname = 'pocket_correlator ' + self.dataname + ' '
         self.datadir = self.dataname + datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
         self.testinfo = {'bw'           : self.bw,
                          'nchannels'    : self.nchannels,

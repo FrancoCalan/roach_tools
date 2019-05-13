@@ -145,7 +145,7 @@ class DssCalibrator(Experiment):
         turn_off_sources(self.sources)
 
         # print srr (full) plot
-        self.print_srr_plot(self.lo_combinations)
+        self.print_srr_plot()
 
         # compress saved data
         print "\tCompressing data..."; step_time = time.time()
@@ -241,8 +241,8 @@ class DssCalibrator(Experiment):
             self.calfigure_usb.axes[1].ploty(cal_b2_plot)
 
             # plot the magnitude ratio and phase difference
-            self.calfigure_usb.axes[2].plotxy(self.cal_freqs[:i+1], np.abs(sb_ratios))
-            self.calfigure_usb.axes[3].plotxy(self.cal_freqs[:i+1], np.angle(sb_ratios, deg=True))
+            self.calfigure_usb.axes[2].plotxy(self.cal_freqs[:i+1], [np.abs(sb_ratios)])
+            self.calfigure_usb.axes[3].plotxy(self.cal_freqs[:i+1], [np.angle(sb_ratios, deg=True)])
 
         # plot last frequency
         plt.pause(self.settings.pause_time) 
@@ -294,8 +294,8 @@ class DssCalibrator(Experiment):
             self.calfigure_lsb.axes[1].ploty(cal_b2_plot)
             
             # plot the magnitude ratio and phase difference
-            self.calfigure_lsb.axes[2].plotxy(self.cal_freqs[:i+1], np.abs(sb_ratios))
-            self.calfigure_lsb.axes[3].plotxy(self.cal_freqs[:i+1], np.angle(sb_ratios, deg=True))
+            self.calfigure_lsb.axes[2].plotxy(self.cal_freqs[:i+1], [np.abs(sb_ratios)])
+            self.calfigure_lsb.axes[3].plotxy(self.cal_freqs[:i+1], [np.angle(sb_ratios, deg=True)])
 
         # plot last frequency
         plt.pause(self.settings.pause_time) 
@@ -382,21 +382,19 @@ class DssCalibrator(Experiment):
         # save srr data
         np.savez(lo_datadir+"/srr", srr_usb=srr_usb, srr_lsb=srr_lsb)
 
-    def print_srr_plot(self, lo_combinations):
+    def print_srr_plot(self):
         """
         Print SRR plot using the data saved from the test.
-        :lo_combination: list of lo combinations used for the DSS calibration.
         """
-        srr_freqs = np.array([self.freqs[chnl]/1.0e3 for chnl in self.srr_channels])
         fig = plt.figure()
-        for lo_comb in lo_combinations:
+        for lo_comb in self.lo_combinations:
             lo_label = '_'.join(['LO'+str(i+1)+'_'+str(lo/1e3)+'GHZ' for i,lo in enumerate(lo_comb)]) 
             datadir = self.datadir + '/' + lo_label
 
             srrdata = np.load(datadir + '/srr.npz')
             
-            usb_freqs = lo_comb[0]/1.0e3 + sum(lo_comb[1:])/1.0e3 + srr_freqs
-            lsb_freqs = lo_comb[0]/1.0e3 - sum(lo_comb[1:])/1.0e3 - srr_freqs
+            usb_freqs = lo_comb[0]/1.0e3 + sum(lo_comb[1:])/1.0e3 + self.srr_freqs
+            lsb_freqs = lo_comb[0]/1.0e3 - sum(lo_comb[1:])/1.0e3 - self.srr_freqs
             
             plt.plot(usb_freqs, srrdata['srr_usb'], '-r')
             plt.plot(lsb_freqs, srrdata['srr_lsb'], '-b')

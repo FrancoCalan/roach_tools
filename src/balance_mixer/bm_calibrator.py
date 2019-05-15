@@ -296,7 +296,7 @@ class BmCalibrator(Experiment):
 
             # plot the magnitude ratio and phase difference
             self.calfigure_lsb.axes[2].plotxy(self.cal_freqs[:i+1], [np.abs(ab_ratios)])
-            self.calfigure_lsb.axes[3].plotxy(self.cal_freqs[:i+1], [np.angle(ab_ratios], deg=True))
+            self.calfigure_lsb.axes[3].plotxy(self.cal_freqs[:i+1], [np.angle(ab_ratios, deg=True)])
 
         # plot last frequency
         plt.pause(self.settings.pause_time) 

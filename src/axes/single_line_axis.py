@@ -9,7 +9,7 @@ class SingleLineAxis(LineAxis):
         LineAxis.__init__(self, ax, xdata, title)
         self.line = self.ax.plot([], [], lw=2)[0]
 
-    def ploty(self, ydata):
+    def plot(self, ydata):
         """
         Plot y-data in axis using the default x-data.
         :param ydata: array with data to plot.

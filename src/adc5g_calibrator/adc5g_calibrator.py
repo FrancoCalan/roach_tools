@@ -62,7 +62,7 @@ class Adc5gCalibrator(Experiment):
         if self.settings.plot_snapshots:
             uncal_snaps = self.fpga.get_snapshots(self.settings.snap_samples)
             for axis, uncal_snap in zip(self.snapfigure.axes, uncal_snaps):
-                axis.ploty([[uncal_snap[0]], [uncal_snap[1]]])
+                axis.plot([[uncal_snap[0]], [uncal_snap[1]]])
             plt.pause(1)
         
         # pre calibration spectrum plots
@@ -75,7 +75,7 @@ class Adc5gCalibrator(Experiment):
             for axis, uncal_snap in zip(self.specfigure.axes, uncal_snaps_full):
                 uncal_spec = np.square(np.abs(np.fft.rfft(uncal_snap)[:-1] / np.sqrt(self.nchannels))) # the sqrt(nchannels) is a workaround for nice plots
                 uncal_spec = linear_to_dBFS(uncal_spec, dummy_spec_info)
-                axis.ploty([[uncal_spec[0]], [uncal_spec[1]]])
+                axis.plot([[uncal_spec[0]], [uncal_spec[1]]])
             plt.pause(1)
 
         # perform calibrations indicated in configuration file
@@ -101,7 +101,7 @@ class Adc5gCalibrator(Experiment):
         if self.settings.plot_snapshots:
             cal_snaps = self.fpga.get_snapshots(self.settings.snap_samples)
             for axis, uncal_snap, cal_snap in zip(self.snapfigure.axes, uncal_snaps, cal_snaps):
-                axis.ploty([[uncal_snap[0], cal_snap[0]], [uncal_snap[1], cal_snap[1]]])
+                axis.plot([[uncal_snap[0], cal_snap[0]], [uncal_snap[1], cal_snap[1]]])
             plt.pause(1)
 
         # post calibration spectrum plots
@@ -112,7 +112,7 @@ class Adc5gCalibrator(Experiment):
                 uncal_spec = linear_to_dBFS(uncal_spec, dummy_spec_info)
                 cal_spec = np.square(np.abs(np.fft.rfft(cal_snap)[:-1] / np.sqrt(self.nchannels))) # the sqrt(nchannels) is a workaround for nice plots
                 cal_spec = linear_to_dBFS(cal_spec, dummy_spec_info)
-                axis.ploty([[uncal_spec[0], cal_spec[0]], [uncal_spec[1], cal_spec[1]]])
+                axis.plot([[uncal_spec[0], cal_spec[0]], [uncal_spec[1], cal_spec[1]]])
             plt.pause(1)
         
         # if doing ogp or inl calibrations...

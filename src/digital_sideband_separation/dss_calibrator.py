@@ -173,8 +173,8 @@ class DssCalibrator(Experiment):
         # plot spec data
         [a2_cold_plot, b2_cold_plot] = \
             self.scale_dbfs_spec_data([a2_cold, b2_cold], self.settings.spec_info)
-        self.calfigure_usb.axes[0].ploty(a2_cold_plot)
-        self.calfigure_usb.axes[1].ploty(b2_cold_plot)
+        self.calfigure_usb.axes[0].plot(a2_cold_plot)
+        self.calfigure_usb.axes[1].plot(b2_cold_plot)
         plt.pause(self.settings.pause_time) 
 
         # make the receiver hot
@@ -184,8 +184,8 @@ class DssCalibrator(Experiment):
         # plot spec data
         [a2_hot_plot, b2_hot_plot] = \
             self.scale_dbfs_spec_data([a2_hot, b2_hot], self.settings.spec_info)
-        self.calfigure_usb.axes[0].ploty(a2_hot_plot)
-        self.calfigure_usb.axes[1].ploty(b2_hot_plot)
+        self.calfigure_usb.axes[0].plot(a2_hot_plot)
+        self.calfigure_usb.axes[1].plot(b2_hot_plot)
         plt.pause(self.settings.pause_time) 
 
         # Compute Kerr's parameter.
@@ -237,8 +237,8 @@ class DssCalibrator(Experiment):
             # plot spec data
             [cal_a2_plot, cal_b2_plot] = \
                 self.scale_dbfs_spec_data([cal_a2, cal_b2], self.settings.spec_info)
-            self.calfigure_usb.axes[0].ploty(cal_a2_plot)
-            self.calfigure_usb.axes[1].ploty(cal_b2_plot)
+            self.calfigure_usb.axes[0].plot(cal_a2_plot)
+            self.calfigure_usb.axes[1].plot(cal_b2_plot)
 
             # plot the magnitude ratio and phase difference
             self.calfigure_usb.axes[2].plotxy(self.cal_freqs[:i+1], [np.abs(sb_ratios)])
@@ -290,8 +290,8 @@ class DssCalibrator(Experiment):
             # plot spec data
             [cal_a2_plot, cal_b2_plot] = \
                 self.scale_dbfs_spec_data([cal_a2, cal_b2], self.settings.spec_info)
-            self.calfigure_lsb.axes[0].ploty(cal_a2_plot)
-            self.calfigure_lsb.axes[1].ploty(cal_b2_plot)
+            self.calfigure_lsb.axes[0].plot(cal_a2_plot)
+            self.calfigure_lsb.axes[1].plot(cal_b2_plot)
             
             # plot the magnitude ratio and phase difference
             self.calfigure_lsb.axes[2].plotxy(self.cal_freqs[:i+1], [np.abs(sb_ratios)])
@@ -336,8 +336,8 @@ class DssCalibrator(Experiment):
             # plot spec data
             [a2_tone_usb_plot, b2_tone_usb_plot] = \
                 self.scale_dbfs_spec_data([a2_tone_usb, b2_tone_usb], self.settings.synth_info)
-            self.srrfigure.axes[0].ploty(a2_tone_usb_plot)
-            self.srrfigure.axes[1].ploty(b2_tone_usb_plot)
+            self.srrfigure.axes[0].plot(a2_tone_usb_plot)
+            self.srrfigure.axes[1].plot(b2_tone_usb_plot)
 
             # set generator at LSB frequency
             self.rf_source.set_freq_mhz(rf_freqs_lsb[chnl])
@@ -354,8 +354,8 @@ class DssCalibrator(Experiment):
             # plot spec data
             [a2_tone_lsb_plot, b2_tone_lsb_plot] = \
                 self.scale_dbfs_spec_data([a2_tone_lsb, b2_tone_lsb], self.settings.synth_info)
-            self.srrfigure.axes[0].ploty(a2_tone_lsb_plot)
-            self.srrfigure.axes[1].ploty(b2_tone_lsb_plot)
+            self.srrfigure.axes[0].plot(a2_tone_lsb_plot)
+            self.srrfigure.axes[1].plot(b2_tone_lsb_plot)
 
             # Compute sideband ratios
             ratio_usb = np.divide(a2_tone_usb[chnl], b2_tone_usb[chnl], dtype=np.float64)

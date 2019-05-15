@@ -14,7 +14,7 @@ class MatrixAxis(CalanAxis):
         self.colorbar = self.fig.colorbar(self.img)
         self.colorbar.set_label(cbar_label)
 
-    def ploty(self, plot_data):
+    def plot(self, plot_data):
         """
         Plot matrix data using imshow.
         """

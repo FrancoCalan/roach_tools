@@ -66,11 +66,11 @@ class CalanFigure():
             depends on the type of axis.
         """
         if len(self.axes) == 1: # case single plot
-            self.axes[0].ploty(data)
+            self.axes[0].plot(data)
             
         else: # case multiple plots
             for axis, data_el in zip(self.axes, data):
-                axis.ploty(data_el)
+                axis.plot(data_el)
 
     def get_save_data(self):
         """

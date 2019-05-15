@@ -13,7 +13,7 @@ class MultiLineAxis(LineAxis):
             self.lines.append(self.ax.plot([], [], lw=2, label=legend)[0])
         self.ax.legend()
 
-    def ploty(self, ydata_list):
+    def plot(self, ydata_list):
         """
         Plot y-data in axis using the default x-data.
         :param ydata_list: list of arrays with data to plot.

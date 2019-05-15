@@ -82,7 +82,7 @@ class PocketCorrelator(Experiment):
             # plot spectrum
             spec_data_dbfs = self.scale_dbfs_spec_data(spec_data, self.settings.spec_info)
             for j, spec in enumerate(spec_data_dbfs):
-                self.figure.axes[j].ploty(spec)
+                self.figure.axes[j].plot(spec)
             
             # plot the magnitude ratio and phase difference
             self.figure.axes[-2].plotxy(self.test_freqs[:i+1], np.abs(ratios))

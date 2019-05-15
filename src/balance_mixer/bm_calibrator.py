@@ -220,16 +220,16 @@ class BmCalibrator(Experiment):
 
             [cal_a2_plot, cal_b2_plot] = \
                 self.scale_dbfs_spec_data([cal_a2, cal_b2], self.settings.spec_info)
-            self.calfigure_usb.axes[0].ploty(cal_a2_plot)
-            self.calfigure_usb.axes[1].ploty(cal_b2_plot)
+            self.calfigure_usb.axes[0].plot(cal_a2_plot)
+            self.calfigure_usb.axes[1].plot(cal_b2_plot)
 
             # plot the magnitude ratio and phase difference
 
             # plot spec data
             [cal_a2_plot, cal_b2_plot] = \
                 self.scale_dbfs_spec_data([cal_a2, cal_b2], self.settings.spec_info)
-            self.calfigure_usb.axes[0].ploty(cal_a2_plot)
-            self.calfigure_usb.axes[1].ploty(cal_b2_plot)
+            self.calfigure_usb.axes[0].plot(cal_a2_plot)
+            self.calfigure_usb.axes[1].plot(cal_b2_plot)
 
             # plot the magnitude ratio and phase difference
             self.calfigure_usb.axes[2].plotxy(self.cal_freqs[:i+1], [np.abs(ab_ratios)])
@@ -291,8 +291,8 @@ class BmCalibrator(Experiment):
             # plot spec data
             [cal_a2_plot, cal_b2_plot] = \
                 self.scale_dbfs_spec_data([cal_a2, cal_b2], self.settings.spec_info)
-            self.calfigure_lsb.axes[0].ploty(cal_a2_plot)
-            self.calfigure_lsb.axes[1].ploty(cal_b2_plot)
+            self.calfigure_lsb.axes[0].plot(cal_a2_plot)
+            self.calfigure_lsb.axes[1].plot(cal_b2_plot)
 
             # plot the magnitude ratio and phase difference
             self.calfigure_lsb.axes[2].plotxy(self.cal_freqs[:i+1], [np.abs(ab_ratios)])
@@ -337,7 +337,7 @@ class BmCalibrator(Experiment):
 
             # plot spec data
             a2_tone_usb_plot = self.scale_dbfs_spec_data(a2_tone_usb, self.settings.synth_info)
-            self.synfigure.axes[0].ploty(a2_tone_usb_plot)
+            self.synfigure.axes[0].plot(a2_tone_usb_plot)
             noisepow_usb.append(a2_tone_usb_plot[chnl])
 
             # save syn rawdata
@@ -357,7 +357,7 @@ class BmCalibrator(Experiment):
 
             # plot spec data
             a2_tone_lsb_plot = self.scale_dbfs_spec_data(a2_tone_lsb, self.settings.synth_info)
-            self.synfigure.axes[0].ploty(a2_tone_lsb_plot)
+            self.synfigure.axes[0].plot(a2_tone_lsb_plot)
             noisepow_lsb.append(a2_tone_lsb_plot[chnl])
 
             # save syn rawdata

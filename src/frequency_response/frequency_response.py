@@ -69,7 +69,7 @@ class FrequencyResponse(Experiment):
                 freq_resp[j].append(spec[chnl])
 
                 # plot spectrum and frequency response
-                self.figure.axes[j].ploty(spec)
+                self.figure.axes[j].plot(spec)
                 self.figure.axes[j+self.n_inputs].plotxy(partial_freqs, freq_resp[j])
             
             plt.pause(self.settings.pause_time)

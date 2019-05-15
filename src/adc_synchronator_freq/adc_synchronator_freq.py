@@ -78,8 +78,8 @@ class AdcSynchronatorFreq(Experiment):
                 # plot spec data
                 [a2_plot, b2_plot] = \
                     self.scale_dbfs_spec_data([a2, b2], self.settings.specsync_info)
-                self.figure.axes[0].ploty(a2_plot)
-                self.figure.axes[1].ploty(b2_plot)
+                self.figure.axes[0].plot(a2_plot)
+                self.figure.axes[1].plot(b2_plot)
 
                 # plot magnitude ratio and angle difference
                 self.figure.axes[2].plotxy(self.test_freqs[:i+1], [np.abs(spec_ratios)])

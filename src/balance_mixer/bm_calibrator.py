@@ -143,10 +143,11 @@ class BmCalibrator(Experiment):
                 print "\tdone (" + str(time.time() - step_time) + "[s])"
 
                 # compute Noise Power
-                print "\tComputing Noise Power..."; step_time = time.time()
-                self.synfigure.fig.canvas.set_window_title('Noise Power Computation ' + lo_label)
-                self.compute_noisepow(lo_comb, lo_datadir)
-                print "\tdone (" + str(time.time() - step_time) + "[s])"
+                if self.settings.compute_noise:
+                    print "\tComputing Noise Power..."; step_time = time.time()
+                    self.synfigure.fig.canvas.set_window_title('Noise Power Computation ' + lo_label)
+                    self.compute_noisepow(lo_comb, lo_datadir)
+                    print "\tdone (" + str(time.time() - step_time) + "[s])"
 
         # turn off sources
         turn_off_sources(self.sources)

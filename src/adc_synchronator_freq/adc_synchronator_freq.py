@@ -68,8 +68,8 @@ class AdcSynchronatorFreq(Experiment):
                 plt.pause(self.settings.pause_time)
 
                 # get power-crosspower data
-                a2, b2 = self.fpga.get_bram_data_interleave(self.settings.specsync_info)
-                ab_re, ab_im = self.fpga.get_bram_data_interleave(self.settings.crosspowsync_info)
+                a2, b2 = self.fpga.get_bram_data(self.settings.specsync_info)
+                ab_re, ab_im = self.fpga.get_bram_data(self.settings.crosspowsync_info)
 
                 # compute constant
                 ab = ab_re[chnl] + 1j*ab_im[chnl]

@@ -8,16 +8,18 @@ class CalanFpga():
     """
     Wrapper around corr's FpgaClient in order to add common functions used in 
     Calan Lab (Millimeter Wave Laboratory, Univerity of Chile). Examples of the
-    funtions added are: roach initialization, regiter setting/reseting, easy data
-    grab from multiple snapshots, bram arrays, interleave bram arrays, etc.
+    funtions added are: roach initialization, regiter setting/reseting, easy 
+    data grab from multiple snapshots, bram arrays, interleave bram arrays, 
+    etc.
     """
     def __init__(self):
         """
-        Initialize the CalanFpga object. You must specify the config file as the
-        second argument in the command-line arguments.
+        Initialize the CalanFpga object. You must specify the config file as
+        the second argument in the command-line arguments.
         """
         if len(sys.argv) <= 1:
-            print("Please provide a config file as a command line argument: " + os.path.basename(sys.argv[0]) + " [config file]")  
+            print("Please provide a config file as a command line argument: " +
+                os.path.basename(sys.argv[0]) + " [config file]")  
             exit()
         config_file = os.path.splitext(sys.argv[1])[0]
         self.settings = importlib.import_module(config_file)
@@ -28,7 +30,8 @@ class CalanFpga():
         if self.settings.simulated:
             self.fpga = DummyFpga(self.settings)
         else:
-            self.fpga = corr.katcp_wrapper.FpgaClient(self.settings.roach_ip, self.settings.roach_port)
+            self.fpga = corr.katcp_wrapper.FpgaClient(self.settings.roach_ip, 
+                self.settings.roach_port)
             time.sleep(1)
     
     def parse_commandline_args(self, arg_list):
@@ -41,19 +44,23 @@ class CalanFpga():
             of elements in the list should be even, with the even positioned
             elements being the attributes to be modified in self.settings,
             with the following element being the new value of said attribute. 
-            For example: "spectra_animator.py spectra_config.py --boffile newmodel.bof.gz"
+            For example: 
+            "spectra_animator.py spectra_config.py --boffile newmodel.bof.gz"
         """
         if len(arg_list) % 2 == 1:
-            print("Error. The number of additional command line arguments must be even.")
+            print("Error. The number of additional command line arguments" \
+                "must be even.")
             exit()
 
         for attrname, attrval in zip(arg_list[0::2], arg_list[1::2]):
             if attrname[0:2] != "--":
                 print("Error in command line " + attrname + 
-                    ". Use double dash '--' at the begining of attributes names in command line")
+                    ". Use double dash '--' at the begining of attributes" \
+                    "names in command line")
                 exit()
                 
-            # try to evaluate attribute value, if fails keep the value as a string.
+            # try to evaluate attribute value, 
+            #if fails keep the value as a string.
             try:
                 attrval = eval(attrval)
             except NameError:
@@ -95,7 +102,8 @@ class CalanFpga():
 
     def program_fpga(self):
         """
-        Program the .bof/.bof.gz model specified in the config file (boffile) to the FPGA.
+        Program the .bof/.bof.gz model specified in the config file (boffile)
+        to the FPGA.
         """
         print 'Programming FPGA with ' + self.settings.boffile + '...'
         self.fpga.progdev(os.path.basename(self.settings.boffile))
@@ -104,10 +112,12 @@ class CalanFpga():
 
     def upload_program_fpga(self):
         """
-        Upload the .bof/.bof.gz model specified in the config file (boffile) to ROACH 
-        memory and program FPGA with this model. Note: this don't work in ROACH1.
+        Upload the .bof/.bof.gz model specified in the config file (boffile)
+        to ROACH memory and program FPGA with this model. 
+        Note: this don't work in ROACH1.
         """
-        print 'Uploading and programming FPGA with ' + self.settings.boffile + '...'
+        print 'Uploading and programming FPGA with ' + 
+            self.settings.boffile + '...'
         self.fpga.upload_program_bof(self.settings.boffile, 3000)
         time.sleep(1)
         print 'done'
@@ -120,14 +130,16 @@ class CalanFpga():
         try:
             clock = self.fpga.est_brd_clk()
         except RuntimeError:
-            print "Unable to get ROACH clock.\nDid you forget to program the FPGA with a .bof file?"
+            print "Unable to get ROACH clock."
+            print "Did you forget to program the FPGA with a .bof file?"
             exit()
         print str(clock) + '[MHz]'
 
     def set_reset_regs(self):
         """
-        Set registers to a given value and reset registers (->1->0). The register lists
-        to set (set_regs) and to reset (reset_regs) are read from the config file.
+        Set registers to a given value and reset registers (->1->0). The 
+        register lists to set (set_regs) and to reset (reset_regs) are read 
+        from the config file.
         """
         print 'Setting registers:'
         for reg in self.settings.set_regs:
@@ -211,15 +223,16 @@ class CalanFpga():
         """
         Get snapshot data from all snapshot blocks specified in the config 
         file (snapshots).
-        :param nsamples: number of samples of the snapshot to return. Usually used
-            to get the desired number of samples for a nice plot.
-        :return: list of data arrays in the same order as the snapshot list. Note: the
-            data type is fixed to 8 bits as all of our ADC work at that size. 
+        :param nsamples: number of samples of the snapshot to return. 
+            Usually used to get the desired number of samples for a nice plot.
+        :return: list of data arrays in the same order as the snapshot list. 
+            Note: the data type is fixed to 8 bits as all of our ADC work at 
+            that size. 
         """
         snap_data_arr = []
         for snapshot in self.settings.snapshots:
-            snap_data = np.fromstring(self.fpga.snapshot_get(snapshot, man_trig=True, 
-                man_valid=True)['data'], dtype='>i1')
+            snap_data = np.fromstring(self.fpga.snapshot_get(snapshot, 
+            man_trig=True, man_valid=True)['data'], dtype='>i1')
             snap_data = snap_data[:nsamples]
             snap_data_arr.append(snap_data)
         
@@ -227,8 +240,9 @@ class CalanFpga():
 
     def get_snapshots_sync(self, nsamples=None):
         """
-        Same as get_snapshots() but it uses a 'snapshot trigger' register to sync
-        the snapshot recording, i.e., all snapshot start recording at the same clock cycle.
+        Same as get_snapshots() but it uses a 'snapshot trigger' register 
+        to sync the snapshot recording, i.e., all snapshot start recording at 
+        the same clock cycle.
         :return: list of data arrays in the same order as the snapshot list.
         """
         # reset snapshot trigger form initial state 
@@ -238,31 +252,37 @@ class CalanFpga():
         for snapshot in self.settings.snapshots:
             self.reset_reg(snapshot + '_ctrl', verbose=False)
         
-        # activate the trigger to start recording in all snapshots at the same time 
+        # activate the trigger to start recording in all snapshots 
+        # at the same time 
         self.fpga.write_int('snap_trig', 1)
         
         # get data without activating a new recording (arm=False)
         snap_data_arr = []
         for snapshot in self.settings.snapshots:
-            snap_data = np.fromstring(self.fpga.snapshot_get(snapshot, arm=False)['data'], dtype='>i1')
+            snap_data = np.fromstring(
+                self.fpga.snapshot_get(snapshot, arm=False)['data'], 
+                dtype='>i1')
             snap_data = snap_data[:nsamples]
             snap_data_arr.append(snap_data)
         
         return snap_data_arr
 
-    def get_bram_data(self, bram_info):
+    def get_bram_data_raw(self, bram_info):
         """
-        Receive and unpack data from FPGA using data information from bram_info.
+        Receive and unpack data from FPGA using data information 
+        from bram_info.
         :param bram_info: dictionary with the info from the bram.
             The bram_info dictionary format is:
             {'addr_width'  : width of bram address in bits.
              'word_width'  : width of bram word in bits.
-             'data_type'   : Numpy datatype object or string of the of the resulting data.
+             'data_type'   : Numpy datatype object or string of the of the 
+                 resulting data.
                  See https://docs.scipy.org/doc/numpy/reference/arrays.dtypes.html
              'bram_names'  : bram name of bram names in the model
             }
         :return: numpy array with the bram data (if single bram name), 
-            or list of numpy arrays following the same structure as the 'bram_names' list.
+            or list of numpy arrays following the same structure as the 
+            'bram_names' list.
         """
         brams = bram_info['bram_names']
 
@@ -271,31 +291,32 @@ class CalanFpga():
             depth = 2**bram_info['addr_width']
             dtype = bram_info['data_type'] 
             
-            return np.frombuffer(self.fpga.read(brams, depth*width/8, 0), dtype=dtype)
+            return np.frombuffer(self.fpga.read(brams, depth*width/8, 0), 
+                dtype=dtype)
         
         elif isinstance(brams, list): # case bram list
             bram_data_list = []
             for bram_name in bram_info['bram_names']:
                 new_bram_info = bram_info.copy()
                 new_bram_info['bram_names'] = bram_name
-                new_bram_data = self.get_bram_data(new_bram_info)
+                new_bram_data = self.get_bram_data_raw(new_bram_info)
                 bram_data_list.append(new_bram_data)
 
             return bram_data_list
 
-    def get_bram_data_interleave(self, bram_info):
+    def get_bram_data(self, bram_info):
         """
         Uses get_bram_data to acquire data from bram FPGA, and
-        also handles data that is interleaved or denterleaved in
+        also handles data that is interleaved, denterleaved or divided in
         the brams, combinding it, or separating it accordingly. 
         The interleaved nature of the data is obtained from the bram_info 
-        (checking the 'interleave' and 'deinterleaved_by' keys).
+        (checking the 'interleave', 'deinterleaved_by' and 'divided_by' keys).
         :param bram_info: dictionary with the info from the bram. Same as
             the get_bram_data param.
         :return: numpy array or list of numpy arrays with the 
             interleaved/deinterleaved data.
         """
-        bram_data = self.get_bram_data(bram_info)
+        bram_data = self.get_bram_data_raw(bram_info)
 
         # manage interleave/deinterleave data
         if 'interleave' in bram_info and bram_info['interleave']==True:
@@ -317,14 +338,15 @@ class CalanFpga():
         to be ready to read. Useful when need to get spectral data with an
         specific input condition controlled by a script.
         :param bram_info: dictionary with the info of the brams. 
-            The dictionary format must be the same as for get_bram_data_interleave,
-            with the additional keys 'req_reg and 'read_count_reg' with the name
+            The dictionary format must be the same as for 
+            get_bram_data, with the additional keys 'req_reg and 
+            'read_count_reg' with the name
             of the register that control the synchronization of data: 
                 - req_reg: register used for data request.
                     is set 0->1 to request new data.
                     is set 1->0 to inform that data read finished.
-                - read_count_reg: register is increased by 1 by the FPGA when the data 
-                is ready to read.
+                - read_count_reg: register is increased by 1 by the FPGA 
+                when the data is ready to read.
         :return: data on FPGA brams.
         """
         # read the current value of the count reg to check later
@@ -339,13 +361,14 @@ class CalanFpga():
             if np.uint32(self.read_reg(bram_info['read_count_reg']) - count_val) == 1: 
                 break
 
-        return self.get_bram_data_interleave(bram_info)
+        return self.get_bram_data(bram_info)
 
-    def write_bram_data(self, bram_info, data):
+    def write_bram_data_raw(self, bram_info, data):
         """
-        Write and array of data into the FPGA using data information from bram_info.
-        :param bram_info: dictionary with the info from the bram. The dictionary format is the
-            same as for get_bram_data().
+        Write and array of data into the FPGA using data information 
+        from bram_info.
+        :param bram_info: dictionary with the info from the bram. 
+        The dictionary format is the same as for get_bram_data().
         :param data: array to write on the bram.
         """
         brams = bram_info['bram_names']
@@ -378,12 +401,12 @@ class CalanFpga():
             for bram_name, data_item in zip(bram_info['bram_names'], data):
                 new_bram_info = bram_info.copy()
                 new_bram_info['bram_names'] = bram_name
-                self.write_bram_data(new_bram_info, data_item)
+                self.write_bram_data_raw(new_bram_info, data_item)
 
-    def write_bram_data_interleave(self, bram_info, data):
+    def write_bram_data(self, bram_info, data):
         """
         Interleaves or deinterleaves data and then writes it to
-        the FPGA using write_bram_data.
+        the FPGA using write_bram_data_raw.
         The interleaved nature of the data is obtained from the bram_info 
         (checking the 'interleave' and 'deinterleaved_by' keys).
         :param bram_info: dictionary with the info from the bram. Same as
@@ -397,18 +420,19 @@ class CalanFpga():
             data = interleave_array_list(data, bram_info['data_type'])
         elif 'deinterleave_by' in bram_info:
             data = deinterleave_array_list(data, bram_info['deinterleave_by'])
-            #data = list(chain.from_iterable(data)) # flatten list
 
-        self.write_bram_data(bram_info, data)
+        self.write_bram_data_raw(bram_info, data)
 
     def write_dram_data(self, dram_info):
         """
-        Retreive and unpack data from ROACH's DRAM using data information form dram_info.
+        Retreive and unpack data from ROACH's DRAM using data information 
+        from dram_info.
         :param dram_info: dictionary with the info from the dram.
             The dram_info dictionary format is:
             {'addr_width'  : width of dram address in bits.
              'word_width'  : width of dram word in bits.
-             'data_type'   : Numpy datatype object or string of the of the resulting data.
+             'data_type'   : Numpy datatype object or string of the of the 
+                 resulting data.
                  See https://docs.scipy.org/doc/numpy/reference/arrays.dtypes.html
             }
         :return: numpy array with the dram data.
@@ -425,7 +449,8 @@ class CalanFpga():
         print "Reading DRAM data..."
         for i in range(n_blocks):
             curr_block_bytes = min(block_bytes, dram_bytes-i*block_bytes)
-            block_data = np.frombuffer(self.fpga.read_dram(curr_block_bytes, i*block_bytes), dtype=dtype)
+            block_data = np.frombuffer(self.fpga.read_dram(curr_block_bytes, 
+                i*block_bytes), dtype=dtype)
             dram_data = np.hstack((dram_data, block_data))
         print "done"
 

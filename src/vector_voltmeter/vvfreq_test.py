@@ -69,8 +69,8 @@ class VVFreqTest(Experiment):
             # compute power ratio and angle diff nsamples times
             for i in range(self.nsamples):
                 # get power-crosspower data
-                a2, b2 = self.fpga.get_bram_data_interleave(self.settings.spec_info)
-                ab_re, ab_im = self.fpga.get_bram_data_interleave(self.settings.crosspow_info)
+                a2, b2 = self.fpga.get_bram_data(self.settings.spec_info)
+                ab_re, ab_im = self.fpga.get_bram_data(self.settings.crosspow_info)
 
                 # compute complex ratios
                 ab = ab_re[self.test_chnl] + 1j*ab_im[self.test_chnl]

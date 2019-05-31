@@ -300,8 +300,13 @@ class CalanFpga():
         # manage interleave/deinterleave data
         if 'interleave' in bram_info and bram_info['interleave']==True:
             bram_data = interleave_array_list(bram_data, bram_info['data_type'])
+        
         elif 'deinterleave_by' in bram_info:
             bram_data = deinterleave_array_list(bram_data, bram_info['deinterleave_by'])
+            bram_data = list(chain.from_iterable(bram_data)) # flatten list
+
+        elif 'divide_by' in bram_info:
+            bram_data = divide_array_list(bram_data, bram_info['divide_by'])
             bram_data = list(chain.from_iterable(bram_data)) # flatten list
 
         return bram_data
@@ -478,3 +483,32 @@ def deinterleave_array_list(array_list, ifactor):
             deinterleaved_inner_list = deinterleave_array_list(inner_list, ifactor)
             deinterleaved_list.append(deinterleaved_inner_list)
         return deinterleaved_list
+
+def divide_array_list(array_list, dfactor):
+    """
+    Receivers a list of unknown depth with the final elements
+    being numpy arrays. For every array, separate the array in a
+    list of dfactor arrays so that the concatenation of the arrays
+    produce the original array. Useful when independent spectral is 
+    pruduces secuentially and saved in the same memory.
+    Examples (parenthesis signifies numpy array):
+
+    - (1,2,3,4,10,20,30,40) -> [(1,2,3,4), (10,20,30,40)]
+    
+    - [(1,2,3,4,5,6,7,8) , (10,20,30,40,50,60,70,80)]
+        -> [[(1,2,3,4),(5,6,7,8)], [(10,20,30,40),(50,60,70,80)]]
+
+    :param array_list: array or list to divide.
+    :param dfactor: divide factor, number of arrays in which to separate
+        the original array.
+    :return: list with the divided arrays.
+    """
+    if isinstance(array_list, np.ndarray): # case array
+        return np.split(array_list, dfactor)
+
+    if isinstance(array_list, list): # case list
+        divided_list = []
+        for inner_list in array_list:
+            divided_inner_list = divide_array_list(inner_list, dfactor)
+            divided_list.append(divided_inner_list)
+        return divided_list

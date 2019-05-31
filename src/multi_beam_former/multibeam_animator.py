@@ -36,14 +36,20 @@ class MultibeamAnimator(Animator, SingleBeamscan):
         self.figure = CalanFigure(n_plots=1, create_gui=True)
         self.figure.create_axis(0, BeamscanAxis, (self.az_angs[0], self.az_angs[-1]), 
             (self.el_angs[0], self.el_angs[-1]), azr[2], elr[2], self.figure.fig, self.settings.interpolation)
-
+        
+        self.steer_beams()
+        
+    def steer_beams(self):
+        """
+        Steer beams to appropate locations to create image.
+        """
         print "Steering the beams for every beamformer..."
         for i, el in enumerate(self.el_angs):
             for j, az in enumerate(self.az_angs):
                 addrs = [[j,i,port] for port in range(self.nports)]
                 SingleBeamscan.steer_beam(self, addrs, az, el)
         print "done"
-
+    
     def get_data(self):
         """
         Get the power data from all the beamformers.

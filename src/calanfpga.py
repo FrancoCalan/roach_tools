@@ -116,7 +116,7 @@ class CalanFpga():
         to ROACH memory and program FPGA with this model. 
         Note: this don't work in ROACH1.
         """
-        print 'Uploading and programming FPGA with ' + 
+        print 'Uploading and programming FPGA with ' + \
             self.settings.boffile + '...'
         self.fpga.upload_program_bof(self.settings.boffile, 3000)
         time.sleep(1)

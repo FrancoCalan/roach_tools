@@ -36,7 +36,7 @@ class MultibeamAnimator64(MultibeamAnimator):
         #print "get_data time: " + str(time.time() - checkpoint_time)
         
         #checkpoint_time = time.time()
-        spec_data = self.scale_dbfs_spec_data(spec_data, self.bf_spec_info)
+        #spec_data = self.scale_dbfs_spec_data(spec_data, self.bf_spec_info)
         #print "scale_dbfs time: " + str(time.time() - checkpoint_time)
 
         #checkpoint_time = time.time()

@@ -58,7 +58,7 @@ class FrequencyResponse(Experiment):
             time.sleep(self.settings.pause_time)
 
             # get spectrum data
-            spec_data = self.fpga.get_bram_data_interleave(self.settings.spec_info)
+            spec_data = self.fpga.get_bram_data(self.settings.spec_info)
 
             # scale spectrum data and convert it into dBFS
             spec_data_dbfs = self.scale_dbfs_spec_data(spec_data, self.settings.spec_info)

@@ -39,7 +39,7 @@ class MBFCalibrator(Experiment):
         """
         # get data from fpga
         print "Getting calibration data..."
-        pow_data_uncal = self.fpga.get_bram_data_interleave(self.settings.spec_info)
+        pow_data_uncal = self.fpga.get_bram_data(self.settings.spec_info)
         pow_data_uncal_dbfs = self.scale_dbfs_spec_data(pow_data_uncal, self.settings.spec_info)
         self.figure.plot_axes(reorder_multiline_data([pow_data_uncal_dbfs]))
         plt.pause(1)
@@ -62,7 +62,7 @@ class MBFCalibrator(Experiment):
         # test calibration
         time.sleep(0.1)
         print "Verifying calibration..."
-        pow_data_cal = self.fpga.get_bram_data_interleave(self.settings.spec_info)
+        pow_data_cal = self.fpga.get_bram_data(self.settings.spec_info)
         pow_data_cal_dbfs = self.scale_dbfs_spec_data(pow_data_cal, self.settings.spec_info)
         self.figure.plot_axes(reorder_multiline_data([pow_data_uncal_dbfs, pow_data_cal_dbfs]))
         plt.pause(1)

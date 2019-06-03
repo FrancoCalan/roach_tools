@@ -32,7 +32,7 @@ class MultibeamAnimator64(MultibeamAnimator):
         #print "draw time: " + str(checkpoint_time - self.start_draw_time)
 
         #checkpoint_time = time.time()
-        spec_data = self.fpga.get_bram_data_interleave(self.bf_spec_info)
+        spec_data = self.fpga.get_bram_data(self.bf_spec_info)
         #print "get_data time: " + str(time.time() - checkpoint_time)
         
         #checkpoint_time = time.time()

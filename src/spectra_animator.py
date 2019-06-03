@@ -47,7 +47,7 @@ class SpectraAnimator(Animator):
         Gets the spectra data from the spectrometer model.
         :return: spectral data.
         """
-        spec_data = self.fpga.get_bram_data_interleave(self.settings.spec_info)
+        spec_data = self.fpga.get_bram_data(self.settings.spec_info)
         spec_data = self.scale_dbfs_spec_data(spec_data, self.settings.spec_info)
         
         return spec_data

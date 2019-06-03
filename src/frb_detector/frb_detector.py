@@ -33,7 +33,7 @@ class FRBDetector(SpectraAnimator):
         to show the current total power in the freezed data, and if an FRB was detected.
         :return: spectral data.
         """
-        spec_data = self.fpga.get_bram_data_interleave(self.settings.spec_info)
+        spec_data = self.fpga.get_bram_data(self.settings.spec_info)
         
         self.labels['power_label']['text'] = 'Total power = ' + "{:.3E}".format(np.sum(spec_data[2]))
         

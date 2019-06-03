@@ -68,8 +68,8 @@ class PocketCorrelator(Experiment):
             time.sleep(self.settings.pause_time)
 
             # get spectrum and cross spectrum data
-            spec_data = self.fpga.get_bram_data_interleave(self.settings.spec_info)
-            crosspow_data = self.fpga.get_bram_data_interleave(self.settings.crosspow_info)
+            spec_data = self.fpga.get_bram_data(self.settings.spec_info)
+            crosspow_data = self.fpga.get_bram_data(self.settings.crosspow_info)
 
             # combine real and imaginary part of crosspow data
             crosspow_data = np.array(crosspow_data[0::2]) + 1j*np.array(crosspow_data[1::2])

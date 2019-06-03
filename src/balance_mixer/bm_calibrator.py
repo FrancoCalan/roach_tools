@@ -138,7 +138,7 @@ class BmCalibrator(Experiment):
                 print "\tLoading constants..."; step_time = time.time()
                 consts_real = float2fixed(self.consts_nbits, self.consts_bin_pt, np.real(consts))
                 consts_imag = float2fixed(self.consts_nbits, self.consts_bin_pt, np.imag(consts))
-                self.fpga.write_bram_data_interleave(self.settings.const_brams_info, 
+                self.fpga.write_bram_data(self.settings.const_brams_info, 
                     [consts_real, consts_imag])
                 print "\tdone (" + str(time.time() - step_time) + "[s])"
 
@@ -199,8 +199,8 @@ class BmCalibrator(Experiment):
             plt.pause(self.settings.pause_time) 
 
             # get power-crosspower data
-            cal_a2, cal_b2 = self.fpga.get_bram_data_interleave(self.settings.spec_info)
-            cal_ab_re, cal_ab_im = self.fpga.get_bram_data_interleave(self.settings.crosspow_info)
+            cal_a2, cal_b2 = self.fpga.get_bram_data(self.settings.spec_info)
+            cal_ab_re, cal_ab_im = self.fpga.get_bram_data(self.settings.crosspow_info)
             a2_arr.append(cal_a2[chnl])
             b2_arr.append(cal_b2[chnl])
 
@@ -275,8 +275,8 @@ class BmCalibrator(Experiment):
             plt.pause(self.settings.pause_time) 
 
             # get power-crosspower data
-            cal_a2, cal_b2 = self.fpga.get_bram_data_interleave(self.settings.spec_info)
-            cal_ab_re, cal_ab_im = self.fpga.get_bram_data_interleave(self.settings.crosspow_info)
+            cal_a2, cal_b2 = self.fpga.get_bram_data(self.settings.spec_info)
+            cal_ab_re, cal_ab_im = self.fpga.get_bram_data(self.settings.crosspow_info)
             a2_arr.append(cal_a2[chnl])
             b2_arr.append(cal_b2[chnl])
 
@@ -334,7 +334,7 @@ class BmCalibrator(Experiment):
             plt.pause(self.settings.pause_time) 
             
             # get USB power data
-            a2_tone_usb = self.fpga.get_bram_data_interleave(self.settings.synth_info)
+            a2_tone_usb = self.fpga.get_bram_data(self.settings.synth_info)
 
             # plot spec data
             a2_tone_usb_plot = self.scale_dbfs_spec_data(a2_tone_usb, self.settings.synth_info)
@@ -354,7 +354,7 @@ class BmCalibrator(Experiment):
             plt.pause(self.settings.pause_time) 
             
             # get LSB power data
-            a2_tone_lsb = self.fpga.get_bram_data_interleave(self.settings.synth_info)
+            a2_tone_lsb = self.fpga.get_bram_data(self.settings.synth_info)
 
             # plot spec data
             a2_tone_lsb_plot = self.scale_dbfs_spec_data(a2_tone_lsb, self.settings.synth_info)

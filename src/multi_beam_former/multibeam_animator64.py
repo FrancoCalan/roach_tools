@@ -13,36 +13,13 @@ class MultibeamAnimator64(MultibeamAnimator):
         """
         Steer beams to appropate locations to create image.
         """
-        angles_comb = product(self.az_angs, self.el_angs)
+        angles_comb = product(self.el_angs, self.az_angs)
 
         print "Steering the beams for every beamformer..."
         for i in range(4):
             for j in range(4):
                 for t in range(4):
-                    addrs = [[j,i,t,port] for port in range(self.nports)]
-                    az, el = angles_comb.next()
+                    addrs = [[i,j,t,port] for port in range(self.nports)]
+                    el, az = angles_comb.next()
                     self.steer_beam(addrs, az, el)
         print "done"
-
-    def get_data(self):
-        """
-        Get the power data from all the beamformers.
-        """
-        #checkpoint_time = time.time()
-        #print "draw time: " + str(checkpoint_time - self.start_draw_time)
-
-        #checkpoint_time = time.time()
-        spec_data = self.fpga.get_bram_data(self.bf_spec_info)
-        #print "get_data time: " + str(time.time() - checkpoint_time)
-        
-        #checkpoint_time = time.time()
-        #spec_data = self.scale_dbfs_spec_data(spec_data, self.bf_spec_info)
-        #print "scale_dbfs time: " + str(time.time() - checkpoint_time)
-
-        #checkpoint_time = time.time()
-        #print np.argmax(np.array(spec_data)[:,:128], axis=1)
-        mbf_data = np.reshape(np.array(spec_data)[:, self.freq_chnl], (len(self.az_angs), len(self.el_angs)), order='F')
-        #print "reshape time: " + str(time.time() - checkpoint_time)
-
-        #self.start_draw_time = time.time()
-        return mbf_data

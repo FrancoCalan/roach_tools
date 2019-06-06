@@ -1,4 +1,3 @@
-import numpy as np
 from ..axes.multi_line_axis import MultiLineAxis
 
 class SpectrumAxis(MultiLineAxis):

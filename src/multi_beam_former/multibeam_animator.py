@@ -37,7 +37,8 @@ class MultibeamAnimator(Animator, SingleBeamscan):
         self.figure.create_axis(0, BeamscanAxis, (self.az_angs[0], self.az_angs[-1]), 
             (self.el_angs[0], self.el_angs[-1]), azr[2], elr[2], self.figure.fig, self.settings.interpolation)
         
-        self.steer_beams()
+        if self.settings.steer_beams:
+            self.steer_beams()
         
     def steer_beams(self):
         """
@@ -46,7 +47,7 @@ class MultibeamAnimator(Animator, SingleBeamscan):
         print "Steering the beams for every beamformer..."
         for i, el in enumerate(self.el_angs):
             for j, az in enumerate(self.az_angs):
-                addrs = [[j,i,port] for port in range(self.nports)]
+                addrs = [[i,j,port] for port in range(self.nports)]
                 SingleBeamscan.steer_beam(self, addrs, az, el)
         print "done"
     
@@ -62,7 +63,8 @@ class MultibeamAnimator(Animator, SingleBeamscan):
         #print "get_data time: " + str(time.time() - checkpoint_time)
         
         #checkpoint_time = time.time()
-        spec_data = self.scale_dbfs_spec_data(spec_data, self.bf_spec_info)
+        if self.settings.plot_db:    
+            spec_data = self.scale_dbfs_spec_data(spec_data, self.bf_spec_info)
         #print "scale_dbfs time: " + str(time.time() - checkpoint_time)
 
         #checkpoint_time = time.time()

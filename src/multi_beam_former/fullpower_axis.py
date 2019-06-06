@@ -1,4 +1,3 @@
-import numpy as np
 from ..axes.bar_axis import BarAxis
 
 class FullpowerAxis(BarAxis):

@@ -1,4 +1,3 @@
-import numpy as np
 from single_line_axis import SingleLineAxis
 
 class SpectrumAxis(SingleLineAxis):

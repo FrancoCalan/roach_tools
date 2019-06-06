@@ -1,4 +1,3 @@
-import numpy as np
 from ..axes.single_line_axis import SingleLineAxis
 
 class SrrAxis(SingleLineAxis):

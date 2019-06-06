@@ -78,7 +78,7 @@ class SingleBeamscan(Experiment):
         Given a phase array antenna that outputs into the ROACH,
         set the appropiate phasor constants so that the array points
         to a given direction (in azimuth and elevation angles). The exact 
-        phasors are computed using the dir2phasors() functions and the 
+        phasors are computed using the ang2phasors() functions and the 
         array_info parameter from the config script.
         :param addrs: list of addresses from the phase bank where to set the constants.
         :param az: azimuth angle to point the beam in degrees.

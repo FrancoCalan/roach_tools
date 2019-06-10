@@ -1,11 +1,11 @@
 import time
 import numpy as np
 import matplotlib.pyplot as plt
+from itertools import chain
 from ..experiment import Experiment, get_nchannels
 from ..calanfigure import CalanFigure
 from mbf_spectrometer import write_phasor_reg_list
-#from ..adc5g_calibrator.spectrum_axis import SpectrumAxis
-form cal_phasor_axis import CalPhasorAxis
+from cal_phasor_axis import CalPhasorAxis
 
 class MBFCalibrator(Experiment):
     """
@@ -26,9 +26,11 @@ class MBFCalibrator(Experiment):
 
         # figure and axes
         self.figure = CalanFigure(n_plots=1, create_gui=False)
-        self.figure.create_axis(1, CalPhasorAxis, ['calibrated', 'uncalibrated'])
+        self.figure.create_axis(0, CalPhasorAxis, ['uncalibrated', 'calibrated'])
 
         # initialy set all phasors to 1 to measure the imbalances
+        self.array_info = self.settings.array_info
+        self.nports = len(list(chain.from_iterable(self.array_info['el_pos']))) # flatten list
         write_phasor_reg_list(self.fpga, self.nports*[1], range(self.nports), self.settings.cal_phase_info)
 
     def calibrate_mbf(self):
@@ -52,7 +54,7 @@ class MBFCalibrator(Experiment):
         print ""
 
         # plot calibration data
-        self.fig.plot_axes([cal_ratios, []])
+        self.figure.plot_axes([cal_ratios, []])
         plt.pause(1)
 
         # load correction constants
@@ -73,7 +75,7 @@ class MBFCalibrator(Experiment):
         print ""
         
         # plot calibration data
-        self.fig.plot_axes([cal_ratios, cal_ratios_new])
+        self.figure.plot_axes([cal_ratios, cal_ratios_new])
         plt.pause(1)
 
         print("Close plots to finish.")
@@ -116,6 +118,7 @@ def compute_ratios(pow_data, xab_data, chnl):
 
     return np.array(cal_ratios)
 
+# NOTE: maybe I'm use this in another situation?
 #def reorder_multiline_data(data_legend_arr):
 #    """
 #    Given data for MultiLineAxis distributed as array with

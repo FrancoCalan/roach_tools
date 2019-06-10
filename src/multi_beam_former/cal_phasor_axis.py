@@ -11,8 +11,8 @@ class CalPhasorAxis(CalanAxis):
         CalanAxis.__init__(self, ax, title)
         
         # axis propeties
-        self.ax.set_xlim([-2,2])
-        self.ax.set_ylim([-2,2])
+        self.ax.set_xlim([-1.5,1.5])
+        self.ax.set_ylim([-1.5,1.5])
         self.ax.grid()
         self.ax.set_axisbelow(True)
         self.ax.set_aspect('equal')

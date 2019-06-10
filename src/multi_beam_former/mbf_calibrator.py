@@ -4,7 +4,8 @@ import matplotlib.pyplot as plt
 from ..experiment import Experiment, get_nchannels
 from ..calanfigure import CalanFigure
 from mbf_spectrometer import write_phasor_reg_list
-from ..adc5g_calibrator.spectrum_axis import SpectrumAxis
+#from ..adc5g_calibrator.spectrum_axis import SpectrumAxis
+form cal_phasor_axis import CalPhasorAxis
 
 class MBFCalibrator(Experiment):
     """
@@ -24,11 +25,8 @@ class MBFCalibrator(Experiment):
         self.freq_chnl = self.settings.freq_chnl
 
         # figure and axes
-        self.nports = len(self.settings.spec_titles)
-        self.figure = CalanFigure(n_plots=self.nports, create_gui=False)
-        self.figure.fig.set_size_inches(18.5, 10.5)
-        for i, spec_title in enumerate(self.settings.spec_titles):
-            self.figure.create_axis(i, SpectrumAxis, self.freqs, spec_title)
+        self.figure = CalanFigure(n_plots=1, create_gui=False)
+        self.figure.create_axis(1, CalPhasorAxis, ['calibrated', 'uncalibrated'])
 
         # initialy set all phasors to 1 to measure the imbalances
         write_phasor_reg_list(self.fpga, self.nports*[1], range(self.nports), self.settings.cal_phase_info)
@@ -40,9 +38,6 @@ class MBFCalibrator(Experiment):
         # get data from fpga
         print "Getting calibration data..."
         pow_data_uncal = self.fpga.get_bram_data(self.settings.spec_info)
-        pow_data_uncal_dbfs = self.scale_dbfs_spec_data(pow_data_uncal, self.settings.spec_info)
-        self.figure.plot_axes(reorder_multiline_data([pow_data_uncal_dbfs]))
-        plt.pause(1)
         xab_data = self.fpga.get_bram_data(self.settings.cal_crosspow_info) 
         print 'done'
         
@@ -56,6 +51,10 @@ class MBFCalibrator(Experiment):
                 ", ang: " + "%0.4f" % np.angle(cal_ratio, deg=True) + "[deg]"
         print ""
 
+        # plot calibration data
+        self.fig.plot_axes([cal_ratios, []])
+        plt.pause(1)
+
         # load correction constants
         write_phasor_reg_list(self.fpga, cal_ratios, range(self.nports), self.settings.cal_phase_info)
 
@@ -63,8 +62,6 @@ class MBFCalibrator(Experiment):
         time.sleep(0.1)
         print "Verifying calibration..."
         pow_data_cal = self.fpga.get_bram_data(self.settings.spec_info)
-        pow_data_cal_dbfs = self.scale_dbfs_spec_data(pow_data_cal, self.settings.spec_info)
-        self.figure.plot_axes(reorder_multiline_data([pow_data_uncal_dbfs, pow_data_cal_dbfs]))
         plt.pause(1)
         xab_data = self.fpga.get_bram_data(self.settings.cal_crosspow_info) 
         xab_comp_data = reim2comp(xab_data)
@@ -74,9 +71,11 @@ class MBFCalibrator(Experiment):
             ": mag: " + "%0.4f" % np.abs(cal_ratio_new) + \
             ", ang: " + "%0.4f" % np.angle(cal_ratio_new, deg=True) + "[deg]"
         print ""
+        
+        # plot calibration data
+        self.fig.plot_axes([cal_ratios, cal_ratios_new])
+        plt.pause(1)
 
-        print "Original squared error:\n" + str(np.square(np.abs(cal_ratios - np.ones(self.nports))))
-        print "Calibrated squared error:\n" + str(np.square(np.abs(cal_ratios_new - np.ones(self.nports))))
         print("Close plots to finish.")
         plt.show()
             
@@ -117,18 +116,18 @@ def compute_ratios(pow_data, xab_data, chnl):
 
     return np.array(cal_ratios)
 
-def reorder_multiline_data(data_legend_arr):
-    """
-    Given data for MultiLineAxis distributed as array with
-    each element for each legend, distributes the data in an array
-    so that each element has the data for each plot. For example
-    (p: plot, l: legend):
-    input:  [[p1l1, p2l1, p3l1], [p1l2, p2l2, p3l2]]
-    output: [[p1l1, p1l2], [p2l1, p2l2], [p3l1, p3l2]]
-    """
-    data_plot_arr = [[] for i in range(len(data_legend_arr[0]))]
-    for data_legend in data_legend_arr:
-        for nplot, data_line in enumerate(data_legend):
-            data_plot_arr[nplot].append(data_line)
-
-    return data_plot_arr
+#def reorder_multiline_data(data_legend_arr):
+#    """
+#    Given data for MultiLineAxis distributed as array with
+#    each element for each legend, distributes the data in an array
+#    so that each element has the data for each plot. For example
+#    (p: plot, l: legend):
+#    input:  [[p1l1, p2l1, p3l1], [p1l2, p2l2, p3l2]]
+#    output: [[p1l1, p1l2], [p2l1, p2l2], [p3l1, p3l2]]
+#    """
+#    data_plot_arr = [[] for i in range(len(data_legend_arr[0]))]
+#    for data_legend in data_legend_arr:
+#        for nplot, data_line in enumerate(data_legend):
+#            data_plot_arr[nplot].append(data_line)
+#
+#    return data_plot_arr

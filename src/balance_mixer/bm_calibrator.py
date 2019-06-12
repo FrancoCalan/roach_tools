@@ -1,6 +1,5 @@
 import os, time, datetime, itertools, json, tarfile, shutil
 import numpy as np
-import scipy.stats
 import matplotlib.pyplot as plt
 from ..experiment import Experiment, get_nchannels, init_sources, turn_off_sources
 from ..calanfigure import CalanFigure

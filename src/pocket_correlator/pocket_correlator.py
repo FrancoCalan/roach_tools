@@ -68,19 +68,20 @@ class PocketCorrelator(Experiment):
             time.sleep(self.settings.pause_time)
 
             # get spectrum and cross spectrum data
-            spec_data = self.fpga.get_bram_data(self.settings.spec_info)
+            pow_data = self.fpga.get_bram_data(self.settings.spec_info)
             crosspow_data = self.fpga.get_bram_data(self.settings.crosspow_info)
 
             # combine real and imaginary part of crosspow data
             crosspow_data = np.array(crosspow_data[0::2]) + 1j*np.array(crosspow_data[1::2])
 
             # compute the complex ratios (magnitude ratio and phase difference)
+            # use first input as reference
+            aa = pow_data[0][chnl]
             for j, ab in enumerate(crosspow_data):
-                aa = spec_data[0][chnl]
                 ratios[j].append(np.conj(ab[chnl]) / aa) # (ab*)* / aa* = a*b / aa* = b/a
                 
             # plot spectrum
-            spec_data_dbfs = self.scale_dbfs_spec_data(spec_data, self.settings.spec_info)
+            spec_data_dbfs = self.scale_dbfs_spec_data(pow_data, self.settings.spec_info)
             for j, spec in enumerate(spec_data_dbfs):
                 self.figure.axes[j].plot(spec)
             

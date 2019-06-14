@@ -9,7 +9,7 @@ from ..axes.spectrum_axis import SpectrumAxis
 from ..pocket_correlator.mag_ratio_axis import MagRatioAxis
 from ..pocket_correlator.angle_diff_axis import AngleDiffAxis
 from ..digital_sideband_separation.dss_calibrator import get_lo_combinations, float2fixed, check_overflow
-#from srr_axis import SrrAxis
+from pol_axis import PolAxis
 
 class DomtCalibrator(Experiment):
     """
@@ -41,7 +41,7 @@ class DomtCalibrator(Experiment):
         self.calfigure_0deg  = CalanFigure(n_plots=6, create_gui=False)
         self.calfigure_45deg = CalanFigure(n_plots=6, create_gui=False)
         self.calfigure_90deg = CalanFigure(n_plots=6, create_gui=False)
-        #self.synfigure       = CalanFigure(n_plots=4, create_gui=False)
+        self.polfigure       = CalanFigure(n_plots=4, create_gui=False)
         
         # axes on figures
         self.calfigure_0deg.create_axis(0, SpectrumAxis,  self.freqs, 'ZDOK0 a spec')
@@ -65,7 +65,10 @@ class DomtCalibrator(Experiment):
         self.calfigure_90deg.create_axis(4, MagRatioAxis,  self.freqs, ['1/2', '2/2', '3/2', '4/2'], 'Magnitude Ratio')
         self.calfigure_90deg.create_axis(5, AngleDiffAxis, self.freqs, ['1-2', '2-2', '3-2', '4-2'], 'Angle Difference')
         #
-        # synfigure axes...
+        self.polfigure.create_axis(0, SpectrumAxis, self.freqs, 'X pol')
+        self.polfigure.create_axis(1, SpectrumAxis, self.freqs, 'Y pol')
+        self.polfigure.create_axis(2, PolAxis, self.freqs, 'X pol isolation')
+        self.polfigure.create_axis(3, PolAxis, self.freqs, 'Y pol isolation')
 
         # data save attributes
         self.dataname = self.settings.boffile[:self.settings.boffile.index('.')]
@@ -128,19 +131,30 @@ class DomtCalibrator(Experiment):
                     H = compute_cal_consts(in_ratios_0deg, in_ratios_90deg)
 
                 else: # use ideal constants
-                    H = self.nchannels * [np.array([[0.5, 0, -0.5, 0],[0, 0.5, 0, -0.5]])]
+                    #H = self.nchannels * [np.array([[0.5, 0, -0.5, 0],[0, 0.5, 0, -0.5]])]
+                    n = self.nchannels
+                    H = [[0.5*np.ones(n), np.zeros(n), -0.5*np.ones(n),     np.zeros(n)],
+                         [np.zeors(n), 0.5*np.ones(n),     np.zeros(n), -0.5*np.ones(n)]]
+
+                # test H dimensions
+                print "H dims: " + str(len(H)) + ", " + str(len(H[0])) + ", " + str(len(H[0][0]))
 
                 # load constants
                 #print "\tLoading constants..."; step_time = time.time()
                 H_real = float2fixed(self.consts_nbits, self.consts_bin_pt, np.real(H))
                 H_imag = float2fixed(self.consts_nbits, self.consts_bin_pt, np.imag(H))
-                #self.fpga.write_bram_data(self.settings.const_brams_info, [H_real, H_imag])
+                self.fpga.write_bram_data(self.settings.const_brams_info, [H_real, H_imag])
                 print "\tdone (" + str(time.time() - step_time) + "[s])"
 
                 # compute pol isolation
-                print "\tComputing pol iso..."; step_time = time.time()
-                #self.isofigure.fig.canvas.set_window_title('pol iso Computation ' + lo_label)
-                #self.compute_pol_iso(lo_comb, lo_datadir)
+                raw_input('Please angle the OMT cavity to 0° and press enter...')
+                print "\tComputing pol-x iso..."; step_time = time.time()
+                self.isofigure.fig.canvas.set_window_title('Pol Iso Computation ' + lo_label)
+                self.compute_pol_iso(lo_comb, lo_datadir, 'x', self.isofigure.axes[2])
+                print "\tdone (" + str(time.time() - step_time) + "[s])"
+                raw_input('Please angle the OMT cavity to 90° and press enter...')
+                print "\tComputing pol-y iso..."; step_time = time.time()
+                self.compute_pol_iso(lo_comb, lo_datadir, 'y', self.isofigure.axes[3])
                 print "\tdone (" + str(time.time() - step_time) + "[s])"
 
         # turn off sources
@@ -232,82 +246,58 @@ class DomtCalibrator(Experiment):
 
         return in_ratios
 
-    def compute_pol_iso(self, M_DSB, lo_comb, lo_datadir):
+    def compute_pol_iso(self, lo_comb, lo_datadir, pol, ax):
         """
-        Compute SRR from the DSS receiver using the Kerr method
-        (see ALMA Memo 357 (http://legacy.nrao.edu/alma/memos/html-memos/abstracts/abs357.html)).
-        The total number of channels used for the SRR computations
-        can be controlled by the config file parameter srr_chnl_step.
-        :param M_DSB: constant computed in the hotcold test used for the Kerr method.
+        Compute the polarization isolation from the DOMT receiver.
+        The total number of channels used for the isolation computations
+        can be controlled by the config file parameter syn_chnl_step.
         :param lo_comb: LO frequency combination for the test. Used to properly set
             the RF test input.
         :param lo_datadir: diretory for the data of the current LO frequency combination.
+        :param pol: polarization being measured (i.e. omt input angle).
+        :param ax: axis to plot polarization isolation.
         """
-        srr_usb = []
-        srr_lsb = []
-        rf_freqs_usb = lo_comb[0] + sum(lo_comb[1:]) + self.freqs
-        rf_freqs_lsb = lo_comb[0] - sum(lo_comb[1:]) - self.freqs
+        iso = []
+        rf_freqs = lo_comb[0] + sum(lo_comb[1:]) + self.freqs
 
-        syn_datadir = lo_datadir + '/srr_rawdata'
-        os.mkdir(syn_datadir)
+        syn_datadir = lo_datadir + '/pol_rawdata'
+        try:
+            os.mkdir(syn_datadir)
+        except OSError:
+            pass
  
-        for i, chnl in enumerate(self.srr_channels):
-            # set generator at USB frequency
+        for i, chnl in enumerate(self.syn_channels):
+            # set generator
             self.rf_source.set_freq_mhz(rf_freqs_usb[chnl])
             # plot while the generator is changing to frequency to give the system time to update
             plt.pause(self.settings.pause_time) 
             
-            # get USB and LSB power data
-            a2_tone_usb, b2_tone_usb = self.fpga.get_bram_data(self.settings.synth_info)
+            # get polarization power data
+            polx, poly = self.fpga.get_bram_data(self.settings.synth_info)
 
             # plot spec data
-            [a2_tone_usb_plot, b2_tone_usb_plot] = \
-                self.scale_dbfs_spec_data([a2_tone_usb, b2_tone_usb], self.settings.synth_info)
-            self.srrfigure.axes[0].plot(a2_tone_usb_plot)
-            self.srrfigure.axes[1].plot(b2_tone_usb_plot)
-
-            # set generator at LSB frequency
-            self.rf_source.set_freq_mhz(rf_freqs_lsb[chnl])
-            # plot while the generator is changing to frequency to give the system time to update
-            plt.pause(self.settings.pause_time) 
-            
-            # get USB and LSB power data
-            a2_tone_lsb, b2_tone_lsb = self.fpga.get_bram_data(self.settings.synth_info)
+            [polx_plot, poly_plot] = \
+                self.scale_dbfs_spec_data([polx, poly], self.settings.synth_info)
+            self.synfigure.axes[0].plot(polx_plot)
+            self.synfigure.axes[1].plot(poly_plot)
 
             # save syn rawdata
-            np.savez(syn_datadir+'/chnl_'+str(chnl), a2_tone_usb=a2_tone_usb, b2_tone_usb=b2_tone_usb, 
-                a2_tone_lsb=a2_tone_lsb, b2_tone_lsb=b2_tone_lsb)
+            np.savez(syn_datadir+'/pol'+str(pol)+'_chnl_'+str(chnl), polx=polx, poly=poly)
 
-            # plot spec data
-            [a2_tone_lsb_plot, b2_tone_lsb_plot] = \
-                self.scale_dbfs_spec_data([a2_tone_lsb, b2_tone_lsb], self.settings.synth_info)
-            self.srrfigure.axes[0].plot(a2_tone_lsb_plot)
-            self.srrfigure.axes[1].plot(b2_tone_lsb_plot)
+            # Compute polarization isolation
+            if pol == 'x':
+                iso.append(np.divide(poly[chnl], polx[chnl], dtype=np.float64)
+            else: # pol=='y'
+                iso.append(np.divide(polx[chnl], poly[chnl], dtype=np.float64)
 
-            # Compute sideband ratios
-            ratio_usb = np.divide(a2_tone_usb[chnl], b2_tone_usb[chnl], dtype=np.float64)
-            ratio_lsb = np.divide(b2_tone_lsb[chnl], a2_tone_lsb[chnl], dtype=np.float64)
-            
-            # Compute SRR as per Kerr calibration if set in config file
-            if self.settings.kerr_correction:
-                new_srr_usb = ratio_usb * (ratio_lsb*M_DSB[chnl] - 1) / (ratio_usb - M_DSB[chnl])
-                new_srr_lsb = ratio_lsb * (ratio_usb - M_DSB[chnl]) / (ratio_lsb*M_DSB[chnl] - 1)
-            else: # compute SRR as sideband ratio
-                new_srr_usb = ratio_usb
-                new_srr_lsb = ratio_lsb
-
-            srr_usb.append(10*np.log10(new_srr_usb))
-            srr_lsb.append(10*np.log10(new_srr_lsb))
-
-            # plot SRR
-            self.srrfigure.axes[2].plotxy(self.srr_freqs[:i+1], srr_usb)
-            self.srrfigure.axes[3].plotxy(self.srr_freqs[:i+1], srr_lsb)
+            # plot polarization isolation
+            ax.plotxy(self.syn_freqs[:i+1], iso)
         
         # plot last frequency
         plt.pause(self.settings.pause_time)
 
         # save srr data
-        np.savez(lo_datadir+"/srr", srr_usb=srr_usb, srr_lsb=srr_lsb)
+        np.save(lo_datadir+"/pol_"+str(pol)+"_iso", iso)
 
     def print_iso_plot(self):
         """

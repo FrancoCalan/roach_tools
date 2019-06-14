@@ -134,7 +134,7 @@ class DomtCalibrator(Experiment):
                     #H = self.nchannels * [np.array([[0.5, 0, -0.5, 0],[0, 0.5, 0, -0.5]])]
                     n = self.nchannels
                     H = [[0.5*np.ones(n), np.zeros(n), -0.5*np.ones(n),     np.zeros(n)],
-                         [np.zeors(n), 0.5*np.ones(n),     np.zeros(n), -0.5*np.ones(n)]]
+                         [np.zeros(n), 0.5*np.ones(n),     np.zeros(n), -0.5*np.ones(n)]]
 
                 # test H dimensions
                 print "H dims: " + str(len(H)) + ", " + str(len(H[0])) + ", " + str(len(H[0][0]))
@@ -286,9 +286,9 @@ class DomtCalibrator(Experiment):
 
             # Compute polarization isolation
             if pol == 'x':
-                iso.append(np.divide(poly[chnl], polx[chnl], dtype=np.float64)
+                iso.append(np.divide(poly[chnl], polx[chnl], dtype=np.float64))
             else: # pol=='y'
-                iso.append(np.divide(polx[chnl], poly[chnl], dtype=np.float64)
+                iso.append(np.divide(polx[chnl], poly[chnl], dtype=np.float64))
 
             # plot polarization isolation
             ax.plotxy(self.syn_freqs[:i+1], iso)

@@ -59,7 +59,7 @@ class DssCalibrator(Experiment):
         # data save attributes
         self.dataname = self.settings.boffile[:self.settings.boffile.index('.')]
         self.dataname = 'dsstest ' + self.dataname + ' '
-        self.datadir = self.dataname + '_' + datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+        self.datadir = self.dataname + datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
         os.mkdir(self.datadir)
         self.testinfo = {'bw'               : self.settings.bw,
                          'nchannels'        : self.nchannels,

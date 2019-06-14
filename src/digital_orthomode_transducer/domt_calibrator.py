@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 import os, time, datetime, itertools, json, tarfile, shutil
 import numpy as np
 import matplotlib.pyplot as plt
@@ -7,7 +8,7 @@ from ..instruments.generator import Generator, create_generator
 from ..axes.spectrum_axis import SpectrumAxis
 from ..pocket_correlator.mag_ratio_axis import MagRatioAxis
 from ..pocket_correlator.angle_diff_axis import AngleDiffAxis
-from ..digital_sideband_separation.dss_calibrator import get_lo_combination, float2fixed, check_overflow
+from ..digital_sideband_separation.dss_calibrator import get_lo_combinations, float2fixed, check_overflow
 #from srr_axis import SrrAxis
 
 class DomtCalibrator(Experiment):
@@ -47,37 +48,35 @@ class DomtCalibrator(Experiment):
         self.calfigure_0deg.create_axis(1, SpectrumAxis,  self.freqs, 'ZDOK0 c spec')
         self.calfigure_0deg.create_axis(2, SpectrumAxis,  self.freqs, 'ZDOK1 a spec')
         self.calfigure_0deg.create_axis(3, SpectrumAxis,  self.freqs, 'ZDOK1 c spec')
-        self.calfigure_0deg.create_axis(4, MagRatioAxis,  self.freqs, ['2/1', '3/1', '4/1'], 'Magnitude Ratio')
-        self.calfigure_0deg.create_axis(5, AngleDiffAxis, self.freqs, ['2-1', '3-1', '4-1'], 'Angle Difference')
+        self.calfigure_0deg.create_axis(4, MagRatioAxis,  self.freqs, ['1/1', '2/1', '3/1', '4/1'], 'Magnitude Ratio')
+        self.calfigure_0deg.create_axis(5, AngleDiffAxis, self.freqs, ['1-1', '2-1', '3-1', '4-1'], 'Angle Difference')
         #
         self.calfigure_45deg.create_axis(0, SpectrumAxis,  self.freqs, 'ZDOK0 a spec')
         self.calfigure_45deg.create_axis(1, SpectrumAxis,  self.freqs, 'ZDOK0 c spec')
         self.calfigure_45deg.create_axis(2, SpectrumAxis,  self.freqs, 'ZDOK1 a spec')
         self.calfigure_45deg.create_axis(3, SpectrumAxis,  self.freqs, 'ZDOK1 c spec')
-        self.calfigure_45deg.create_axis(4, MagRatioAxis,  self.freqs, ['2/1', '3/1', '4/1'], 'Magnitude Ratio')
-        self.calfigure_45deg.create_axis(5, AngleDiffAxis, self.freqs, ['2-1', '3-1', '4-1'], 'Angle Difference')
+        self.calfigure_45deg.create_axis(4, MagRatioAxis,  self.freqs, ['1/1', '2/1', '3/1', '4/1'], 'Magnitude Ratio')
+        self.calfigure_45deg.create_axis(5, AngleDiffAxis, self.freqs, ['1-1', '2-1', '3-1', '4-1'], 'Angle Difference')
         #
         self.calfigure_90deg.create_axis(0, SpectrumAxis,  self.freqs, 'ZDOK0 a spec')
         self.calfigure_90deg.create_axis(1, SpectrumAxis,  self.freqs, 'ZDOK0 c spec')
         self.calfigure_90deg.create_axis(2, SpectrumAxis,  self.freqs, 'ZDOK1 a spec')
         self.calfigure_90deg.create_axis(3, SpectrumAxis,  self.freqs, 'ZDOK1 c spec')
-        self.calfigure_90deg.create_axis(4, MagRatioAxis,  self.freqs, ['1/2', '3/2', '4/2'], 'Magnitude Ratio')
-        self.calfigure_90deg.create_axis(5, AngleDiffAxis, self.freqs, ['1-2', '3-2', '4-2'], 'Angle Difference')
+        self.calfigure_90deg.create_axis(4, MagRatioAxis,  self.freqs, ['1/2', '2/2', '3/2', '4/2'], 'Magnitude Ratio')
+        self.calfigure_90deg.create_axis(5, AngleDiffAxis, self.freqs, ['1-2', '2-2', '3-2', '4-2'], 'Angle Difference')
         #
         # synfigure axes...
 
         # data save attributes
         self.dataname = self.settings.boffile[:self.settings.boffile.index('.')]
-        self.dataname = 'dsstest ' + self.dataname + ' '
-        self.datadir = self.dataname + '_' + datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+        self.dataname = 'domttest ' + self.dataname + ' '
+        self.datadir = self.dataname + datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
         os.mkdir(self.datadir)
         self.testinfo = {'bw'               : self.settings.bw,
                          'nchannels'        : self.nchannels,
                          'cal_acc_len'      : self.fpga.read_reg(self.settings.spec_info['acc_len_reg']),
                          'syn_acc_len'      : self.fpga.read_reg(self.settings.synth_info['acc_len_reg']),
-                         'kerr_correction'  : self.settings.kerr_correction,
-                         'use_ideal_consts' : self.settings.ideal_consts['load'],
-                         'ideal_const'      : str(self.settings.ideal_consts['val']),
+                         'use_ideal_consts' : self.settings.ideal_consts,
                          'cal_chnl_step'    : self.settings.cal_chnl_step,
                          'syn_chnl_step'    : self.settings.syn_chnl_step,
                          'lo_combinations'  : self.lo_combinations}
@@ -103,70 +102,58 @@ class DomtCalibrator(Experiment):
                 self.lo_sources[i].set_freq_mhz(lo)
                 
                 # compute calibration constants (sideband ratios)
-                if not self.settings.ideal_consts['load']:
+                if not self.settings.ideal_consts:
+                    raw_input('Please angle the OMT cavity to 0° and press enter...')
                     print "\tComputing input ratios, angle 0°..."; step_time = time.time()
                     self.calfigure_0deg.set_window_title('Calibration 0° ' + lo_label)
-                    in_ratios_0  = self.compute_input_ratios(lo_comb, lo_datadir, 0, self.calfigure_0deg)
+                    in_ratios_0deg  = self.compute_input_ratios(lo_comb, lo_datadir, 0, self.calfigure_0deg)
                     print "\tdone (" + str(time.time() - step_time) + "[s])" 
 
+                    raw_input('Please angle the OMT cavity to 90° and press enter...')
                     print "\tComputing input ratios, angle 90°..."; step_time = time.time()
                     self.calfigure_90deg.set_window_title('Calibration 90° ' + lo_label)
-                    in_ratios_90  = self.compute_input_ratios(lo_comb, lo_datadir, 1, self.calfigure_90deg)
+                    in_ratios_90deg  = self.compute_input_ratios(lo_comb, lo_datadir, 1, self.calfigure_90deg)
                     print "\tdone (" + str(time.time() - step_time) + "[s])" 
 
-                    print "\tComputing input ratios, angle 45°..."; step_time = time.time()
-                    self.calfigure_45deg.set_window_title('Calibration 45° ' + lo_label)
-                    in_ratios_45  = self.compute_input_ratios(lo_comb, lo_datadir, 0, self.calfigure_45deg)
-                    print "\tdone (" + str(time.time() - step_time) + "[s])" 
+                    #print "\tComputing input ratios, angle 45°..."; step_time = time.time()
+                    #self.calfigure_45deg.set_window_title('Calibration 45° ' + lo_label)
+                    #in_ratios_45deg  = self.compute_input_ratios(lo_comb, lo_datadir, 0, self.calfigure_45deg)
+                    #print "\tdone (" + str(time.time() - step_time) + "[s])" 
                     
-                    
-                    ###############################################
-                    # save sb ratios
-                    #np.savez(lo_datadir+'/sb_ratios', sb_ratios_usb=sb_ratios_usb, sb_ratios_lsb=sb_ratios_lsb)
+                    # save in ratios
+                    np.savez(lo_datadir+'/in_ratios', in_ratios_0deg=in_ratios_0deg, 
+                        in_ratios_90deg=in_ratios_90deg)
 
                     # constant computation
-                    #consts_usb = -1.0 * sb_ratios_usb
-                    #consts_lsb = -1.0 * sb_ratios_lsb
+                    H = compute_cal_consts(in_ratios_0deg, in_ratios_90deg)
 
-                #else:
-                #    const = self.settings.ideal_consts['val']
-                #    consts_usb = const * np.ones(self.nchannels, dtype=np.complex128)
-                #    consts_lsb = const * np.ones(self.nchannels, dtype=np.complex128)
+                else: # use ideal constants
+                    H = self.nchannels * [np.array([[0.5, 0, -0.5, 0],[0, 0.5, 0, -0.5]])]
 
                 # load constants
                 #print "\tLoading constants..."; step_time = time.time()
-                #consts_usb_real = float2fixed(self.consts_nbits, self.consts_bin_pt, np.real(consts_usb))
-                #consts_usb_imag = float2fixed(self.consts_nbits, self.consts_bin_pt, np.imag(consts_usb))
-                #consts_lsb_real = float2fixed(self.consts_nbits, self.consts_bin_pt, np.real(consts_lsb))
-                #consts_lsb_imag = float2fixed(self.consts_nbits, self.consts_bin_pt, np.imag(consts_lsb))
-                #self.fpga.write_bram_data(self.settings.const_brams_info, 
-                #    [consts_lsb_real, consts_lsb_imag, consts_usb_real, consts_usb_imag])
-                #print "\tdone (" + str(time.time() - step_time) + "[s])"
+                H_real = float2fixed(self.consts_nbits, self.consts_bin_pt, np.real(H))
+                H_imag = float2fixed(self.consts_nbits, self.consts_bin_pt, np.imag(H))
+                #self.fpga.write_bram_data(self.settings.const_brams_info, [H_real, H_imag])
+                print "\tdone (" + str(time.time() - step_time) + "[s])"
 
-                # compute SRR
-                #print "\tComputing SRR..."; step_time = time.time()
-                #self.srrfigure.fig.canvas.set_window_title('SRR Computation ' + lo_label)
-                #self.compute_srr(M_DSB, lo_comb, lo_datadir)
-                #print "\tdone (" + str(time.time() - step_time) + "[s])"
+                # compute pol isolation
+                print "\tComputing pol iso..."; step_time = time.time()
+                #self.isofigure.fig.canvas.set_window_title('pol iso Computation ' + lo_label)
+                #self.compute_pol_iso(lo_comb, lo_datadir)
+                print "\tdone (" + str(time.time() - step_time) + "[s])"
 
         # turn off sources
         turn_off_sources(self.sources)
 
-        # print srr (full) plot
-        #self.print_srr_plot()
+        # print iso (full) plot
+        #self.print_iso_plot()
 
         # compress saved data
         print "\tCompressing data..."; step_time = time.time()
         tar = tarfile.open(self.datadir + ".tar.gz", "w:gz")
         for datafile in os.listdir(self.datadir):
             tar.add(self.datadir + '/' + datafile, datafile)
-        
-        Each element of the correlation 
-        matrix correspond to the conjugated multiplication of a pair of complex
-        inputs. The matrix is computed by detecting the input with higher power
-        and obtaining the conjugated multiplication between this and the rest of
-        the inputs. Then the rest is terms of the matrix are derived from the
-        ones measured
         tar.close()
         print "\tdone (" + str(time.time() - step_time) + "[s])"
 
@@ -191,12 +178,15 @@ class DomtCalibrator(Experiment):
         :param fig: figure to plot.
         :return: input ratios as a list of vectors.
         """
-        in_ratios = [4*[]]
+        in_ratios = [[] for i in range(4)]
         rf_freqs = lo_comb[0] + sum(lo_comb[1:]) + self.freqs
 
         cal_datadir = lo_datadir + '/cal_rawdata'
-        # creates directory for the raw calibration data
-        os.mkdir(cal_datadir)
+        # creates directory for the raw calibration data if doesn't exists
+        try:
+            os.mkdir(cal_datadir)
+        except OSError:
+            pass
 
         # set the reference for correlation computation
         self.fpga.set_reg('ref_select', ref)
@@ -212,26 +202,26 @@ class DomtCalibrator(Experiment):
             cal_crosspow = self.fpga.get_bram_data(self.settings.crosspow_info)
 
             # combine real and imaginary part of crosspow data
-            crosspow_data = np.array(crosspow_data[0::2]) + 1j*np.array(crosspow_data[1::2])            
+            cal_crosspow = np.array(cal_crosspow[0::2]) + 1j*np.array(cal_crosspow[1::2])            
 
             # save cal rawdata
-            np.savez(cal_datadir + '/'+str(deg)+'deg_chnl_' + str(chnl), 
+            np.savez(cal_datadir + '/'+'ref_'+str(ref)+'_chnl_' + str(chnl), 
                 cal_pow=cal_pow, cal_crosspow=cal_crosspow)
 
             # compute ratios
             # get the reference power
-            aa = pow_data[ref][chnl]
-            for j, ab in enumerate(crosspow_cal):
+            aa = cal_pow[ref][chnl]
+            for j, ab in enumerate(cal_crosspow):
                 in_ratios[j].append(np.conj(ab[chnl]) / aa) # (ab*)* / aa* = a*b / aa* = b/a
 
             # plot spec data
             cal_pow_plot = self.scale_dbfs_spec_data(cal_pow, self.settings.spec_info)
-            for i, spec_plot in enumerate(cal_pow_plot):
-                fig.axes[i].plot(spec_plot)
+            for j, spec_plot in enumerate(cal_pow_plot):
+                fig.axes[j].plot(spec_plot)
 
             # plot the magnitude ratio and phase difference
-            fig.axes[4].plotxy(self.cal_freqs[:i+1], [np.abs(in_ratios)])
-            fig.axes[5].plotxy(self.cal_freqs[:i+1], [np.angle(in_ratios, deg=True)])
+            fig.axes[4].plotxy(self.cal_freqs[:i+1], np.abs(in_ratios))
+            fig.axes[5].plotxy(self.cal_freqs[:i+1], np.angle(in_ratios, deg=True))
 
         # plot last frequency
         plt.pause(self.settings.pause_time) 
@@ -242,7 +232,7 @@ class DomtCalibrator(Experiment):
 
         return in_ratios
 
-    def compute_srr(self, M_DSB, lo_comb, lo_datadir):
+    def compute_pol_iso(self, M_DSB, lo_comb, lo_datadir):
         """
         Compute SRR from the DSS receiver using the Kerr method
         (see ALMA Memo 357 (http://legacy.nrao.edu/alma/memos/html-memos/abstracts/abs357.html)).
@@ -319,7 +309,7 @@ class DomtCalibrator(Experiment):
         # save srr data
         np.savez(lo_datadir+"/srr", srr_usb=srr_usb, srr_lsb=srr_lsb)
 
-    def print_srr_plot(self):
+    def print_iso_plot(self):
         """
         Print SRR plot using the data saved from the test.
         """
@@ -340,3 +330,22 @@ class DomtCalibrator(Experiment):
             plt.ylabel('SRR [dB]')
 
         plt.savefig(self.datadir + '/srr.pdf', bbox_inches='tight')
+
+def compute_cal_consts(gx, gy):
+    """
+    Compute the calibration constants as the pseudo inverse of the
+    gain matrix of an OMT. As the gain matrix is frequency dependant
+    an array of gains element is expected for each frequency component.
+    More info about the pseudo-inverse:
+    https://docs.scipy.org/doc/numpy/reference/generated/numpy.linalg.pinv.html
+    :param gx: x components of the gain matrix
+    :param gy: y components of the gain matrix
+    :return: list of calibration matrices H
+    """
+    # combine gx and gy to form an array of matrices
+    G = np.transpose(np.dstack((gx,gy)), (1,0,2))
+
+    # compute pseudo inverse
+    H = np.linalg.pinv(G)
+
+    return H

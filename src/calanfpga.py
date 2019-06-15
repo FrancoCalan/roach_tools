@@ -320,14 +320,14 @@ class CalanFpga():
 
         # manage interleave/deinterleave data
         if 'interleave' in bram_info and bram_info['interleave']==True:
-            bram_data = interleave_array_list(bram_data, bram_info['data_type'])
+            bram_data = interleave_array(bram_data, bram_info['data_type'])
         
         elif 'deinterleave_by' in bram_info:
-            bram_data = deinterleave_array_list(bram_data, bram_info['deinterleave_by'])
+            bram_data = deinterleave_array(bram_data, bram_info['deinterleave_by'])
             bram_data = list(chain.from_iterable(bram_data)) # flatten list
 
         elif 'divide_by' in bram_info:
-            bram_data = divide_array_list(bram_data, bram_info['divide_by'])
+            bram_data = divide_array(bram_data, bram_info['divide_by'])
             bram_data = list(chain.from_iterable(bram_data)) # flatten list
 
         return bram_data
@@ -417,9 +417,9 @@ class CalanFpga():
 
         # manage interleave/deinterleave data
         if 'interleave' in bram_info and bram_info['interleave']==True:
-            data = interleave_array_list(data, bram_info['data_type'])
+            data = interleave_array(data, bram_info['data_type'])
         elif 'deinterleave_by' in bram_info:
-            data = deinterleave_array_list(data, bram_info['deinterleave_by'])
+            data = deinterleave_array(data, bram_info['deinterleave_by'])
 
         self.write_bram_data_raw(bram_info, data)
 
@@ -537,3 +537,21 @@ def divide_array_list(array_list, dfactor):
             divided_inner_list = divide_array_list(inner_list, dfactor)
             divided_list.append(divided_inner_list)
         return divided_list
+
+def interleave_array(a, i):
+    a = np.array(a)
+    newshape = a.shape[:-1] + (a.shape[-1]/i,i)
+    a = np.reshape(a, newshape)
+    axes = range(len(a.shape))
+    newaxes = axes[:-2] + [axes[-1]] + [axes[-2]]
+    return np.transpose(a, newaxes)
+
+def deinterleave_array(a):
+    a = np.array(a)
+    newshape = a.shape[:-2] + (a.shape[-2]*a.shape[-1],)
+    return np.reshape(a, newshape, order='F')
+
+def divide_array(a, i):
+    a = np.array(a)
+    newshape = a.shape[:-1] + (i,a.shape[-1]/i)
+    return np.reshape(a, newshape)

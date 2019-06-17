@@ -320,7 +320,7 @@ class CalanFpga():
 
         # manage interleave/deinterleave data
         if 'interleave' in bram_info and bram_info['interleave']==True:
-            bram_data = interleave_array(bram_data, bram_info['data_type'])
+            bram_data = interleave_array(bram_data)
         
         elif 'deinterleave_by' in bram_info:
             bram_data = deinterleave_array(bram_data, bram_info['deinterleave_by'])
@@ -372,14 +372,15 @@ class CalanFpga():
         :param data: array to write on the bram.
         """
         brams = bram_info['bram_names']
+        check_brams_data_sizes(brams, data)
         
         if isinstance(brams, str): # case single bram
             width = bram_info['word_width']
             depth = 2**bram_info['addr_width']
-            dtype = bram_info['data_type']
+            dtype = np.dtype(bram_info['data_type'])
 
             # check for bram-data datatype compatibility
-            if dtype != data.dtype:
+            if dtype.alignment != data.dtype.alignment or dtype.char != data.dtype.char:
                 print "WARNING! data types between write bram and data don't match."
                 print "bram dtype: " + str(dtype)
                 print "data dtype: " + str(data.dtype)
@@ -391,7 +392,7 @@ class CalanFpga():
             if bram_bytes != data_bytes:
                 print "WARNING! number of bytes between write bram and data don't match."
                 print "bram bytes: " + str(bram_bytes)
-                print "data bytes: " + str(data_byes)
+                print "data bytes: " + str(data_bytes)
                 print "Attempting to write in bram anyway."
             
             self.fpga.write(brams, data.tobytes())
@@ -414,7 +415,6 @@ class CalanFpga():
         :param data: numpy array or list of numpy arrays with the 
             interleaved/deinterleaved data.
         """
-
         # manage interleave/deinterleave data
         if 'interleave' in bram_info and bram_info['interleave']==True:
             data = interleave_array(data, bram_info['data_type'])
@@ -538,7 +538,12 @@ def divide_array_list(array_list, dfactor):
             divided_list.append(divided_inner_list)
         return divided_list
 
-def interleave_array(a, i):
+def interleave_array(a):
+    a = np.array(a)
+    newshape = a.shape[:-2] + (a.shape[-2]*a.shape[-1],)
+    return np.reshape(a, newshape, order='F')
+
+def deinterleave_array(a, i):
     a = np.array(a)
     newshape = a.shape[:-1] + (a.shape[-1]/i,i)
     a = np.reshape(a, newshape)
@@ -546,12 +551,21 @@ def interleave_array(a, i):
     newaxes = axes[:-2] + [axes[-1]] + [axes[-2]]
     return np.transpose(a, newaxes)
 
-def deinterleave_array(a):
-    a = np.array(a)
-    newshape = a.shape[:-2] + (a.shape[-2]*a.shape[-1],)
-    return np.reshape(a, newshape, order='F')
-
 def divide_array(a, i):
     a = np.array(a)
     newshape = a.shape[:-1] + (i,a.shape[-1]/i)
     return np.reshape(a, newshape)
+
+def check_brams_data_sizes(brams, data):
+    """
+    Check that the dimensions of the data and the dimensions
+    of the list of bram names match. If they don't match, close
+    the script.
+    :param brams: multidimensial list with bram names to write.
+    :param data: multidimensional array of data to write.
+    """
+    brams_arr = np.array(brams)
+    if brams_arr.shape != data.shape[:-1]:
+        print "ERROR: mismatch between dimensions of brams list and data array"
+        print "bram list  dimensions: " + str(brams_arr.shape)
+        print "data array dimensions: " + str(data.shape[:-1])

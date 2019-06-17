@@ -140,7 +140,7 @@ class DomtCalibrator(Experiment):
                 print "H dims: " + str(len(H)) + ", " + str(len(H[0])) + ", " + str(len(H[0][0]))
 
                 # load constants
-                #print "\tLoading constants..."; step_time = time.time()
+                print "\tLoading constants..."; step_time = time.time()
                 H_real = float2fixed(self.consts_nbits, self.consts_bin_pt, np.real(H))
                 H_imag = float2fixed(self.consts_nbits, self.consts_bin_pt, np.imag(H))
                 self.fpga.write_bram_data(self.settings.const_brams_info, [H_real, H_imag])
@@ -149,12 +149,12 @@ class DomtCalibrator(Experiment):
                 # compute pol isolation
                 raw_input('Please angle the OMT cavity to 0° and press enter...')
                 print "\tComputing pol-x iso..."; step_time = time.time()
-                self.isofigure.fig.canvas.set_window_title('Pol Iso Computation ' + lo_label)
-                self.compute_pol_iso(lo_comb, lo_datadir, 'x', self.isofigure.axes[2])
+                self.polfigure.fig.canvas.set_window_title('Pol Iso Computation ' + lo_label)
+                self.compute_pol_iso(lo_comb, lo_datadir, 'x', self.polfigure.axes[2])
                 print "\tdone (" + str(time.time() - step_time) + "[s])"
                 raw_input('Please angle the OMT cavity to 90° and press enter...')
                 print "\tComputing pol-y iso..."; step_time = time.time()
-                self.compute_pol_iso(lo_comb, lo_datadir, 'y', self.isofigure.axes[3])
+                self.compute_pol_iso(lo_comb, lo_datadir, 'y', self.polfigure.axes[3])
                 print "\tdone (" + str(time.time() - step_time) + "[s])"
 
         # turn off sources
@@ -268,7 +268,7 @@ class DomtCalibrator(Experiment):
  
         for i, chnl in enumerate(self.syn_channels):
             # set generator
-            self.rf_source.set_freq_mhz(rf_freqs_usb[chnl])
+            self.rf_source.set_freq_mhz(rf_freqs[chnl])
             # plot while the generator is changing to frequency to give the system time to update
             plt.pause(self.settings.pause_time) 
             
@@ -278,8 +278,8 @@ class DomtCalibrator(Experiment):
             # plot spec data
             [polx_plot, poly_plot] = \
                 self.scale_dbfs_spec_data([polx, poly], self.settings.synth_info)
-            self.synfigure.axes[0].plot(polx_plot)
-            self.synfigure.axes[1].plot(poly_plot)
+            self.polfigure.axes[0].plot(polx_plot)
+            self.polfigure.axes[1].plot(poly_plot)
 
             # save syn rawdata
             np.savez(syn_datadir+'/pol'+str(pol)+'_chnl_'+str(chnl), polx=polx, poly=poly)
@@ -337,5 +337,6 @@ def compute_cal_consts(gx, gy):
 
     # compute pseudo inverse
     H = np.linalg.pinv(G)
+    H = np.transpose(H, (1,2,0))
 
     return H

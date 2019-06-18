@@ -8,7 +8,7 @@ from ..axes.spectrum_axis import SpectrumAxis
 from ..pocket_correlator.mag_ratio_axis import MagRatioAxis
 from ..pocket_correlator.angle_diff_axis import AngleDiffAxis
 
-class AdcSynchronatorFreq(Experiment):
+class AdcSynchronator(Experiment):
     """
     This class is used to synchronize two or more ADC using
     frequency domain information.
@@ -19,6 +19,7 @@ class AdcSynchronatorFreq(Experiment):
         self.nchannels = get_nchannels(self.settings.spec_info)
         self.freqs = np.linspace(0, self.bw, self.nchannels, endpoint=False)
         self.sync_regs = self.settings.sync_regs
+        self.sync_delays = [self.fpga.read_reg(sync_reg) for sync_reg in self.sync_regs]
         
         # test channels array
         chnl_start = self.settings.sync_chnl_start
@@ -39,8 +40,8 @@ class AdcSynchronatorFreq(Experiment):
         for i, spec_title in enumerate(self.settings.spec_titles):
             self.figure.create_axis(i, SpectrumAxis,  self.freqs, spec_title)
         self.legends = self.settings.corr_legends
-        self.figure.create_axis(self.n_inputs, MagRatioAxis, self.freqs, self.legends, 'Magnitude Ratio')
-        self.figure.create_axis(self.n_inputs+1, AngleDiffAxis, self.freqs, self.legends, 'Angle Difference')
+        self.figure.create_axis(self.n_inputs, MagRatioAxis, self.test_freqs, self.legends, 'Magnitude Ratio')
+        self.figure.create_axis(self.n_inputs+1, AngleDiffAxis, self.test_freqs, self.legends, 'Angle Difference')
 
     def synchronize_adcs(self):
         """
@@ -111,14 +112,11 @@ class AdcSynchronatorFreq(Experiment):
                 sync_delays = -1*np.array(delays)
                 # offset delays to only get non-negative integers (negative delay do not exist)
                 sync_delays = sync_delays - np.min(sync_delays)
+                # update sync delay values
+                self.sync_delays = self.sync_delays + sync_delays
                 # apply delays
-                for sync_delay, sync_regs in zip(sync_delays, self.sync_regs):
+                for sync_delay, sync_reg in zip(self.sync_delays, self.sync_regs):
                     self.fpga.set_reg(sync_reg, sync_delay)
-
-            elif delay > 0: # if delay is positive adc1 is ahead, hence delay adc1
-                self.fpga.set_reg('adc1_delay', delay)
-            else: # (delay < 0) if delay is negative adc0 is ahead, hence delay adc0
-                self.fpga.set_reg('adc0_delay', -1*delay)
 
         turn_off_sources(self.sources)
 

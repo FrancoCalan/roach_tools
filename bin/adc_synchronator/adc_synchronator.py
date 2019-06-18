@@ -3,8 +3,8 @@
 import sys, os
 sys.path.append(os.getcwd())
 from roach_tools.calanfpga import CalanFpga
-from roach_tools.adc_synchronator_time.adc_synchronator_time import AdcSynchronatorTime
+from roach_tools.adc_synchronator.adc_synchronator import AdcSynchronator
 
 fpga = CalanFpga()
 fpga.initialize()
-AdcSynchronatorTime(fpga).synchronize_adcs()
+AdcSynchronator(fpga).synchronize_adcs()

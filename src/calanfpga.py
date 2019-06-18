@@ -22,7 +22,11 @@ class CalanFpga():
                 os.path.basename(sys.argv[0]) + " [config file]")  
             exit()
         config_file = os.path.splitext(sys.argv[1])[0]
-        self.settings = importlib.import_module(config_file)
+        try:
+            self.settings = importlib.import_module(config_file)
+        except ImportError:
+            print("Error: No config file named " + config_file)
+            exit()
         
         if len(sys.argv) > 2:
             self.parse_commandline_args(sys.argv[2:])
@@ -456,94 +460,36 @@ class CalanFpga():
 
         return dram_data
 
-def interleave_array_list(array_list, dtype):
-    """
-    Receivers a list of unknown depth with the final elements
-    being numpy arrays. Interleave the arrays in the inner most
-    lists. It assumes that all the sub lists are of the same depth.
-    Useful to combine spectral data separated in diferent brams.
-    Examples (parenthesis signifies numpy array):
-
-    - [(1,2,3,4),(10,20,30,40)] -> (1,10,2,20,3,30,4,40)
-    
-    - [[(1,2,3,4),(5,6,7,8)] , [(10,20,30,40),(50,60,70,80)]]
-        -> [(1,5,2,6,3,7,4,8), (10,50,20,60,30,70,40,80)]
-
-    :param array_list: list to interleave.
-    :param dtype: numpy data type of arrays.
-    :return: new list with with inner most list interleaved.
-    """
-    if isinstance(array_list[0], np.ndarray): # case list of arrays
-        return np.fromiter(chain(*zip(*array_list)), dtype=dtype)
-    
-    elif isinstance(array_list[0], list): # case deeper list
-        interleaved_list = []
-        for inner_list in array_list:
-            interleaved_inner_list = interleave_array_list(inner_list, dtype)
-            interleaved_list.append(interleaved_inner_list)
-        return interleaved_list
-
-def deinterleave_array_list(array_list, ifactor):
-    """
-    Receivers a list of unknown depth with the final elements
-    being numpy arrays. For every array, separate the array in a
-    list of ifactor arrays so that the original array is the interleaved 
-    version of the produced arrays. This is the inverse function of
-    interleave_array_list(). Useful when independent spectral data is
-    saved in the same bram in an interleaved manner.
-    :param array_list: array or list to deinterleave.
-    :param ifactor: interleave factor, number of arrays in which to separate
-        the original array.
-    :return: list with the deinterleaved arrays.
-    """
-    if isinstance(array_list, np.ndarray): # case array
-        deinterleaved_list = np.reshape(array_list, (len(array_list)/ifactor, ifactor))
-        deinterleaved_list = np.transpose(deinterleaved_list)
-        deinterleaved_list = list(deinterleaved_list)
-        return deinterleaved_list
-
-    if isinstance(array_list, list): # case list
-        deinterleaved_list = []
-        for inner_list in array_list:
-            deinterleaved_inner_list = deinterleave_array_list(inner_list, ifactor)
-            deinterleaved_list.append(deinterleaved_inner_list)
-        return deinterleaved_list
-
-def divide_array_list(array_list, dfactor):
-    """
-    Receivers a list of unknown depth with the final elements
-    being numpy arrays. For every array, separate the array in a
-    list of dfactor arrays so that the concatenation of the arrays
-    produce the original array. Useful when independent spectral is 
-    pruduces secuentially and saved in the same memory.
-    Examples (parenthesis signifies numpy array):
-
-    - (1,2,3,4,10,20,30,40) -> [(1,2,3,4), (10,20,30,40)]
-    
-    - [(1,2,3,4,5,6,7,8) , (10,20,30,40,50,60,70,80)]
-        -> [[(1,2,3,4),(5,6,7,8)], [(10,20,30,40),(50,60,70,80)]]
-
-    :param array_list: array or list to divide.
-    :param dfactor: divide factor, number of arrays in which to separate
-        the original array.
-    :return: list with the divided arrays.
-    """
-    if isinstance(array_list, np.ndarray): # case array
-        return np.split(array_list, dfactor)
-
-    if isinstance(array_list, list): # case list
-        divided_list = []
-        for inner_list in array_list:
-            divided_inner_list = divide_array_list(inner_list, dfactor)
-            divided_list.append(divided_inner_list)
-        return divided_list
-
 def interleave_array(a):
+    """
+    Receives an array of unknown depth. Interleave the array inner most
+    dimension. The result is an array of one less dimension.
+    Useful to combine spectral data separated in diferent brams.
+    Examples:
+    - ((1,2,3,4),(10,20,30,40)) -> (1,10,2,20,3,30,4,40)
+    
+    - (((1,2,3,4),(5,6,7,8)) , ((10,20,30,40),(50,60,70,80)))
+        -> ((1,5,2,6,3,7,4,8), (10,50,20,60,30,70,40,80))
+
+    :param a: array to interleave (can be a list).
+    :return: new array with with inner most dimension interleaved.
+    """
     a = np.array(a)
     newshape = a.shape[:-2] + (a.shape[-2]*a.shape[-1],)
     return np.reshape(a, newshape, order='F')
 
 def deinterleave_array(a, i):
+    """
+    Receives an array of unknown depth. Separate the inner most dimension 
+    of the array so that it produces a new dimension of i arrays where the 
+    original dimension was the interleaved version of the new ones. 
+    This is the inverse function of interleave_array(). Useful when independent
+    spectral data is saved in the same bram in an interleaved manner.
+    :param a: array to deinterleave (can be a list).
+    :param i: interleave factor, number of arrays in which to separate
+        the array last dimension.
+    :return: array with the deinterleaved data.
+    """
     a = np.array(a)
     newshape = a.shape[:-1] + (a.shape[-1]/i,i)
     a = np.reshape(a, newshape)
@@ -552,6 +498,23 @@ def deinterleave_array(a, i):
     return np.transpose(a, newaxes)
 
 def divide_array(a, i):
+    """
+    Receives an array of unknown depth. Separate the inner most dimension 
+    of the array so that it produces a new dimension of i arrays where the 
+    where the ne simension is the direct separation of the original dimension.
+    Useful when independent spectral data is produces secuentially and saved in
+    the same memory.
+    Examples:
+    - (1,2,3,4,10,20,30,40) -> ((1,2,3,4), (10,20,30,40))
+    
+    - ((1,2,3,4,5,6,7,8) , (10,20,30,40,50,60,70,80))
+        -> (((1,2,3,4),(5,6,7,8)), ((10,20,30,40),(50,60,70,80)))
+
+    :param array_list: array or list to divide.
+    :param dfactor: divide factor, number of arrays in which to separate
+        the original array.
+    :return: list with the divided arrays.
+    """
     a = np.array(a)
     newshape = a.shape[:-1] + (i,a.shape[-1]/i)
     return np.reshape(a, newshape)
@@ -569,3 +532,4 @@ def check_brams_data_sizes(brams, data):
         print "ERROR: mismatch between dimensions of brams list and data array"
         print "bram list  dimensions: " + str(brams_arr.shape)
         print "data array dimensions: " + str(data.shape[:-1])
+        exit()

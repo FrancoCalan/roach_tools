@@ -20,6 +20,7 @@ class DomtCalibrator(Experiment):
         self.bw = self.settings.bw
         self.nchannels = get_nchannels(self.settings.synth_info)
         self.freqs = np.linspace(0, self.bw, self.nchannels, endpoint=False)
+        self.ang2ref = {0:0, 90:1, 45:0}
         
         # test channels array
         self.cal_channels  = range(1, self.nchannels, self.settings.cal_chnl_step)
@@ -39,8 +40,8 @@ class DomtCalibrator(Experiment):
         
         # figures
         self.calfigure_0deg  = CalanFigure(n_plots=6, create_gui=False)
-        self.calfigure_45deg = CalanFigure(n_plots=6, create_gui=False)
         self.calfigure_90deg = CalanFigure(n_plots=6, create_gui=False)
+        self.calfigure_45deg = CalanFigure(n_plots=6, create_gui=False)
         self.polfigure       = CalanFigure(n_plots=4, create_gui=False)
         
         # axes on figures
@@ -51,19 +52,19 @@ class DomtCalibrator(Experiment):
         self.calfigure_0deg.create_axis(4, MagRatioAxis,  self.freqs, ['1/1', '2/1', '3/1', '4/1'], 'Magnitude Ratio')
         self.calfigure_0deg.create_axis(5, AngleDiffAxis, self.freqs, ['1-1', '2-1', '3-1', '4-1'], 'Angle Difference')
         #
-        self.calfigure_45deg.create_axis(0, SpectrumAxis,  self.freqs, 'ZDOK0 a spec')
-        self.calfigure_45deg.create_axis(1, SpectrumAxis,  self.freqs, 'ZDOK0 c spec')
-        self.calfigure_45deg.create_axis(2, SpectrumAxis,  self.freqs, 'ZDOK1 a spec')
-        self.calfigure_45deg.create_axis(3, SpectrumAxis,  self.freqs, 'ZDOK1 c spec')
-        self.calfigure_45deg.create_axis(4, MagRatioAxis,  self.freqs, ['1/1', '2/1', '3/1', '4/1'], 'Magnitude Ratio')
-        self.calfigure_45deg.create_axis(5, AngleDiffAxis, self.freqs, ['1-1', '2-1', '3-1', '4-1'], 'Angle Difference')
-        #
         self.calfigure_90deg.create_axis(0, SpectrumAxis,  self.freqs, 'ZDOK0 a spec')
         self.calfigure_90deg.create_axis(1, SpectrumAxis,  self.freqs, 'ZDOK0 c spec')
         self.calfigure_90deg.create_axis(2, SpectrumAxis,  self.freqs, 'ZDOK1 a spec')
         self.calfigure_90deg.create_axis(3, SpectrumAxis,  self.freqs, 'ZDOK1 c spec')
         self.calfigure_90deg.create_axis(4, MagRatioAxis,  self.freqs, ['1/2', '2/2', '3/2', '4/2'], 'Magnitude Ratio')
         self.calfigure_90deg.create_axis(5, AngleDiffAxis, self.freqs, ['1-2', '2-2', '3-2', '4-2'], 'Angle Difference')
+        #
+        self.calfigure_45deg.create_axis(0, SpectrumAxis,  self.freqs, 'ZDOK0 a spec')
+        self.calfigure_45deg.create_axis(1, SpectrumAxis,  self.freqs, 'ZDOK0 c spec')
+        self.calfigure_45deg.create_axis(2, SpectrumAxis,  self.freqs, 'ZDOK1 a spec')
+        self.calfigure_45deg.create_axis(3, SpectrumAxis,  self.freqs, 'ZDOK1 c spec')
+        self.calfigure_45deg.create_axis(4, MagRatioAxis,  self.freqs, ['1/1', '2/1', '3/1', '4/1'], 'Magnitude Ratio')
+        self.calfigure_45deg.create_axis(5, AngleDiffAxis, self.freqs, ['1-1', '2-1', '3-1', '4-1'], 'Angle Difference')
         #
         self.polfigure.create_axis(0, SpectrumAxis, self.freqs, 'X pol')
         self.polfigure.create_axis(1, SpectrumAxis, self.freqs, 'Y pol')
@@ -115,13 +116,8 @@ class DomtCalibrator(Experiment):
                     raw_input('Please angle the OMT cavity to 90° and press enter...')
                     print "\tComputing input ratios, angle 90°..."; step_time = time.time()
                     self.calfigure_90deg.set_window_title('Calibration 90° ' + lo_label)
-                    in_ratios_90deg  = self.compute_input_ratios(lo_comb, lo_datadir, 1, self.calfigure_90deg)
+                    in_ratios_90deg  = self.compute_input_ratios(lo_comb, lo_datadir, 90, self.calfigure_90deg)
                     print "\tdone (" + str(time.time() - step_time) + "[s])" 
-
-                    #print "\tComputing input ratios, angle 45°..."; step_time = time.time()
-                    #self.calfigure_45deg.set_window_title('Calibration 45° ' + lo_label)
-                    #in_ratios_45deg  = self.compute_input_ratios(lo_comb, lo_datadir, 0, self.calfigure_45deg)
-                    #print "\tdone (" + str(time.time() - step_time) + "[s])" 
                     
                     # save in ratios
                     np.savez(lo_datadir+'/in_ratios', in_ratios_0deg=in_ratios_0deg, 
@@ -136,9 +132,17 @@ class DomtCalibrator(Experiment):
                     H = [[0.5*np.ones(n), np.zeros(n), -0.5*np.ones(n),     np.zeros(n)],
                          [np.zeros(n), 0.5*np.ones(n),     np.zeros(n), -0.5*np.ones(n)]]
 
+                #if self.settings.45deg_calibration:
+                if self.settings.calibration_45deg:
+                    raw_input('Please angle the OMT cavity to 45° and press enter...')
+                    print "\tComputing input ratios, angle 45°..."; step_time = time.time()
+                    self.calfigure_45deg.set_window_title('Calibration 45° ' + lo_label)
+                    in_ratios_45deg  = self.compute_input_ratios(lo_comb, lo_datadir, 45, self.calfigure_45deg)
+                    H = self.compute_45deg_calibration(in_ratios_45deg, H)
+                    print "\tdone (" + str(time.time() - step_time) + "[s])" 
+                    
                 # test H dimensions
-                print "H dims: " + str(len(H)) + ", " + str(len(H[0])) + ", " + str(len(H[0][0]))
-
+                print "H dims: " + str(np.array(H).shape)
                 # load constants
                 print "\tLoading constants..."; step_time = time.time()
                 H_real = float2fixed(self.consts_nbits, self.consts_bin_pt, np.real(H))
@@ -161,7 +165,7 @@ class DomtCalibrator(Experiment):
         turn_off_sources(self.sources)
 
         # print iso (full) plot
-        #self.print_iso_plot()
+        self.print_iso_plot()
 
         # compress saved data
         print "\tCompressing data..."; step_time = time.time()
@@ -176,7 +180,7 @@ class DomtCalibrator(Experiment):
 
         print "Total time: " + str(time.time() - initial_time) + "[s]"
 
-    def compute_input_ratios(self, lo_comb, lo_datadir, ref, fig):
+    def compute_input_ratios(self, lo_comb, lo_datadir, ang, fig):
         """
         Sweep a tone through the receiver bandwidth and computes the input ratios
         for a number of FFT channel. The input ratios are the complex ratios
@@ -186,14 +190,17 @@ class DomtCalibrator(Experiment):
         channels not measured are interpolated.
         :param lo_comb: LO frequency combination for the test. Used to properly 
         set the RF test input.
-        :param lo_datadir: diretory for the data of the current LO frequency 
+        :param lo_datadir: directory for the data of the current LO frequency 
             combination.
-        :param ref: index of the input used as reference.
+        :param ang: angle of the omt input in which the measurement is 
+            performed. Used to define the reference signal, and to label the
+            saved data.
         :param fig: figure to plot.
         :return: input ratios as a list of vectors.
         """
         in_ratios = [[] for i in range(4)]
         rf_freqs = lo_comb[0] + sum(lo_comb[1:]) + self.freqs
+        ref = self.ang2ref[ang]
 
         cal_datadir = lo_datadir + '/cal_rawdata'
         # creates directory for the raw calibration data if doesn't exists
@@ -219,7 +226,7 @@ class DomtCalibrator(Experiment):
             cal_crosspow = np.array(cal_crosspow[0::2]) + 1j*np.array(cal_crosspow[1::2])            
 
             # save cal rawdata
-            np.savez(cal_datadir + '/'+'ref_'+str(ref)+'_chnl_' + str(chnl), 
+            np.savez(cal_datadir + '/'+'ang_'+str(ang)+'_chnl_' + str(chnl), 
                 cal_pow=cal_pow, cal_crosspow=cal_crosspow)
 
             # compute ratios
@@ -245,6 +252,44 @@ class DomtCalibrator(Experiment):
             in_ratios[i] = np.interp(range(self.nchannels), self.cal_channels, ratio_arr)
 
         return in_ratios
+
+    def compute_45deg_calibration(self, in_ratios, H_arr):
+        """
+        Performs phase differential and x-y misalignment corrections over the
+        partially calibrated omt matrix H, using the data from a 45° measurement
+        in the omt. for mor infomation on this calibration read:
+        https://arxiv.org/abs/1008.3501
+        :param in_ratios: the input ratios using the first input as reference.
+        :param H_arr: array of partially calibrated matrices using 0° and 90° 
+            measurements.
+        :return: fully calibrated matrix.
+        """
+        # transpose arrays for proper domensions for iteration
+        H_arr = np.transpose(H_arr, (2,0,1)) # (2,4,2048) -> (2048, 2, 4)
+        in_ratios = np.transpose(in_ratios)  # (4,2048) -> (2048,4)
+
+        H_new = []
+        for V, H in zip(in_ratios, H_arr):
+            S_lin  = np.dot(H, V)
+            [sl, sr] = np.dot([[1,-1j],[1,+1j]], S_lin)
+
+            sl2 = np.abs(sl)**2; sr2 = np.abs(sr)**2
+            sin_e = 0.5*(sl2 + sr2) - 1
+            cos_e = np.sqrt(1 - sin_e**2)
+
+            sin_p = (sl2 - sr2) / (2*sin_e*cos_e + 2*cos_e)
+            cos_p = (2*np.imag(sr * np.conj(sl))) / (2*sin_e*cos_e + 2*cos_e)
+            
+            E = np.array([[1, sin_p],[0, cos_p]])
+            P = np.array([[1, 0], [0, cos_p+1j*sin_p]])
+            corr_mat = np.linalg.inv(np.dot(P,E))
+
+            H_new.append(np.dot(corr_mat, H))
+
+        # reshape array into original dimensions
+        H_new = np.transpose(H_new, (1,2,0)) # (2048,2,4) -> (2,4,2048)
+
+        return H_new
 
     def compute_pol_iso(self, lo_comb, lo_datadir, pol, ax):
         """
@@ -301,25 +346,25 @@ class DomtCalibrator(Experiment):
 
     def print_iso_plot(self):
         """
-        Print SRR plot using the data saved from the test.
+        Print isolation plot using the data saved from the test.
         """
         fig = plt.figure()
         for lo_comb in self.lo_combinations:
             lo_label = '_'.join(['LO'+str(i+1)+'_'+str(lo/1e3)+'GHZ' for i,lo in enumerate(lo_comb)]) 
             datadir = self.datadir + '/' + lo_label
 
-            srrdata = np.load(datadir + '/srr.npz')
+            iso_datax = np.load(datadir + '/pol_x_iso.npy')
+            iso_datay = np.load(datadir + '/pol_y_iso.npy')
             
-            usb_freqs = lo_comb[0]/1.0e3 + sum(lo_comb[1:])/1.0e3 + self.srr_freqs
-            lsb_freqs = lo_comb[0]/1.0e3 - sum(lo_comb[1:])/1.0e3 - self.srr_freqs
+            freqs = lo_comb[0]/1.0e3 + sum(lo_comb[1:])/1.0e3 + self.syn_freqs
             
-            plt.plot(usb_freqs, srrdata['srr_usb'], '-r')
-            plt.plot(lsb_freqs, srrdata['srr_lsb'], '-b')
+            plt.plot(freqs, iso_datax, '-r')
+            plt.plot(freqs, iso_datay, '-b')
             plt.grid()
             plt.xlabel('Frequency [GHz]')
-            plt.ylabel('SRR [dB]')
+            plt.ylabel('Polarization Isolation [dB]')
 
-        plt.savefig(self.datadir + '/srr.pdf', bbox_inches='tight')
+        plt.savefig(self.datadir + '/iso.pdf', bbox_inches='tight')
 
 def compute_cal_consts(gx, gy):
     """

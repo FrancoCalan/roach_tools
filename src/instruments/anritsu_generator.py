@@ -49,5 +49,5 @@ class AnritsuGenerator(Generator):
         """
         if power is None:
             power = self.def_power
-        self.instr.write('L1 ' + str(power + ' DM'))
+        self.instr.write('L1 ' + str(power) + ' DM')
         time.sleep(self.sleep_time)

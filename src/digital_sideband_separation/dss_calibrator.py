@@ -427,6 +427,9 @@ def float2fixed(nbits, bin_pt, data):
     """
     check_overflow(nbits, bin_pt, data)
     fixedpoint_data = (2**bin_pt * data).astype('>i'+str(nbits/8))
+    if fixedpoint_data[0,0,0] != 0:
+        print data[0,0,0]
+        print fixedpoint_data[0,0,0]
     return fixedpoint_data
 
 def check_overflow(nbits, bin_pt, data):

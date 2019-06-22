@@ -127,8 +127,9 @@ class DomtCalibrator(Experiment):
                     H = compute_cal_consts(in_ratios_0deg, in_ratios_90deg)
 
                 else: # use ideal constants
-                    #H = self.nchannels * [np.array([[0.5, 0, -0.5, 0],[0, 0.5, 0, -0.5]])]
                     n = self.nchannels
+                    H = np.repeat(np.array([[1, 0, 0, 0],
+                                            [0, 0, 0, 0]])[:,:,np.newaxis], n, axis=2)
                     H = [[0.5*np.ones(n), np.zeros(n), -0.5*np.ones(n),     np.zeros(n)],
                          [np.zeros(n), 0.5*np.ones(n),     np.zeros(n), -0.5*np.ones(n)]]
 

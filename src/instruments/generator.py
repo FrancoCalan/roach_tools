@@ -1,4 +1,4 @@
-import visa, socket
+import vxi11, socket
 
 class Generator():
     """
@@ -46,27 +46,19 @@ def create_generator(instr_info):
     :param print_msgs: True: print command messages. False: do not.
     :return: Generator object.
     """
-    from visa_generator import VisaGenerator
+    from scpi_generator import ScpiGenerator
     from anritsu_generator import AnritsuGenerator
+    from sim_generator import SimGenerator
     
-    # check if instrument is proper or simulated
-    if instr_info['type'] == 'sim':
-        rm = visa.ResourceManager('@sim')
-    else:
-        rm = visa.ResourceManager('@py')
-    
-    # try to connect to instrument
-    try:
-        instr = rm.open_resource(instr_info['connection'])
-    except socket.error:
-        print("Unable to connect to instrument " + instr_info['connection'])
-        exit()
-
     # create the proper generator object with the correct inctruction keywords
-    if instr_info['type'] == 'visa':
-        return VisaGenerator(instr, instr_info)
+    if instr_info['type'] == 'scpi':
+        instr = vxi11.Instrument(instr_info['connection'])
+        return ScpiGenerator(instr, instr_info)
     elif instr_info['type'] == 'anritsu':
+        instr = vxi11.Instrument(instr_info['connection'])
         return AnritsuGenerator(instr, instr_info)
-    else: # default to visa
-        return VisaGenerator(instr, instr_info)
-        
+    elif instr_info['type'] == 'sim':
+        return sim_generator
+    else: 
+        print("Error: Instrument type " + instr_info['type'] + "not recognized.")
+        exit()

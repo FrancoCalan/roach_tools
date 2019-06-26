@@ -32,7 +32,7 @@ class SimGenerator(Generator):
         Set the generator output frequency. 
         :param freq: frequency to set in MHz.
         """
-        self.set_freq_hz(1000000 * freq)
+        time.sleep(self.sleep_time)
 
     def set_power_dbm(self, power=None):
         """

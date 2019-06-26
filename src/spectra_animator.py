@@ -1,6 +1,4 @@
 import numpy as np
-import Tkinter as Tk
-from itertools import chain
 from animator import Animator
 from calanfigure import CalanFigure
 from axes.spectrum_axis import SpectrumAxis

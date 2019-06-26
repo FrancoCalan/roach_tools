@@ -58,7 +58,7 @@ def create_generator(instr_info):
         instr = vxi11.Instrument(instr_info['connection'])
         return AnritsuGenerator(instr, instr_info)
     elif instr_info['type'] == 'sim':
-        return sim_generator
+        return SimGenerator(None, instr_info)
     else: 
         print("Error: Instrument type " + instr_info['type'] + "not recognized.")
         exit()

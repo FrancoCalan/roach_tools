@@ -123,7 +123,7 @@ class BmCalibrator(Experiment):
 
                 # constant computation
                 if self.settings.cal_method == 'Ideal':
-                    consts = np.ones(self.nchannels, dtype=np.complex)
+                    consts = self.settings.ideal_const*np.ones(self.nchannels, dtype=np.complex)
                 elif self.settings.cal_method == 'USB':
                     consts = -1.0 * ab_usb / b2_usb # ab* / bb* = a/b
                 elif self.settings.cal_method == 'Higher':
@@ -152,7 +152,7 @@ class BmCalibrator(Experiment):
         turn_off_sources(self.sources)
 
         # print noisepow (full) plot
-        self.print_noisepow_plot()
+        #self.print_noisepow_plot()
 
         # compress saved data
         print "\tCompressing data..."; step_time = time.time()

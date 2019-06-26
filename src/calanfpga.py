@@ -383,13 +383,6 @@ class CalanFpga():
             depth = 2**bram_info['addr_width']
             dtype = np.dtype(bram_info['data_type'])
 
-            # check for bram-data datatype compatibility
-            if dtype.alignment != data.dtype.alignment or dtype.char != data.dtype.char:
-                print "WARNING! data types between write bram and data don't match."
-                print "bram dtype: " + str(dtype)
-                print "data dtype: " + str(data.dtype)
-                print "Attempting to write in bram anyway."
-
             # check for bytesize compatibility
             bram_bytes = width * depth / 8
             data_bytes = len(data) * data.dtype.alignment
@@ -399,6 +392,9 @@ class CalanFpga():
                 print "data bytes: " + str(data_bytes)
                 print "Attempting to write in bram anyway."
             
+            # change the data to the correct data type
+            data = data.astype(dtype)
+
             self.fpga.write(brams, data.tobytes())
             return
 

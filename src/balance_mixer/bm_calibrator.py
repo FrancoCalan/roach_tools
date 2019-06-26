@@ -152,7 +152,8 @@ class BmCalibrator(Experiment):
         turn_off_sources(self.sources)
 
         # print noisepow (full) plot
-        #self.print_noisepow_plot()
+        if self.settings.compute_noise:
+            self.print_noisepow_plot()
 
         # compress saved data
         print "\tCompressing data..."; step_time = time.time()

@@ -98,7 +98,7 @@ class AdcSynchronator(Experiment):
             # get delays between adcs
             delays = self.compute_adc_delays_freq(self.test_freqs[:i+1], ratios) 
             
-            # if the sync regs are 1 more the the computed delays,
+            # if the sync regs are 1 more than the computed delays,
             # assume that the first reg is for the reference
             if len(self.sync_regs)-1 == len(delays):
                 delays.insert(0, 0) # 0 delay for the reference

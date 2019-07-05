@@ -52,15 +52,18 @@ class BmCalibrator(Experiment):
         self.calfigure_usb.create_axis(2, MagRatioAxis,  self.freqs, ['ZDOK1/ZDOK0'], 'Magnitude Ratio')
         self.calfigure_usb.create_axis(3, AngleDiffAxis, self.freqs, ['ZDOK1-ZDOK0'], 'Angle Difference')
         #
-        self.synfigure.create_axis(0, SpectrumAxis, self.freqs, 'Synth spec')
-        self.synfigure.create_axis(1, SpectrumAxis, self.freqs, 'Noise Power USB')
-        self.synfigure.create_axis(2, SpectrumAxis, self.freqs, 'Noise Power LSB')
+        self.synfigure.create_axis(0, SpectrumAxis, self.freqs, 'Input spec')
+        self.synfigure.create_axis(1, SpectrumAxis, self.freqs, 'Synth spec')
+        self.synfigure.create_axis(2, SpectrumAxis, self.freqs, 'Cancellation USB')
+        self.synfigure.create_axis(3, SpectrumAxis, self.freqs, 'Cancellation LSB')
 
         # data save attributes
+        self.save_data = not self.settings.saved_params['use_saved'] or self.settings.compute_cancellation
         self.dataname = self.settings.boffile[:self.settings.boffile.index('.')]
         self.dataname = 'bmtest ' + self.dataname
         self.datadir = self.dataname + ' ' + datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
-        os.mkdir(self.datadir)
+        if self.save_data:
+            os.mkdir(self.datadir)
         self.testinfo = {'bw'               : self.bw,
                          'nchannels'        : self.nchannels,
                          'cal_acc_len'      : self.fpga.read_reg(self.settings.spec_info['acc_len_reg']),
@@ -86,7 +89,8 @@ class BmCalibrator(Experiment):
             cycle_time = time.time()
             lo_label = '_'.join(['LO'+str(i+1)+'_'+str(lo/1e3)+'GHZ' for i,lo in enumerate(lo_comb)]) 
             lo_datadir = self.datadir + "/" + lo_label
-            os.mkdir(lo_datadir)
+            if self.save_data:
+                os.mkdir(lo_datadir)
             
             print lo_label
             for i, lo in enumerate(lo_comb):
@@ -117,23 +121,27 @@ class BmCalibrator(Experiment):
                         print "\tdone (" + str(time.time() - step_time) + "[s])"
 
                         # save ab params
-                        np.savez(lo_datadir+'/ab_params', 
-                            a2_usb=a2_usb, b2_usb=b2_usb, ab_usb=ab_usb,
-                            a2_lsb=a2_lsb, b2_lsb=b2_lsb, ab_lsb=ab_lsb)
+                        if self.save_data:
+                            np.savez(lo_datadir+'/ab_params', 
+                                a2_usb=a2_usb, b2_usb=b2_usb, ab_usb=ab_usb,
+                                a2_lsb=a2_lsb, b2_lsb=b2_lsb, ab_lsb=ab_lsb)
 
                 # constant computation
                 if self.settings.cal_method == 'Ideal':
                     consts = self.settings.ideal_const*np.ones(self.nchannels, dtype=np.complex)
                 elif self.settings.cal_method == 'USB':
                     consts = -1.0 * ab_usb / b2_usb # ab* / bb* = a/b
+                elif self.settings.cal_method == 'LSB':
+                    consts = -1.0 * ab_lsb / b2_lsb # ab* / bb* = a/b
                 elif self.settings.cal_method == 'Higher':
                     ratios_usb = ab_usb / b2_usb
                     ratios_lsb = ab_lsb / b2_lsb
                     consts = -1.0 * get_higher_constants(ratios_lsb, ratios_usb)
                 elif self.settings.cal_method == 'Optimal':
-                    consts = -1.0 *  (ab_usb + ab_lsb) / (b2_usb + b2_lsb)
+                    consts = -1.0 * (ab_usb + ab_lsb) / (b2_usb + b2_lsb)
 
                 # load constants
+                print consts
                 print "\tLoading constants..."; step_time = time.time()
                 consts_real = float2fixed(self.consts_nbits, self.consts_bin_pt, np.real(consts))
                 consts_imag = float2fixed(self.consts_nbits, self.consts_bin_pt, np.imag(consts))
@@ -142,18 +150,18 @@ class BmCalibrator(Experiment):
                 print "\tdone (" + str(time.time() - step_time) + "[s])"
 
                 # compute Noise Power
-                if self.settings.compute_noise:
+                if self.settings.compute_cancellation:
                     print "\tComputing Noise Power..."; step_time = time.time()
                     self.synfigure.fig.canvas.set_window_title('Noise Power Computation ' + lo_label)
-                    self.compute_noisepow(lo_comb, lo_datadir)
+                    self.compute_cancellation(lo_comb, lo_datadir)
                     print "\tdone (" + str(time.time() - step_time) + "[s])"
 
         # turn off sources
         turn_off_sources(self.sources)
 
-        # print noisepow (full) plot
-        if self.settings.compute_noise:
-            self.print_noisepow_plot()
+        # print cancellation (full) plot
+        if self.settings.compute_cancellation:
+            self.print_cancellation_plot()
 
         # compress saved data
         print "\tCompressing data..."; step_time = time.time()
@@ -190,7 +198,8 @@ class BmCalibrator(Experiment):
 
         cal_datadir = lo_datadir + '/cal_rawdata'
         # creates directory for the raw calibration data
-        os.mkdir(cal_datadir)
+        if self.save_data:
+            os.mkdir(cal_datadir)
 
         for i, chnl in enumerate(self.cal_channels):
             # set generator frequency
@@ -205,14 +214,10 @@ class BmCalibrator(Experiment):
             b2_arr.append(cal_b2[chnl])
 
             # save cal rawdata
-            np.savez(cal_datadir + '/usb_chnl_' + str(chnl), 
-                cal_a2=cal_a2, cal_b2=cal_b2, cal_ab_re=cal_ab_re, cal_ab_im=cal_ab_im)
-            # compute ratio
-            ab = cal_ab_re[chnl] + 1j*cal_ab_im[chnl]
-
-            # compute ratio
-            ab = cal_ab_re[chnl] + 1j*cal_ab_im[chnl]
-
+            if self.save_data:
+                np.savez(cal_datadir + '/usb_chnl_' + str(chnl), 
+                    cal_a2=cal_a2, cal_b2=cal_b2, 
+                    cal_ab_re=cal_ab_re, cal_ab_im=cal_ab_im)
 
             # compute ratio
             ab = cal_ab_re[chnl] + 1j*cal_ab_im[chnl]
@@ -223,8 +228,6 @@ class BmCalibrator(Experiment):
                 self.scale_dbfs_spec_data([cal_a2, cal_b2], self.settings.spec_info)
             self.calfigure_usb.axes[0].plot(cal_a2_plot)
             self.calfigure_usb.axes[1].plot(cal_b2_plot)
-
-            # plot the magnitude ratio and phase difference
 
             # plot spec data
             [cal_a2_plot, cal_b2_plot] = \
@@ -281,8 +284,10 @@ class BmCalibrator(Experiment):
             b2_arr.append(cal_b2[chnl])
 
             # save cal rawdata
-            np.savez(cal_datadir + '/lsb_chnl_' + str(chnl), 
-                cal_a2=cal_a2, cal_b2=cal_b2, cal_ab_re=cal_ab_re, cal_ab_im=cal_ab_im)
+            if self.save_data:
+                np.savez(cal_datadir + '/lsb_chnl_' + str(chnl), 
+                    cal_a2=cal_a2, cal_b2=cal_b2, 
+                    cal_ab_re=cal_ab_re, cal_ab_im=cal_ab_im)
 
             # compute ratio
             ab = cal_ab_re[chnl] + 1j*cal_ab_im[chnl]
@@ -309,23 +314,25 @@ class BmCalibrator(Experiment):
 
         return a2_arr, b2_arr, ab_arr
 
-    def compute_noisepow(self, lo_comb, lo_datadir):
+    def compute_cancellation(self, lo_comb, lo_datadir):
         """
-        Compute the noise power for the balanced mixer. It is assumed that
-        the calibration constants were previously loaded.
-        The total number of channels used for the noise power computations
-        can be controlled by the config file parameter syn_chnl_step.
+        Compute the amount of cancellation for the balanced mixer by reading the 
+        power form the spectral brams and comparing (dividing it) with the 
+        synthezised signal. It is assumed that the calibration constants were 
+        previously loaded. The total number of channels used for the noise power 
+        computations can be controlled by the config file parameter syn_chnl_step.
         :param lo_comb: LO frequency combination for the test. Used to properly set
             the RF test input.
         :param lo_datadir: diretory for the data of the current LO frequency combination.
         """
-        noisepow_usb = []
-        noisepow_lsb = []
+        cancel_usb = []
+        cancel_lsb = []
         rf_freqs_usb = lo_comb[0] + sum(lo_comb[1:]) + self.freqs
         rf_freqs_lsb = lo_comb[0] - sum(lo_comb[1:]) - self.freqs
 
-        syn_datadir = lo_datadir + '/noisepow_rawdata'
-        os.mkdir(syn_datadir)
+        syn_datadir = lo_datadir + '/cancellation_rawdata'
+        if self.save_data:
+            os.mkdir(syn_datadir)
 
         for i, chnl in enumerate(self.syn_channels):
             # set generator at USB frequency
@@ -334,18 +341,24 @@ class BmCalibrator(Experiment):
             plt.pause(self.settings.pause_time) 
             
             # get USB power data
-            a2_tone_usb = self.fpga.get_bram_data(self.settings.synth_info)
+            a2_tone_usb = self.fpga.get_bram_data(self.settings.spec_info)[0]
+            syn_tone_usb = self.fpga.get_bram_data(self.settings.synth_info)
 
             # plot spec data
-            a2_tone_usb_plot = self.scale_dbfs_spec_data(a2_tone_usb, self.settings.synth_info)
+            a2_tone_usb_plot = self.scale_dbfs_spec_data(a2_tone_usb, self.settings.spec_info)
+            syn_tone_usb_plot = self.scale_dbfs_spec_data(syn_tone_usb, self.settings.synth_info)
             self.synfigure.axes[0].plot(a2_tone_usb_plot)
-            noisepow_usb.append(a2_tone_usb_plot[chnl])
+            self.synfigure.axes[1].plot(syn_tone_usb_plot)
 
             # save syn rawdata
-            np.savez(syn_datadir+'/usb_chnl_'+str(chnl), a2_tone_usb=a2_tone_usb)
+            if self.save_data:
+                np.savez(syn_datadir+'/usb_chnl_'+str(chnl), 
+                    a2_tone_usb=a2_tone_usb, syn_tone_usb=syn_tone_usb)
 
-            # plot noise power data
-            self.synfigure.axes[1].plotxy(self.syn_freqs[:i+1], noisepow_usb)
+            # plot cancellation
+            ratio_usb = np.divide(syn_tone_usb[chnl], a2_tone_usb[chnl], dtype=np.float64)
+            cancel_usb.append(10*np.log10(ratio_usb))
+            self.synfigure.axes[2].plotxy(self.syn_freqs[:i+1], cancel_usb)
 
         for i, chnl in enumerate(self.syn_channels):
             # set generator at LSB frequency
@@ -354,47 +367,54 @@ class BmCalibrator(Experiment):
             plt.pause(self.settings.pause_time) 
             
             # get LSB power data
-            a2_tone_lsb = self.fpga.get_bram_data(self.settings.synth_info)
+            a2_tone_lsb = self.fpga.get_bram_data(self.settings.spec_info)[0]
+            syn_tone_lsb = self.fpga.get_bram_data(self.settings.synth_info)
 
             # plot spec data
-            a2_tone_lsb_plot = self.scale_dbfs_spec_data(a2_tone_lsb, self.settings.synth_info)
+            a2_tone_lsb_plot = self.scale_dbfs_spec_data(a2_tone_lsb, self.settings.spec_info)
+            syn_tone_lsb_plot = self.scale_dbfs_spec_data(syn_tone_lsb, self.settings.synth_info)
             self.synfigure.axes[0].plot(a2_tone_lsb_plot)
-            noisepow_lsb.append(a2_tone_lsb_plot[chnl])
+            self.synfigure.axes[1].plot(syn_tone_lsb_plot)
 
             # save syn rawdata
-            np.savez(syn_datadir+'/lsb_chnl_'+str(chnl), a2_tone_lsb=a2_tone_lsb)
+            if self.save_data:
+                np.savez(syn_datadir+'/lsb_chnl_'+str(chnl), 
+                    a2_tone_lsb=a2_tone_lsb, syn_tone_lsb=syn_tone_lsb)
 
-            # plot noise power data
-            self.synfigure.axes[2].plotxy(self.syn_freqs[:i+1], noisepow_lsb)
+            # plot cancellation
+            ratio_lsb = np.divide(syn_tone_lsb[chnl], a2_tone_lsb[chnl], dtype=np.float64)
+            cancel_lsb.append(10*np.log10(ratio_lsb))
+            self.synfigure.axes[3].plotxy(self.syn_freqs[:i+1], cancel_lsb)
 
         # plot last frequency
         plt.pause(self.settings.pause_time)
 
         # save syn data
-        np.savez(lo_datadir+"/noisepow", noisepow_usb=noisepow_usb,
-            noisepow_lsb=noisepow_lsb)
+            if self.save_data:
+                np.savez(lo_datadir+"/cancellation", 
+                    cancel_usb=cancel_usb, cancel_lsb=cancel_lsb)
 
-    def print_noisepow_plot(self):
+    def print_cancellation_plot(self):
         """
-        Print noise power plot using the data saved from the test.
+        Print cancellation plot using the data saved from the test.
         """
         fig = plt.figure()
         for lo_comb in self.lo_combinations:
             lo_label = '_'.join(['LO'+str(i+1)+'_'+str(lo/1e3)+'GHZ' for i,lo in enumerate(lo_comb)]) 
             datadir = self.datadir + '/' + lo_label
 
-            noisepow_data = np.load(datadir + '/noisepow.npz')
+            cancellation_data = np.load(datadir + '/cancellation.npz')
             
             usb_freqs = lo_comb[0]/1.0e3 + sum(lo_comb[1:])/1.0e3 + self.syn_freqs
             lsb_freqs = lo_comb[0]/1.0e3 - sum(lo_comb[1:])/1.0e3 - self.syn_freqs
             
-            plt.plot(usb_freqs, noisepow_data['noisepow_usb'], '-r')
-            plt.plot(lsb_freqs, noisepow_data['noisepow_lsb'], '-b')
+            plt.plot(usb_freqs, cancellation_data['cancel_usb'], '-r')
+            plt.plot(lsb_freqs, cancellation_data['cancel_lsb'], '-b')
             plt.grid()
             plt.xlabel('Frequency [GHz]')
             plt.ylabel('Noise Power [dB]')
         
-        plt.savefig(self.datadir + '/noisepow.pdf', bbox_inches='tight')
+        plt.savefig(self.datadir + '/cancellation.pdf', bbox_inches='tight')
 
 def get_higher_constants(comp_consts1, comp_consts2):
     """

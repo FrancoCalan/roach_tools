@@ -12,7 +12,10 @@ testinfo_json = tar_datafile.extractfile("testinfo.json")
 testinfo = json.load(testinfo_json)
 
 freqs = np.linspace(0, testinfo['bw'], testinfo['nchannels'], endpoint=False)
-cal_channels = np.arange(1, testinfo['nchannels'], testinfo['cal_chnl_step'])
+try:
+    cal_channels = np.arange(1, testinfo['nchannels'], testinfo['cal_chnl_step'])
+except KeyError:
+    cal_channels = np.arange(testinfo['nchannels'])
 cal_freqs = np.array([freqs[chnl]/1.0e3 for chnl in cal_channels])
 
 fig = plt.figure()
@@ -37,8 +40,8 @@ for lo_comb in testinfo['lo_combinations']:
     ax1.set_xlabel('Frequency [GHz]')
     ax1.set_ylabel('Magnitude Ratio [linear]')
 
-    ax2.plot(usb_freqs[:n], np.angle(ab_ratio_usb[:n], deg=True), '-r')
-    ax2.plot(lsb_freqs[:n], np.angle(ab_ratio_lsb[:n], deg=True), '-b')
+    ax2.plot(usb_freqs[:n], np.degrees(np.unwrap(np.angle(ab_ratio_usb[:n]))), '-r')
+    ax2.plot(lsb_freqs[:n], np.degrees(np.unwrap(np.angle(ab_ratio_lsb[:n]))), '-b')
     ax2.grid()
     ax2.set_xlabel('Frequency [GHz]')
     ax2.set_ylabel('Angle Difference [degrees]')

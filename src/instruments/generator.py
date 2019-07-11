@@ -22,8 +22,8 @@ class Generator():
             self.set_freq_mult(freq_mult)
 
         # set default parameters
-        self.set_freq_mhz()
-        self.set_power_dbm()
+        #self.set_freq_mhz()
+        #self.set_power_dbm()
         
     def close_connection(self):
         self.instr.close()

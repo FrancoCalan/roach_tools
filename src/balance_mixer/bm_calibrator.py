@@ -62,8 +62,6 @@ class BmCalibrator(Experiment):
         self.dataname = self.settings.boffile[:self.settings.boffile.index('.')]
         self.dataname = 'bmtest ' + self.dataname
         self.datadir = self.dataname + ' ' + datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
-        if self.save_data:
-            os.mkdir(self.datadir)
         self.testinfo = {'bw'               : self.bw,
                          'nchannels'        : self.nchannels,
                          'cal_acc_len'      : self.fpga.read_reg(self.settings.spec_info['acc_len_reg']),
@@ -74,8 +72,10 @@ class BmCalibrator(Experiment):
                          'syn_chnl_step'    : self.settings.syn_chnl_step,
                          'lo_combinations'  : self.lo_combinations}
 
-        with open(self.datadir + '/testinfo.json', 'w') as jsonfile:
-            json.dump(self.testinfo, jsonfile, indent=4)
+        if self.save_data:
+            os.mkdir(self.datadir)
+            with open(self.datadir + '/testinfo.json', 'w') as jsonfile:
+                json.dump(self.testinfo, jsonfile, indent=4)
         
     def run_bm_test(self):
         """
@@ -108,7 +108,7 @@ class BmCalibrator(Experiment):
 
                 # measure params
                 else:
-                    if self.settings.cal_method is not 'Ideal':
+                    if self.settings.cal_method != 'Ideal':
                         # compute calibration constants (sideband ratios)
                         print "\tComputing ab parameters, tone in USB..."; step_time = time.time()
                         self.calfigure_usb.set_window_title('Calibration USB ' + lo_label)
@@ -141,7 +141,6 @@ class BmCalibrator(Experiment):
                     consts = -1.0 * (ab_usb + ab_lsb) / (b2_usb + b2_lsb)
 
                 # load constants
-                print consts
                 print "\tLoading constants..."; step_time = time.time()
                 consts_real = float2fixed(self.consts_nbits, self.consts_bin_pt, np.real(consts))
                 consts_imag = float2fixed(self.consts_nbits, self.consts_bin_pt, np.imag(consts))
@@ -159,20 +158,21 @@ class BmCalibrator(Experiment):
         # turn off sources
         turn_off_sources(self.sources)
 
-        # print cancellation (full) plot
-        if self.settings.compute_cancellation:
-            self.print_cancellation_plot()
+        if self.save_data:
+            # print cancellation (full) plot
+            if self.settings.compute_cancellation:
+                self.print_cancellation_plot()
 
-        # compress saved data
-        print "\tCompressing data..."; step_time = time.time()
-        tar = tarfile.open(self.datadir + ".tar.gz", "w:gz")
-        for datafile in os.listdir(self.datadir):
-            tar.add(self.datadir + '/' + datafile, datafile)
-        tar.close()
-        print "\tdone (" + str(time.time() - step_time) + "[s])"
+            # compress saved data
+            print "\tCompressing data..."; step_time = time.time()
+            tar = tarfile.open(self.datadir + ".tar.gz", "w:gz")
+            for datafile in os.listdir(self.datadir):
+                tar.add(self.datadir + '/' + datafile, datafile)
+            tar.close()
+            print "\tdone (" + str(time.time() - step_time) + "[s])"
 
-        # delete data folder
-        shutil.rmtree(self.datadir)
+            # delete data folder
+            shutil.rmtree(self.datadir)
 
         print "Total time: " + str(time.time() - initial_time) + "[s]"
 
@@ -254,7 +254,7 @@ class BmCalibrator(Experiment):
         Sweep a tone through the receiver bandwidth and computes the LSB
         ab paramters. The LSB ab parameters are the power of the first input (a2),
         the power of the second input (b2), and the correlation between the inputs,
-        i.e. the first multpiplied by the conjugated of the second (ab), all
+        i.e. the first multiplied by the conjugated of the second (ab), all
         measured in the channel of the tone.
         The total number of  channels used for the computations depends in the config 
         file parameter cal_chnl_step. The channels not measured are interpolated.
@@ -390,9 +390,9 @@ class BmCalibrator(Experiment):
         plt.pause(self.settings.pause_time)
 
         # save syn data
-            if self.save_data:
-                np.savez(lo_datadir+"/cancellation", 
-                    cancel_usb=cancel_usb, cancel_lsb=cancel_lsb)
+        if self.save_data:
+            np.savez(lo_datadir+"/cancellation", 
+                cancel_usb=cancel_usb, cancel_lsb=cancel_lsb)
 
     def print_cancellation_plot(self):
         """

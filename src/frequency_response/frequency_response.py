@@ -36,7 +36,7 @@ class FrequencyResponse(Experiment):
             self.figure.create_axis(i+self.n_inputs, SpectrumAxis, self.freqs, "Freq resp " + spec_title)
 
         # backup parameters
-        self.dataname = os.path.splitext(self.setttings.boffile)[0]
+        self.dataname = os.path.splitext(self.settings.boffile)[0]
         self.dataname = 'frequency_response ' + self.dataname + ' '
         self.datadir = self.dataname + datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
         self.testinfo = {'freqs'        : list(self.test_freqs),

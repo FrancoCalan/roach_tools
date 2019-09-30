@@ -28,8 +28,8 @@ for lo_comb in testinfo['lo_combinations']:
     plt.ylabel('Power [dB]')
     plt.gcf().canvas.set_window_title(datadir)
     plt.legend()
-    plt.savefig(datadir+'.png')
+    #plt.savefig(datadir+'.png')
     
-#plt.show()
+plt.show()
 
     

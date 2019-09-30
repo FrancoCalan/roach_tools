@@ -13,7 +13,7 @@ from ..digital_sideband_separation.dss_calibrator import get_lo_combinations, fl
 
 class BmNoiseCalibrator(Experiment):
     """
-    Class to calibrate balance mixer using broadmand
+    Class to calibrate balance mixer using broadband
     noise input.
     """
     def __init__(self, calanfpga):
@@ -173,6 +173,7 @@ class BmNoiseCalibrator(Experiment):
         self.fpga.write_bram_data(self.settings.const_brams_info, 
             [consts_real, consts_imag])
         print "\tdone (" + str(time.time() - step_time) + "[s])"
+        time.sleep(1)
         ideal_syn = self.fpga.get_bram_data(self.settings.synth_info)
 
         consts = cal_consts
@@ -182,6 +183,7 @@ class BmNoiseCalibrator(Experiment):
         self.fpga.write_bram_data(self.settings.const_brams_info, 
             [consts_real, consts_imag])
         print "\tdone (" + str(time.time() - step_time) + "[s])"
+        time.sleep(1)
         syn = self.fpga.get_bram_data(self.settings.synth_info)
 
         # plot cancellation

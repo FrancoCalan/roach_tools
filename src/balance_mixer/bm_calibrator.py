@@ -133,6 +133,8 @@ class BmCalibrator(Experiment):
                     consts = -1.0 * ab_usb / b2_usb # ab* / bb* = a/b
                 elif self.settings.cal_method == 'LSB':
                     consts = -1.0 * ab_lsb / b2_lsb # ab* / bb* = a/b
+                elif self.settings.cal_method == 'Opposite':
+                    consts = +1.0 * ab_usb / b2_usb # ab* / bb* = a/b
                 elif self.settings.cal_method == 'Higher':
                     ratios_usb = ab_usb / b2_usb
                     ratios_lsb = ab_lsb / b2_lsb

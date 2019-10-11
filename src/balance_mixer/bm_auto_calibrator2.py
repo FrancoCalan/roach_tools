@@ -39,13 +39,20 @@ class BmAutoCalibrator(Experiment):
         """
         Run automated test for balance mixer. 
         """
-        sleep_time = 5
+        sleep_time = 10
         initial_time = time.time()
         # first get calibration constants
         print "\tCompute calibration constants..."; step_time = time.time()
         time.sleep(sleep_time)
         ab_ratios, cal_a2, cal_b2, cal_ab = self.compute_calibration()
         print "\tdone (" + str(time.time() - step_time) + "[s])"
+
+        ###############################################################
+        # get splitter parameter
+        s13 = 1j/np.sqrt(2)
+        # load constant to second path
+        consts = s13*np.ones(self.nchannels, dtype=np.complex)
+        self.load_constants2(consts)
 
         ###############################################################
         print "### Computing parameters for cold source ###"
@@ -57,7 +64,7 @@ class BmAutoCalibrator(Experiment):
 
         print "Loading ideal constants RF (1) and getting data..."; step_time = time.time()
         consts = 1*np.ones(self.nchannels, dtype=np.complex)
-        self.load_constants(consts)
+        self.load_constants(s13*consts)
         time.sleep(sleep_time)
         rf_cold_ideal = self.fpga.get_bram_data(self.settings.synth_info)
         self.plot_synth(rf_cold_ideal)
@@ -65,7 +72,7 @@ class BmAutoCalibrator(Experiment):
 
         print "Loading ideal constants LO (-1) and getting data..."; step_time = time.time()
         consts = -1*np.ones(self.nchannels, dtype=np.complex)
-        self.load_constants(consts)
+        self.load_constants(s13*consts)
         time.sleep(sleep_time)
         lo_cold_ideal = self.fpga.get_bram_data(self.settings.synth_info)
         self.plot_synth(lo_cold_ideal)
@@ -73,7 +80,7 @@ class BmAutoCalibrator(Experiment):
 
         print "Loading calibrated constants RF and getting data..."; step_time = time.time()
         consts = -1*ab_ratios
-        self.load_constants(consts)
+        self.load_constants(s13*consts)
         time.sleep(sleep_time)
         rf_cold_cal = self.fpga.get_bram_data(self.settings.synth_info)
         self.plot_synth(rf_cold_cal)
@@ -81,7 +88,7 @@ class BmAutoCalibrator(Experiment):
 
         print "Loading calibrated constants LO and getting data..."; step_time = time.time()
         consts = 1*ab_ratios
-        self.load_constants(consts)
+        self.load_constants(s13*consts)
         time.sleep(sleep_time)
         lo_cold_cal = self.fpga.get_bram_data(self.settings.synth_info)
         self.plot_synth(lo_cold_cal)
@@ -97,7 +104,7 @@ class BmAutoCalibrator(Experiment):
 
         print "Loading ideal constants RF (1) and getting data..."; step_time = time.time()
         consts = 1*np.ones(self.nchannels, dtype=np.complex)
-        self.load_constants(consts)
+        self.load_constants(s13*consts)
         time.sleep(sleep_time)
         rf_hot_ideal = self.fpga.get_bram_data(self.settings.synth_info)
         self.plot_synth(rf_hot_ideal)
@@ -105,7 +112,7 @@ class BmAutoCalibrator(Experiment):
 
         print "Loading ideal constants LO (-1) and getting data..."; step_time = time.time()
         consts = -1*np.ones(self.nchannels, dtype=np.complex)
-        self.load_constants(consts)
+        self.load_constants(s13*consts)
         time.sleep(sleep_time)
         lo_hot_ideal = self.fpga.get_bram_data(self.settings.synth_info)
         self.plot_synth(lo_hot_ideal)
@@ -113,7 +120,7 @@ class BmAutoCalibrator(Experiment):
 
         print "Loading calibrated constants RF and getting data..."; step_time = time.time()
         consts = -1*ab_ratios
-        self.load_constants(consts)
+        self.load_constants(s13*consts)
         time.sleep(sleep_time)
         rf_hot_cal = self.fpga.get_bram_data(self.settings.synth_info)
         self.plot_synth(rf_hot_cal)
@@ -121,7 +128,7 @@ class BmAutoCalibrator(Experiment):
 
         print "Loading calibrated constants LO and getting data..."; step_time = time.time()
         consts = 1*ab_ratios
-        self.load_constants(consts)
+        self.load_constants(s13*consts)
         time.sleep(sleep_time)
         lo_hot_cal = self.fpga.get_bram_data(self.settings.synth_info)
         self.plot_synth(lo_hot_cal)
@@ -137,7 +144,7 @@ class BmAutoCalibrator(Experiment):
 
         print "Loading ideal constants RF (1) and getting data..."; step_time = time.time()
         consts = 1*np.ones(self.nchannels, dtype=np.complex)
-        self.load_constants(consts)
+        self.load_constants(s13*consts)
         time.sleep(sleep_time)
         rf_hot_ideal_nolo = self.fpga.get_bram_data(self.settings.synth_info)
         self.plot_synth(rf_hot_ideal_nolo)
@@ -145,7 +152,7 @@ class BmAutoCalibrator(Experiment):
 
         print "Loading calibrated constants RF and getting data..."; step_time = time.time()
         consts = -1*ab_ratios
-        self.load_constants(consts)
+        self.load_constants(s13*consts)
         time.sleep(sleep_time)
         rf_hot_cal_nolo = self.fpga.get_bram_data(self.settings.synth_info)
         self.plot_synth(rf_hot_cal_nolo)
@@ -161,7 +168,7 @@ class BmAutoCalibrator(Experiment):
 
         print "Loading ideal constants RF (1) and getting data..."; step_time = time.time()
         consts = 1*np.ones(self.nchannels, dtype=np.complex)
-        self.load_constants(consts)
+        self.load_constants(s13*consts)
         time.sleep(sleep_time)
         rf_cold_ideal_nolo = self.fpga.get_bram_data(self.settings.synth_info)
         self.plot_synth(rf_cold_ideal_nolo)
@@ -169,7 +176,7 @@ class BmAutoCalibrator(Experiment):
 
         print "Loading calibrated constants RF and getting data..."; step_time = time.time()
         consts = -1*ab_ratios
-        self.load_constants(consts)
+        self.load_constants(s13*consts)
         time.sleep(sleep_time)
         rf_cold_cal_nolo = self.fpga.get_bram_data(self.settings.synth_info)
         self.plot_synth(rf_cold_cal_nolo)
@@ -249,6 +256,11 @@ class BmAutoCalibrator(Experiment):
         consts_real = float2fixed(self.consts_nbits, self.consts_bin_pt, np.real(consts))
         consts_imag = float2fixed(self.consts_nbits, self.consts_bin_pt, np.imag(consts))
         self.fpga.write_bram_data(self.settings.const_brams_info, [consts_real, consts_imag])
+
+    def load_constants2(self, consts):
+        consts_real = float2fixed(self.consts_nbits, self.consts_bin_pt, np.real(consts))
+        consts_imag = float2fixed(self.consts_nbits, self.consts_bin_pt, np.imag(consts))
+        self.fpga.write_bram_data(self.settings.const_brams_info2, [consts_real, consts_imag])
 
     def plot_synth(self, data):
         data_plot = self.scale_dbfs_spec_data(data, self.settings.synth_info)

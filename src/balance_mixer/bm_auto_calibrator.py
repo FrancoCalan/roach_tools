@@ -1,4 +1,4 @@
-import time, json, datetime
+import time, json, datetime, vxi11
 import numpy as np
 import matplotlib.pyplot as plt
 from ..calanfigure import CalanFigure
@@ -34,6 +34,9 @@ class BmAutoCalibrator(Experiment):
         self.calfigure.create_axis(3, AngleDiffAxis, self.freqs, ['ZDOK0-ZDOK1'], 'Angle Difference')
         #
         self.synfigure.create_axis(0, SpectrumAxis, self.freqs, 'Synth spec')
+
+        # power source control
+        noise_souce = vxi11.Instrument('TCP::192.168.1.38::INSTR')
 
     def run_bm_auto_test(self):
         """
@@ -88,7 +91,10 @@ class BmAutoCalibrator(Experiment):
         print "\tdone (" + str(time.time() - step_time) + "[s])"
 
         ###############################################################
-        raw_input("Now set the noise source to hot and press start...")
+        #raw_input("Now set the noise source to hot and press start...")
+        print "Setting the source to hot..."
+        noise_source.write('OUTPUT CH1,ON')
+        time.sleep(sleep_time)
         print "Getting single ended data..."; step_time = time.time()
         time.sleep(sleep_time)
         [zero_hot_a, zero_hot_b] = self.fpga.get_bram_data(self.settings.spec_info)
@@ -152,7 +158,10 @@ class BmAutoCalibrator(Experiment):
         print "\tdone (" + str(time.time() - step_time) + "[s])"
 
         ##############################################################
-        raw_input("Now set the noise source to cold and press start...")
+        #raw_input("Now set the noise source to cold and press start...")
+        print "Setting the source to cold..."
+        noise_source.write('OUTPUT CH1,OFF')
+        time.sleep(sleep_time)
         print "Getting single ended data..."; step_time = time.time()
         time.sleep(sleep_time)
         [zero_cold_a_nolo, zero_cold_b_nolo] = self.fpga.get_bram_data(self.settings.spec_info)

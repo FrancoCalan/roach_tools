@@ -36,7 +36,7 @@ class BmAutoCalibrator(Experiment):
         self.synfigure.create_axis(0, SpectrumAxis, self.freqs, 'Synth spec')
 
         # power source control
-        noise_souce = vxi11.Instrument('TCP::192.168.1.38::INSTR')
+        self.noise_source = vxi11.Instrument('TCPIP::192.168.1.38::INSTR')
 
     def run_bm_auto_test(self):
         """
@@ -93,8 +93,8 @@ class BmAutoCalibrator(Experiment):
         ###############################################################
         #raw_input("Now set the noise source to hot and press start...")
         print "Setting the source to hot..."
-        noise_source.write('OUTPUT CH1,ON')
-        time.sleep(sleep_time)
+        self.noise_source.write('OUTPUT CH1,ON')
+        time.sleep(1)
         print "Getting single ended data..."; step_time = time.time()
         time.sleep(sleep_time)
         [zero_hot_a, zero_hot_b] = self.fpga.get_bram_data(self.settings.spec_info)
@@ -160,8 +160,8 @@ class BmAutoCalibrator(Experiment):
         ##############################################################
         #raw_input("Now set the noise source to cold and press start...")
         print "Setting the source to cold..."
-        noise_source.write('OUTPUT CH1,OFF')
-        time.sleep(sleep_time)
+        self.noise_source.write('OUTPUT CH1,OFF')
+        time.sleep(1)
         print "Getting single ended data..."; step_time = time.time()
         time.sleep(sleep_time)
         [zero_cold_a_nolo, zero_cold_b_nolo] = self.fpga.get_bram_data(self.settings.spec_info)

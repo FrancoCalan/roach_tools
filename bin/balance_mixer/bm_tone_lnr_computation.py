@@ -3,8 +3,8 @@
 import sys, os
 sys.path.append(os.getcwd())
 from roach_tools.calanfpga import CalanFpga
-from roach_tools.balance_mixer.bm_auto_calibrator2 import BmAutoCalibrator
+from roach_tools.balance_mixer.bm_tone_lnr_computation import BmToneLnrComputation
 
 fpga = CalanFpga()
 fpga.initialize()
-BmAutoCalibrator(fpga).run_bm_auto_test()
+BmToneLnrComputation(fpga).run_lnr_computation()

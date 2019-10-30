@@ -1,3 +1,4 @@
+import time
 import numpy as np
 import scipy.stats
 import matplotlib.pyplot as plt
@@ -60,6 +61,7 @@ class AdcSynchronator(Experiment):
             lo_source.set_freq_mhz(freq)
         center_freq = sum(self.lo_combination)
 
+        time.sleep(5)
         print "Synchronizing ADCs..."
         while True:
             ratios = [[] for i in range(len(self.legends))]
@@ -117,6 +119,7 @@ class AdcSynchronator(Experiment):
                 # apply delays
                 for sync_delay, sync_reg in zip(self.sync_delays, self.sync_regs):
                     self.fpga.set_reg(sync_reg, sync_delay)
+                time.sleep(5)
 
         turn_off_sources(self.sources)
 

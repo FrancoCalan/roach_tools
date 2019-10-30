@@ -67,41 +67,33 @@ class BmNoiseCalibrator(Experiment):
         self.lo_sources[0].turn_output_on()
 
         initial_time = time.time()
-        for lo_comb in self.lo_combinations:
-            lo_label = '_'.join(['LO'+str(i+1)+'_'+str(lo/1e3)+'GHZ' for i,lo in enumerate(lo_comb)]) 
-            lo_datadir = self.datadir + "/" + lo_label
-            if self.save_data:
-                os.mkdir(lo_datadir)
+        # get compute ab params
+        print "\tComputing ab parameters with noise input..."; step_time = time.time()
+        a2, b2, ab = self.compute_ab_params()
+        print "\tdone (" + str(time.time() - step_time) + "[s])" 
 
-            print lo_label
-            for i, lo in enumerate(lo_comb):
-                self.lo_sources[i].set_freq_mhz(lo)
-                
-                # get compute ab params
-                print "\tComputing ab parameters with noise input..."; step_time = time.time()
-                a2, b2, ab = self.compute_ab_params(lo_datadir)
-                print "\tdone (" + str(time.time() - step_time) + "[s])" 
+        # save ab ratios
+        if self.save_data:
+            # saving a2, b2 and ab as usb and lsb to make it
+            # compatible with tone calibration
+            #np.savez(self.datadir+'/ab_params', 
+            #    a2_usb=a2, b2_usb=b2, ab_usb=ab,
+            #    a2_lsb=a2, b2_lsb=b2, ab_lsb=ab)
+            np.savez(self.datadir+'/ab_params', 
+                a2=a2, b2=b2, ab=ab)
 
-                # save ab ratios
-                if self.save_data:
-                    # saving a2, b2 and ab as usb and lsb to make it
-                    # compatible with tone calibration
-                    np.savez(lo_datadir+'/ab_params', 
-                        a2_usb=a2, b2_usb=b2, ab_usb=ab,
-                        a2_lsb=a2, b2_lsb=b2, ab_lsb=ab)
+        consts = -1.0 * ab / b2
+        
+        # compute Noise Power
+        if self.settings.compute_cancellation:
+            print "\tComputing Noise Power..."; step_time = time.time()
+            self.synfigure.fig.canvas.set_window_title('Noise Power Computation ' + lo_label)
+            self.compute_cancellation(self.datadir, consts)
+            print "\tdone (" + str(time.time() - step_time) + "[s])"
+        
+        plt.pause(self.settings.pause_time)
 
-                consts = -1.0 * ab / b2
-                
-                # compute Noise Power
-                if self.settings.compute_cancellation:
-                    print "\tComputing Noise Power..."; step_time = time.time()
-                    self.synfigure.fig.canvas.set_window_title('Noise Power Computation ' + lo_label)
-                    self.compute_cancellation(lo_datadir, consts)
-                    print "\tdone (" + str(time.time() - step_time) + "[s])"
-                
-                plt.pause(self.settings.pause_time)
-
-        time.sleep(10)
+        time.sleep(1)
         # turn off sources
         #turn_off_sources(self.lo_sources)
 
@@ -124,24 +116,22 @@ class BmNoiseCalibrator(Experiment):
         print "Total time: " + str(time.time() - initial_time) + "[s]"
         print("Close plots to finish.")
 
-    def compute_ab_params(self, lo_datadir):
+    def compute_ab_params(self):
         """
         Compute the ab parameters using noise as an input.
         The ab paramters are the power of the first input (a2), the power
         of the second input (b2), and the correlation between the inputs,
         i.e. the first multiplied by the conjugated of the second (ab).
-        :param lo_datadir: directory for the data of the current LO frequency 
-            combination.
         :return: ab parameters.
         """
         # get power-crosspower data
-        time.sleep(10)
+        time.sleep(5)
         cal_a2, cal_b2 = self.fpga.get_bram_data(self.settings.spec_info)
         cal_ab_re, cal_ab_im = self.fpga.get_bram_data(self.settings.crosspow_info)    
 
         # compute ratio
-        ab = cal_ab_re + 1j*cal_ab_im
-        ab_ratios = ab / cal_b2 # ab* / bb* = a/b
+        cal_ab = cal_ab_re + 1j*cal_ab_im
+        ab_ratios = cal_ab / cal_b2 # ab* / bb* = a/b
 
         # plot spec data
         [cal_a2_plot, cal_b2_plot] = \
@@ -153,14 +143,12 @@ class BmNoiseCalibrator(Experiment):
         self.calfigure.axes[2].plot([np.abs(ab_ratios)])
         self.calfigure.axes[3].plot([np.angle(ab_ratios, deg=True)])
 
-        return cal_a2, cal_b2, ab
+        return cal_a2, cal_b2, cal_ab
 
-    def compute_cancellation(self, lo_datadir, cal_consts):
+    def compute_cancellation(self, cal_consts):
         """
         Compare spectra from uncalibrated, ideal constants and digital 
         calibrated balance mixer.
-        :param lo_datadir: diretory for the data of the current LO frequency 
-            combination.
         """
         # get power data
         a2  = self.fpga.get_bram_data(self.settings.spec_info)[0]
@@ -194,7 +182,7 @@ class BmNoiseCalibrator(Experiment):
 
         # save syn data
         if self.save_data:
-            np.savez(lo_datadir+"/cancellation", 
+            np.savez(self.datadir+"/cancellation", 
                 uncalibrated=a2_plot, ideal=ideal_syn_plot, calibrated=syn_plot)
 
     def print_cancellation_plot(self):

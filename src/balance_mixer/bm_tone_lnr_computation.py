@@ -63,25 +63,27 @@ class BmToneLnrComputation(Experiment):
         init_sources(self.sources)
         initial_time = time.time()
 
-        # Ideal constants
-        print("Ideal constant LNR computation")
-        step_time = time.time()
-        consts = np.ones(self.nchannels, dtype=np.complex)
-        lnr_ideal_usb, lnr_ideal_lsb = self.compute_cancellation(consts, 'ideal')
-        print "done (" + str(time.time() - step_time) + "[s])"
+        if self.settings.do_digital:
+            # Ideal constants
+            print("Ideal constant LNR computation")
+            step_time = time.time()
+            consts = np.ones(self.nchannels, dtype=np.complex)
+            lnr_ideal_usb, lnr_ideal_lsb = self.compute_cancellation(consts, 'ideal')
+            print "done (" + str(time.time() - step_time) + "[s])"
 
-        # calibrated constants
-        print("Calibrated constant LNR computation")
-        step_time = time.time()
-        consts = self.get_constants()
-        lnr_cal_usb, lnr_cal_lsb = self.compute_cancellation(consts, 'cal')
-        print "done (" + str(time.time() - step_time) + "[s])"
+            # calibrated constants
+            print("Calibrated constant LNR computation")
+            step_time = time.time()
+            consts = self.get_constants()
+            lnr_cal_usb, lnr_cal_lsb = self.compute_cancellation(consts, 'cal')
+            print "done (" + str(time.time() - step_time) + "[s])"
         
-        # Analog computation
-        print("Analog LNR computation")
-        step_time = time.time()
-        lnr_analog_usb, lnr_analog_lsb = self.compute_analog_cancellation()
-        print "done (" + str(time.time() - step_time) + "[s])"
+        if self.settings.do_analog:
+            # Analog computation
+            print("Analog LNR computation")
+            step_time = time.time()
+            lnr_analog_usb, lnr_analog_lsb = self.compute_analog_cancellation()
+            print "done (" + str(time.time() - step_time) + "[s])"
 
         turn_off_sources(self.sources)
         self.print_cancellation_plot()
@@ -132,8 +134,8 @@ class BmToneLnrComputation(Experiment):
         syn_lsb_neg = self.get_calibration_tone_power(rf_freqs_lsb, label + '_neg_lsb', syn_datadir)
 
         # cancellation computation
-        lnr_usb = np.array(syn_usb_neg) - np.array(syn_usb_pos)
-        lnr_lsb = np.array(syn_lsb_neg) - np.array(syn_lsb_pos)
+        lnr_usb = np.array(syn_usb_neg, dtype=np.float64) / np.array(syn_usb_pos, dtype=np.float64)
+        lnr_lsb = np.array(syn_lsb_neg, dtype=np.float64) / np.array(syn_lsb_pos, dtype=np.float64)
 
         # save syn data
         np.savez(syn_datadir+"/cancellation",
@@ -164,22 +166,26 @@ class BmToneLnrComputation(Experiment):
         self.load_constants(consts)
 
         # 0 degrees combiner
+        self.test_source.turn_output_off()
         raw_input("Put 0 degree combiner and press enter...")
+        self.test_source.turn_output_on()
         self.synfigure.fig.canvas.set_window_title('LNR Computation analog USB Pos')
         syn_usb_pos = self.get_calibration_tone_power(rf_freqs_usb, 'analog_pos_usb', syn_datadir)
         self.synfigure.fig.canvas.set_window_title('LNR Computation analog LSB Pos')
         syn_lsb_pos = self.get_calibration_tone_power(rf_freqs_lsb, 'analog_pos_lsb', syn_datadir)
         
         # 180 degrees combiner
+        self.test_source.turn_output_off()
         raw_input("Put 180 degree combiner and press enter...")
+        self.test_source.turn_output_on()
         self.synfigure.fig.canvas.set_window_title('LNR Computation analog USB Neg')
         syn_usb_neg = self.get_calibration_tone_power(rf_freqs_usb, 'analog_neg_usb', syn_datadir)
         self.synfigure.fig.canvas.set_window_title('LNR Computation LSB Neg')
         syn_lsb_neg = self.get_calibration_tone_power(rf_freqs_lsb, 'analog_neg_lsb', syn_datadir)
 
         # cancellation computation
-        lnr_usb = np.array(syn_usb_neg) - np.array(syn_usb_pos)
-        lnr_lsb = np.array(syn_lsb_neg) - np.array(syn_lsb_pos)
+        lnr_usb = np.array(syn_usb_neg, dtype=np.float64) / np.array(syn_usb_pos, dtype=np.float64)
+        lnr_lsb = np.array(syn_lsb_neg, dtype=np.float64) / np.array(syn_lsb_pos, dtype=np.float64)
 
         # save syn data
         np.savez(syn_datadir+"/cancellation",
@@ -209,6 +215,7 @@ class BmToneLnrComputation(Experiment):
             self.test_source.set_freq_mhz(freqs[chnl])
             # plot while the generator is changing to frequency to give the system time to update
             plt.pause(self.settings.pause_time) 
+            #plt.pause(sleep_time) 
             
             # get USB power data
             a2_tone, b2_tone = self.fpga.get_bram_data(self.settings.spec_info)
@@ -239,7 +246,7 @@ class BmToneLnrComputation(Experiment):
         ab_datafile = tar_datafile.extractfile('ab_params.npz')
         ab_data = np.load(ab_datafile)
         a2 = ab_data['a2']; b2 = ab_data['b2']; ab = ab_data['ab']
-        return ab / b2 # ab* / bb* = a/b
+        return -1 * ab / b2 # ab* / bb* = a/b
 
     def load_constants(self, consts):
         consts_real = float2fixed(self.consts_nbits, self.consts_bin_pt, np.real(consts))
@@ -252,29 +259,41 @@ class BmToneLnrComputation(Experiment):
         """
         fig = plt.figure()
         
-        cancel_data_ideal = np.load(self.datadir + '/ideal/cancellation.npz')
-        ideal_lnr_usb = cancel_data_ideal['lnr_usb']
-        ideal_lnr_lsb = cancel_data_ideal['lnr_lsb']
-        cancel_data_cal = np.load(self.datadir + '/cal/cancellation.npz')
-        cal_lnr_usb = cancel_data_cal['lnr_usb']
-        cal_lnr_lsb = cancel_data_cal['lnr_lsb']
-        cancel_data_analog = np.load(self.datadir + '/analog/cancellation.npz')
-        analog_lnr_usb = cancel_data_analog['lnr_usb']
-        analog_lnr_lsb = cancel_data_analog['lnr_lsb']
-            
         lo_freq = self.settings.lo_source['lo_freq']
         usb_freqs = lo_freq + self.syn_freqs
         lsb_freqs = lo_freq - self.syn_freqs
-            
-        plt.plot(usb_freqs, ideal_lnr_usb, '-b', label='ideal')
-        plt.plot(lsb_freqs, ideal_lnr_lsb, '-b')
-        plt.plot(usb_freqs, cal_lnr_usb, '-g', label='cal')
-        plt.plot(lsb_freqs, cal_lnr_lsb, '-g')
-        plt.plot(usb_freqs, analog_lnr_usb, '-r', label='analog')
-        plt.plot(lsb_freqs, analog_lnr_lsb, '-r')
+
+
+        try:
+            cancel_data_ideal = np.load(self.datadir + '/ideal/cancellation.npz')
+            ideal_lnr_usb = 10*np.log10(cancel_data_ideal['lnr_usb'])
+            ideal_lnr_lsb = 10*np.log10(cancel_data_ideal['lnr_lsb'])
+            plt.plot(usb_freqs, ideal_lnr_usb, '-b', label='ideal')
+            plt.plot(lsb_freqs, ideal_lnr_lsb, '-b')
+        except IOError:
+            pass
+
+        try:
+            cancel_data_cal = np.load(self.datadir + '/cal/cancellation.npz')
+            cal_lnr_usb = 10*np.log10(cancel_data_cal['lnr_usb'])
+            cal_lnr_lsb = 10*np.log10(cancel_data_cal['lnr_lsb'])
+            plt.plot(usb_freqs, cal_lnr_usb, '-g', label='cal')
+            plt.plot(lsb_freqs, cal_lnr_lsb, '-g')
+        except IOError:
+            pass
+
+        try:
+            cancel_data_analog = np.load(self.datadir + '/analog/cancellation.npz')
+            analog_lnr_usb = 10*np.log10(cancel_data_analog['lnr_usb'])
+            analog_lnr_lsb = 10*np.log10(cancel_data_analog['lnr_lsb'])
+            plt.plot(usb_freqs, analog_lnr_usb, '-r', label='analog')
+            plt.plot(lsb_freqs, analog_lnr_lsb, '-r')
+        except IOError:
+            pass
+
         plt.grid()
         plt.xlabel('Frequency [GHz]')
-        plt.ylabel('Noise Power [dB]')
+        plt.ylabel('LNR [dB]')
         plt.legend()
         
         plt.savefig(self.datadir + '/lnr.pdf', bbox_inches='tight')

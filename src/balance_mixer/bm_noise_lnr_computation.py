@@ -85,11 +85,27 @@ class BmNoiseCalibrator(Experiment):
         consts = -1.0 * ab / b2
         
         # compute Noise Power
-        if self.settings.compute_cancellation:
-            print "\tComputing Noise Power..."; step_time = time.time()
-            self.synfigure.fig.canvas.set_window_title('Noise Power Computation')
-            self.compute_cancellation(consts)
-            print "\tdone (" + str(time.time() - step_time) + "[s])"
+        if self.settings.do_digital:
+            # Ideal constants
+            print("Ideal constant LNR computation")
+            step_time = time.time()
+            consts = np.ones(self.nchannels, dtype=np.complex)
+            lnr_ideal_usb, lnr_ideal_lsb = self.compute_cancellation(consts, 'ideal')
+            print "done (" + str(time.time() - step_time) + "[s])"
+
+            # calibrated constants
+            print("Calibrated constant LNR computation")
+            step_time = time.time()
+            consts = self.get_constants()
+            lnr_cal_usb, lnr_cal_lsb = self.compute_cancellation(consts, 'cal')
+            print "done (" + str(time.time() - step_time) + "[s])"
+        
+        if self.settings.do_analog:
+            # Analog computation
+            print("Analog LNR computation")
+            step_time = time.time()
+            lnr_analog_usb, lnr_analog_lsb = self.compute_analog_cancellation()
+            print "done (" + str(time.time() - step_time) + "[s])" 
         
         plt.pause(self.settings.pause_time)
 
@@ -147,43 +163,31 @@ class BmNoiseCalibrator(Experiment):
 
     def compute_cancellation(self, cal_consts):
         """
-        Compare spectra from uncalibrated, ideal constants and digital 
-        calibrated balance mixer.
+        Compute LNR for a set of constants.
         """
-        # get power data
-        a2  = self.fpga.get_bram_data(self.settings.spec_info)[0]
+        sleep_time = 1
+        
+        # positive constants
+        self.load_constants(consts)
+        time.sleep(sleep_time)
+        self.synfigure.fig.canvas.set_window_title('LNR Computation ' + label + ' Pos')
+        syn_pos = self.fpga.get_bram_data(self.settings.synth_info)
 
-        # load constants
-        consts = self.settings.ideal_const*np.ones(self.nchannels, dtype=np.complex)
-        print "\tLoading ideal constants..."; step_time = time.time()
-        consts_real = float2fixed(self.consts_nbits, self.consts_bin_pt, np.real(consts))
-        consts_imag = float2fixed(self.consts_nbits, self.consts_bin_pt, np.imag(consts))
-        self.fpga.write_bram_data(self.settings.const_brams_info, 
-            [consts_real, consts_imag])
-        print "\tdone (" + str(time.time() - step_time) + "[s])"
-        time.sleep(5)
-        ideal_syn = self.fpga.get_bram_data(self.settings.synth_info)
+        # negative constants
+        self.load_constants(consts)
+        time.sleep(sleep_time)
+        self.synfigure.fig.canvas.set_window_title('LNR Computation ' + label + ' Neg')
+        syn_neg = self.fpga.get_bram_data(self.settings.synth_info)
 
-        consts = cal_consts
-        print "\tLoading calibration constants..."; step_time = time.time()
-        consts_real = float2fixed(self.consts_nbits, self.consts_bin_pt, np.real(consts))
-        consts_imag = float2fixed(self.consts_nbits, self.consts_bin_pt, np.imag(consts))
-        self.fpga.write_bram_data(self.settings.const_brams_info, 
-            [consts_real, consts_imag])
-        print "\tdone (" + str(time.time() - step_time) + "[s])"
-        time.sleep(5)
-        syn = self.fpga.get_bram_data(self.settings.synth_info)
-
-        # plot cancellation
-        a2_plot = self.scale_dbfs_spec_data(a2, self.settings.spec_info)
-        ideal_syn_plot = self.scale_dbfs_spec_data(ideal_syn, self.settings.synth_info)
-        syn_plot = self.scale_dbfs_spec_data(syn, self.settings.synth_info)
-        self.synfigure.axes[0].plot([a2_plot, ideal_syn_plot, syn_plot])
+        # cancellation computation
+        lnr = np.array(syn_neg, dtype=np.float64) / np.array(syn_pos, dtype=np.float64)
 
         # save syn data
-        if self.save_data:
-            np.savez(self.datadir+"/cancellation", 
-                uncalibrated=a2_plot, ideal=ideal_syn_plot, calibrated=syn_plot)
+        np.savez(syn_datadir+"/cancellation",
+            syn_pos=syn_pos, 
+            syn_usb_neg=syn_usb_neg, syn_lsb_neg=syn_lsb_neg,
+            lnr_usb=lnr_usb, lnr_lsb=lnr_lsb)
+
 
     def print_cancellation_plot(self):
         """

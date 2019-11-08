@@ -11,7 +11,7 @@ from ..pocket_correlator.angle_diff_axis import AngleDiffAxis
 from cancellation_axis import CancellationAxis
 from ..digital_sideband_separation.dss_calibrator import get_lo_combinations, float2fixed
 
-class BmNoiseCalibrator(Experiment):
+class BmNoiseLnrComputation(Experiment):
     """
     Class to calibrate balance mixer using broadband
     noise input.
@@ -50,12 +50,15 @@ class BmNoiseCalibrator(Experiment):
         self.testinfo = {'bw'               : self.bw,
                          'nchannels'        : self.nchannels,
                          'saved_params'     : self.settings.saved_params,
+                         'cal_acc_len'      : self.fpga.read_reg(self.settings.spec_info['acc_len_reg']),
+                         'syn_acc_len'      : self.fpga.read_reg(self.settings.synth_info['acc_len_reg']),
                          'lo_combinations'  : self.lo_combinations}
 
-        if self.save_data:
-            os.mkdir(self.datadir)
-            with open(self.datadir + '/testinfo.json', 'w') as jsonfile:
-                json.dump(self.testinfo, jsonfile, indent=4)
+        os.mkdir(self.datadir)
+        with open(self.datadir + '/testinfo.json', 'w') as jsonfile:
+            json.dump(self.testinfo, jsonfile, indent=4)
+
+        np.save(self.datadir+'/freqs', self.freqs)
 
     def run_bm_noise_test(self):
         """
@@ -72,15 +75,9 @@ class BmNoiseCalibrator(Experiment):
         a2, b2, ab = self.compute_ab_params()
         print "\tdone (" + str(time.time() - step_time) + "[s])" 
 
-        # save ab ratios
-        if self.save_data:
-            # saving a2, b2 and ab as usb and lsb to make it
-            # compatible with tone calibration
-            #np.savez(self.datadir+'/ab_params', 
-            #    a2_usb=a2, b2_usb=b2, ab_usb=ab,
-            #    a2_lsb=a2, b2_lsb=b2, ab_lsb=ab)
-            np.savez(self.datadir+'/ab_params', 
-                a2=a2, b2=b2, ab=ab)
+        np.save(self.datadir+'/input_a2', a2)
+        np.save(self.datadir+'/input_b2', b2)
+        np.save(self.datadir+'/input_ab', ab)
 
         consts = -1.0 * ab / b2
         
@@ -90,21 +87,21 @@ class BmNoiseCalibrator(Experiment):
             print("Ideal constant LNR computation")
             step_time = time.time()
             consts = np.ones(self.nchannels, dtype=np.complex)
-            lnr_ideal_usb, lnr_ideal_lsb = self.compute_cancellation(consts, 'ideal')
+            self.compute_cancellation(consts, 'ideal')
             print "done (" + str(time.time() - step_time) + "[s])"
 
             # calibrated constants
             print("Calibrated constant LNR computation")
             step_time = time.time()
-            consts = self.get_constants()
-            lnr_cal_usb, lnr_cal_lsb = self.compute_cancellation(consts, 'cal')
+            consts = -1.0 * ab / b2
+            self.compute_cancellation(consts, 'cal')
             print "done (" + str(time.time() - step_time) + "[s])"
         
         if self.settings.do_analog:
             # Analog computation
             print("Analog LNR computation")
             step_time = time.time()
-            lnr_analog_usb, lnr_analog_lsb = self.compute_analog_cancellation()
+            self.compute_analog_cancellation()
             print "done (" + str(time.time() - step_time) + "[s])" 
         
         plt.pause(self.settings.pause_time)
@@ -113,21 +110,16 @@ class BmNoiseCalibrator(Experiment):
         # turn off sources
         #turn_off_sources(self.lo_sources)
 
-        if self.save_data:
-            # print canccellation (full) plot
-            if self.settings.compute_cancellation:
-                self.print_cancellation_plot()
+        # compress saved data
+        print "\tCompressing data..."; step_time = time.time()
+        tar = tarfile.open(self.datadir + ".tar.gz", "w:gz")
+        for datafile in os.listdir(self.datadir):
+            tar.add(self.datadir + '/' + datafile, datafile)
+        tar.close()
+        print "\tdone (" + str(time.time() - step_time) + "[s])"
 
-            # compress saved data
-            print "\tCompressing data..."; step_time = time.time()
-            tar = tarfile.open(self.datadir + ".tar.gz", "w:gz")
-            for datafile in os.listdir(self.datadir):
-                tar.add(self.datadir + '/' + datafile, datafile)
-            tar.close()
-            print "\tdone (" + str(time.time() - step_time) + "[s])"
-
-            # delete data folder
-            shutil.rmtree(self.datadir)
+        # delete data folder
+        shutil.rmtree(self.datadir)
 
         print "Total time: " + str(time.time() - initial_time) + "[s]"
         print("Close plots to finish.")
@@ -158,60 +150,84 @@ class BmNoiseCalibrator(Experiment):
         # plot the magnitude ratio and phase difference
         self.calfigure.axes[2].plot([np.abs(ab_ratios)])
         self.calfigure.axes[3].plot([np.angle(ab_ratios, deg=True)])
+        plt.pause(self.settings.pause_time)
 
         return cal_a2, cal_b2, cal_ab
 
-    def compute_cancellation(self, cal_consts):
+    def compute_cancellation(self, consts, label):
         """
         Compute LNR for a set of constants.
         """
-        sleep_time = 1
+        sleep_time = 5
         
         # positive constants
         self.load_constants(consts)
         time.sleep(sleep_time)
-        self.synfigure.fig.canvas.set_window_title('LNR Computation ' + label + ' Pos')
-        syn_pos = self.fpga.get_bram_data(self.settings.synth_info)
+        self.synfigure.fig.canvas.set_window_title('LNR Computation ' + label + ' RF')
+        pow_rf = self.fpga.get_bram_data(self.settings.synth_info)
+
+        # plot pow
+        pow_rf_plot = self.scale_dbfs_spec_data(pow_rf, self.settings.synth_info)
+        self.synfigure.axes[0].plot(pow_rf_plot)
+        plt.pause(self.settings.pause_time)
 
         # negative constants
-        self.load_constants(consts)
+        self.load_constants(-1*consts)
         time.sleep(sleep_time)
-        self.synfigure.fig.canvas.set_window_title('LNR Computation ' + label + ' Neg')
-        syn_neg = self.fpga.get_bram_data(self.settings.synth_info)
+        self.synfigure.fig.canvas.set_window_title('LNR Computation ' + label + ' LO')
+        pow_lo = self.fpga.get_bram_data(self.settings.synth_info)
+        plt.pause(self.settings.pause_time)
+
+        # plot pow
+        pow_lo_plot = self.scale_dbfs_spec_data(pow_lo, self.settings.synth_info)
+        self.synfigure.axes[0].plot(pow_lo_plot)
 
         # cancellation computation
-        lnr = np.array(syn_neg, dtype=np.float64) / np.array(syn_pos, dtype=np.float64)
+        lnr = np.array(pow_lo, dtype=np.float64) / np.array(pow_rf, dtype=np.float64)
 
         # save syn data
-        np.savez(syn_datadir+"/cancellation",
-            syn_pos=syn_pos, 
-            syn_usb_neg=syn_usb_neg, syn_lsb_neg=syn_lsb_neg,
-            lnr_usb=lnr_usb, lnr_lsb=lnr_lsb)
+        np.save(syn_datadir+"/" + label + "_pow_rf", pow_rf) 
+        np.save(syn_datadir+"/" + label + "_pow_lo", pow_lo) 
+        np.save(syn_datadir+"/" + label + "_lnr", lnr) 
 
-
-    def print_cancellation_plot(self):
+    def compute_cancellation_analog(self):
         """
-        Print cancellation plot using the data saved from the test.
+        Compute analog LNR.
         """
-        fig = plt.figure()
-        for lo_comb in self.lo_combinations:
-            #lo_label = '_'.join(['LO'+str(i+1)+'_'+str(lo/1e3)+'GHZ' for i,lo in enumerate(lo_comb)]) 
-            datadir = self.datadir #+ '/' + lo_label
-
-            cancellation_data = np.load(datadir + '/cancellation.npz')
-            
-            freqs = lo_comb[0]/1.0e3 + sum(lo_comb[1:])/1.0e3 + self.freqs/1.e3
-            
-            colors = plt.rcParams['axes.prop_cycle'].by_key()['color']
-            plt.plot(freqs, cancellation_data['uncalibrated'], colors[0])
-            plt.plot(freqs, cancellation_data['ideal'], colors[1])
-            plt.plot(freqs, cancellation_data['calibrated'], colors[2])
-            plt.grid()
-            plt.xlabel('Frequency [GHz]')
-            plt.ylabel('Noise Power [dB]')
-            # legend
-            handles = [Rectangle((0,0),1,1,color=c,ec="k") for c in colors[:3]]
-            labels= ["uncalibrated", "ideal constants", "calibrated constants"]
-            plt.legend(handles, labels)
+        sleep_time = 5
         
-        plt.savefig(self.datadir + '/cancellation.pdf', bbox_inches='tight')
+        # load zero constants, to avoid digital combination
+        consts = np.zeros(self.nchannels, dtype=np.complex)
+        self.load_constants(consts)
+
+        # 0 degrees combiner
+        self.test_source.turn_output_off()
+        raw_input("Put 0 degree combiner and press enter...")
+        self.test_source.turn_output_on()
+        time.sleep(sleep_time)
+        self.synfigure.fig.canvas.set_window_title('LNR Computation ' + label + ' RF')
+        pow_rf = self.fpga.get_bram_data(self.settings.synth_info)
+
+        # plot pow
+        pow_rf_plot = self.scale_dbfs_spec_data(pow_rf, self.settings.synth_info)
+        self.synfigure.axes[0].plot(pow_rf_plot)
+
+        # 180 degrees combiner
+        self.test_source.turn_output_off()
+        raw_input("Put 180 degree combiner and press enter...")
+        self.test_source.turn_output_on()
+        time.sleep(sleep_time)
+        self.synfigure.fig.canvas.set_window_title('LNR Computation ' + label + ' LO')
+        pow_lo = self.fpga.get_bram_data(self.settings.synth_info)
+
+        # plot pow
+        pow_lo_plot = self.scale_dbfs_spec_data(pow_lo, self.settings.synth_info)
+        self.synfigure.axes[0].plot(pow_lo_plot)
+
+        # cancellation computation
+        lnr = np.array(pow_lo, dtype=np.float64) / np.array(pow_rf, dtype=np.float64)
+
+        # save syn data
+        np.save(syn_datadir+"/analog_pow_rf", pow_rf)
+        np.save(syn_datadir+"/analog_pow_lo", pow_lo)
+        np.save(syn_datadir+"/analog_lnr", lnr) 

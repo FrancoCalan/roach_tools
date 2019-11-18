@@ -45,80 +45,94 @@ class BmAutoCalibrator(Experiment):
         initial_time = time.time()
         # first get calibration constants
         print "\tCompute calibration constants..."; step_time = time.time()
-        time.sleep(sleep_time)
+        time.sleep(5)
         ab_ratios, cal_a2, cal_b2, cal_ab = self.compute_calibration()
         print "\tdone (" + str(time.time() - step_time) + "[s])"
 
         ###############################################################
-        print "### Computing parameters for cold source ###"
-        [zero_cold_a, zero_cold_b] = self.get_single_ended_data()
+        if self.settings.do_digital:
+            print "### Computing parameters for cold source ###"
+            [zero_cold_a, zero_cold_b] = self.get_single_ended_data()
 
-        consts = 1*np.ones(self.nchannels, dtype=np.complex)
-        rf_cold_ideal = self.get_synth_data("Loading ideal constants RF (1) and getting data...", consts)
+            consts = 1*np.ones(self.nchannels, dtype=np.complex)
+            rf_cold_ideal = self.get_synth_data("Loading ideal constants RF (1) and getting data...", consts)
 
-        consts = -1*np.ones(self.nchannels, dtype=np.complex)
-        lo_cold_ideal = self.get_synth_data("Loading ideal constants LO (-1) and getting data...", consts)
+            consts = -1*np.ones(self.nchannels, dtype=np.complex)
+            lo_cold_ideal = self.get_synth_data("Loading ideal constants LO (-1) and getting data...", consts)
 
-        consts = -1*ab_ratios
-        rf_cold_cal = self.get_synth_data("Loading calibrated constants RF and getting data...", consts)
+            consts = -1*ab_ratios
+            rf_cold_cal = self.get_synth_data("Loading calibrated constants RF and getting data...", consts)
 
-        consts = 1*ab_ratios
-        lo_cold_cal = self.get_synth_data("Loading calibrated constants LO and getting data...", consts)
+            consts = 1*ab_ratios
+            lo_cold_cal = self.get_synth_data("Loading calibrated constants LO and getting data...", consts)
 
         ###############################################################
-        raw_input("Now set the noise source to hot and press start...")
-        #print "Setting the source to hot..."
-        #self.noise_source.write('OUTPUT CH1,ON')
-        #time.sleep(1)
-        [zero_hot_a, zero_hot_b] = self.get_single_ended_data()
+            raw_input("Now set the noise source to hot and press start...")
+            #print "Setting the source to hot..."
+            #self.noise_source.write('OUTPUT CH1,ON')
+            #time.sleep(1)
+            [zero_hot_a, zero_hot_b] = self.get_single_ended_data()
 
-        consts = 1*np.ones(self.nchannels, dtype=np.complex)
-        rf_hot_ideal = self.get_synth_data("Loading ideal constants RF (1) and getting data...", consts)
+            consts = 1*np.ones(self.nchannels, dtype=np.complex)
+            rf_hot_ideal = self.get_synth_data("Loading ideal constants RF (1) and getting data...", consts)
 
-        consts = -1*np.ones(self.nchannels, dtype=np.complex)
-        lo_hot_ideal = self.get_synth_data("Loading ideal constants LO (-1) and getting data...", consts)
+            consts = -1*np.ones(self.nchannels, dtype=np.complex)
+            lo_hot_ideal = self.get_synth_data("Loading ideal constants LO (-1) and getting data...", consts)
 
-        consts = -1*ab_ratios
-        rf_hot_cal = self.get_synth_data("Loading calibrated constants RF and getting data...", consts)
+            consts = -1*ab_ratios
+            rf_hot_cal = self.get_synth_data("Loading calibrated constants RF and getting data...", consts)
 
-        consts = 1*ab_ratios
-        lo_hot_cal = self.get_synth_data("Loading calibrated constants LO and getting data...", consts)
-
-        ##############################################################
-        raw_input("Now turn off the LO noise and press start...")
-        [zero_hot_a_nolo, zero_hot_b_nolo] = self.get_single_ended_data()
-
-        consts = 1*np.ones(self.nchannels, dtype=np.complex)
-        rf_hot_ideal_nolo = self.get_synth_data("Loading ideal constants RF (1) and getting data...", consts)
-
-        consts = -1*np.ones(self.nchannels, dtype=np.complex)
-        lo_hot_ideal_nolo = self.get_synth_data("Loading ideal constants LO (-1) and getting data...", consts)
-
-        consts = -1*ab_ratios
-        rf_hot_cal_nolo = self.get_synth_data("Loading calibrated constants RF and getting data...", consts)
-
-        consts = 1*ab_ratios
-        lo_hot_cal_nolo = self.get_synth_data("Loading calibrated constants LO and getting data...", consts)
+            consts = 1*ab_ratios
+            lo_hot_cal = self.get_synth_data("Loading calibrated constants LO and getting data...", consts)
 
         ##############################################################
-        raw_input("Now set the noise source to cold and press start...")
-        #print "Setting the source to cold..."
-        #self.noise_source.write('OUTPUT CH1,OFF')
-        #time.sleep(1)
-        [zero_cold_a_nolo, zero_cold_b_nolo] = self.get_single_ended_data()
+            raw_input("Now turn off the LO noise and press start...")
+            [zero_hot_a_nolo, zero_hot_b_nolo] = self.get_single_ended_data()
 
-        consts = 1*np.ones(self.nchannels, dtype=np.complex)
-        rf_cold_ideal_nolo = self.get_synth_data("Loading ideal constants RF (1) and getting data...", consts)
+            consts = 1*np.ones(self.nchannels, dtype=np.complex)
+            rf_hot_ideal_nolo = self.get_synth_data("Loading ideal constants RF (1) and getting data...", consts)
 
-        consts = -1*np.ones(self.nchannels, dtype=np.complex)
-        lo_cold_ideal_nolo = self.get_synth_data("Loading ideal constants LO (-1) and getting data...", consts)
+            consts = -1*np.ones(self.nchannels, dtype=np.complex)
+            lo_hot_ideal_nolo = self.get_synth_data("Loading ideal constants LO (-1) and getting data...", consts)
 
-        consts = -1*ab_ratios
-        rf_cold_cal_nolo = self.get_synth_data("Loading calibrated constants RF and getting data...", consts)
+            consts = -1*ab_ratios
+            rf_hot_cal_nolo = self.get_synth_data("Loading calibrated constants RF and getting data...", consts)
 
-        consts = 1*ab_ratios
-        lo_cold_cal_nolo = self.get_synth_data("Loading calibrated constants LO and getting data...", consts)
+            consts = 1*ab_ratios
+            lo_hot_cal_nolo = self.get_synth_data("Loading calibrated constants LO and getting data...", consts)
 
+        ##############################################################
+            raw_input("Now set the noise source to cold and press start...")
+            #print "Setting the source to cold..."
+            #self.noise_source.write('OUTPUT CH1,OFF')
+            #time.sleep(1)
+            [zero_cold_a_nolo, zero_cold_b_nolo] = self.get_single_ended_data()
+
+            consts = 1*np.ones(self.nchannels, dtype=np.complex)
+            rf_cold_ideal_nolo = self.get_synth_data("Loading ideal constants RF (1) and getting data...", consts)
+
+            consts = -1*np.ones(self.nchannels, dtype=np.complex)
+            lo_cold_ideal_nolo = self.get_synth_data("Loading ideal constants LO (-1) and getting data...", consts)
+
+            consts = -1*ab_ratios
+            rf_cold_cal_nolo = self.get_synth_data("Loading calibrated constants RF and getting data...", consts)
+
+            consts = 1*ab_ratios
+            lo_cold_cal_nolo = self.get_synth_data("Loading calibrated constants LO and getting data...", consts)
+
+        ##############################################################
+        if self.settings.do_analog:
+            raw_input("Now put the 0 degree combiner and press start...")
+            raw_input("And remember to turn on the noise source...")
+            rf_cold_analog = self.get_analog_data()
+            raw_input("Now set the noise source to hot and press start...")
+            rf_hot_analog = self.get_analog_data()
+            raw_input("Now put the 180 degree combiner and press start...")
+            lo_hot_analog = self.get_analog_data()
+            raw_input("Now set the noise source to cold and press start...")
+            lo_cold_analog = self.get_analog_data()
+
+        ##############################################################
 
         print "Saving data..."
         datetime_now = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
@@ -144,11 +158,14 @@ class BmAutoCalibrator(Experiment):
             rf_cold_ideal_nolo=rf_cold_ideal_nolo, 
             rf_cold_cal_nolo  =rf_cold_cal_nolo,
             rf_hot_ideal_nolo =rf_hot_ideal_nolo, 
-            rf_hot_cal_nolo   =rf_hot_cal_nolo)
+            rf_hot_cal_nolo   =rf_hot_cal_nolo,
             lo_cold_ideal_nolo=lo_cold_ideal_nolo, 
             lo_cold_cal_nolo  =lo_cold_cal_nolo,
             lo_hot_ideal_nolo =lo_hot_ideal_nolo, 
-            lo_hot_cal_nolo   =lo_hot_cal_nolo)
+            lo_hot_cal_nolo   =lo_hot_cal_nolo,
+            # analog data
+            rf_cold_analog=rf_cold_analog, rf_hot_analog=rf_hot_analog,
+            lo_cold_analog=lo_cold_analog, lo_hot_analog=lo_hot_analog)
 
         print "Total time: " + str(time.time() - initial_time) + "[s]"
 
@@ -178,13 +195,13 @@ class BmAutoCalibrator(Experiment):
 
         return ab_ratios, cal_a2, cal_b2, cal_ab
 
-    def get_signle_ended_data(self):
+    def get_single_ended_data(self):
         sleep_time = 5
-        print msg; step_time = time.time()
+        print "Getting single ended data..."; step_time = time.time()
         time.sleep(sleep_time)
         [a, b] = self.fpga.get_bram_data(self.settings.spec_info)
         print "\tdone (" + str(time.time() - step_time) + "[s])"
-        return pwr_data
+        return [a, b]
 
     def get_synth_data(self, msg, consts):
         sleep_time = 5
@@ -192,6 +209,15 @@ class BmAutoCalibrator(Experiment):
         self.load_constants(consts)
         time.sleep(sleep_time)
         pwr_data = self.fpga.get_bram_data(self.settings.synth_info)
+        self.plot_synth(pwr_data)
+        print "\tdone (" + str(time.time() - step_time) + "[s])"
+        return pwr_data
+
+    def get_analog_data(self):
+        sleep_time = 5
+        print "Getting analog data..."; step_time = time.time()
+        time.sleep(sleep_time)
+        pwr_data = self.fpga.get_bram_data(self.settings.spec_info)[0]
         self.plot_synth(pwr_data)
         print "\tdone (" + str(time.time() - step_time) + "[s])"
         return pwr_data

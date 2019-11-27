@@ -3,6 +3,7 @@ import numpy as np
 from itertools import chain
 import corr
 from dummies.dummy_fpga import DummyFpga
+import qdr
 
 class CalanFpga():
     """
@@ -88,6 +89,10 @@ class CalanFpga():
         elif self.settings.upload:
             print "Upload bof without programming it is not supported."
             exit()
+
+        # check if qdr is used
+        if hasattr(self.settings, 'qdr'):
+            self.calibrate_qdr(self.settings.qdr)
 
         self.estimate_clock()
         self.set_reset_regs()
@@ -455,6 +460,18 @@ class CalanFpga():
         print "done"
 
         return dram_data
+
+    def calibrate_qdr(self, qdr_name):
+        """
+        Calibrate QDR with the CASPER script.
+        :param qdr_name: string name of the qdr to calibrate.
+        """
+        print "Calibrating QDR..."
+        my_qdr = qdr.Qdr(self.fpga, qdr_name)
+        my_qdr.qdr_cal(fail_hard=True, verbosity=1)
+        time.sleep(0.1)
+        print "done"
+        
 
 def interleave_array(a):
     """

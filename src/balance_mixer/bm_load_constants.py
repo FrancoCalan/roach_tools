@@ -1,4 +1,6 @@
 import numpy as np
+from ..experiment import Experiment, get_nchannels
+from ..digital_sideband_separation.dss_calibrator import float2fixed
 
 class BmLoadConstants(Experiment):
     """
@@ -22,10 +24,10 @@ class BmLoadConstants(Experiment):
         """
         # get the constants
         if hasattr(self.settings, 'ideal'):
-            consts = self.settings.ideal * np.ones(self.nchannels, dtype=np.complex64)
+            consts = self.settings.ideal * np.ones(self.nchannels, dtype=np.complex)
 
         elif hasattr(self.settings, 'file'):
-            consts = np.load(self.settings.file)['ab_params']
+            consts = -1 * np.load(self.settings.file)['ab_ratios']
 
         if hasattr(self.settings, 'negate'):
             consts = -1 * consts

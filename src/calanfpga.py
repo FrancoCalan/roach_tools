@@ -68,7 +68,7 @@ class CalanFpga():
             #if fails keep the value as a string.
             try:
                 attrval = eval(attrval)
-            except NameError:
+            except (NameError, SyntaxError):
                 pass
             
             setattr(self.settings, attrname[2:], attrval)

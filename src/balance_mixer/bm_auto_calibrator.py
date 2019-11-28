@@ -123,14 +123,22 @@ class BmAutoCalibrator(Experiment):
         ##############################################################
         if self.settings.do_analog:
             raw_input("Now put the 0 degree combiner and press start...")
-            raw_input("And remember to turn on the noise source...")
+            rf_cold_analog_nolo = self.get_analog_data()
+            raw_input("Now turn on the LO noise and press start...")
             rf_cold_analog = self.get_analog_data()
             raw_input("Now set the noise source to hot and press start...")
             rf_hot_analog = self.get_analog_data()
+            raw_input("Now turn off the LO noise and press start...")
+            rf_hot_analog_nolo = self.get_analog_data()
+            #
             raw_input("Now put the 180 degree combiner and press start...")
-            lo_hot_analog = self.get_analog_data()
+            lo_hot_analog_nolo = self.get_analog_data()
             raw_input("Now set the noise source to cold and press start...")
+            lo_cold_analog_nolo = self.get_analog_data()
+            raw_input("Now turn on the LO noise and press start...")
             lo_cold_analog = self.get_analog_data()
+            raw_input("Now set the noise source to hot and press start...")
+            lo_hot_analog = self.get_analog_data()
 
         ##############################################################
 
@@ -165,7 +173,11 @@ class BmAutoCalibrator(Experiment):
             lo_hot_cal_nolo   =lo_hot_cal_nolo,
             # analog data
             rf_cold_analog=rf_cold_analog, rf_hot_analog=rf_hot_analog,
-            lo_cold_analog=lo_cold_analog, lo_hot_analog=lo_hot_analog)
+            lo_cold_analog=lo_cold_analog, lo_hot_analog=lo_hot_analog,
+            rf_cold_analog_nolo=rf_cold_analog_nolo,
+            rf_hot_analog_nolo =rf_hot_analog_nolo,
+            lo_cold_analog_nolo=lo_cold_analog_nolo,
+            lo_hot_analog_nolo =lo_hot_analog_nolo)
 
         print "Total time: " + str(time.time() - initial_time) + "[s]"
 
